@@ -150,9 +150,6 @@ struct CSolsSetCompare {
     }
 };
 
-std::mutex g_mutex_pendings_solutions;
-std::multiset<std::shared_ptr<CSolution>, CSolsSetCompare> s_pendings_solutions;
-
 class CMineThread {
 private:
     char m_prefix[19];
@@ -161,7 +158,7 @@ private:
     char m_mn_diff[33];
     std::uint32_t m_hashes_counter { HASHES_COUNTER_BEGINNING };
     mutable std::shared_mutex m_mutex_computed_hashes_count;
-    std::unique_lock<std::shared_mutex> m_unique_lock_computed_hashes_count;
+    mutable std::unique_lock<std::shared_mutex> m_unique_lock_computed_hashes_count;
     std::uint32_t m_computed_hashes_count { 0 };
     MD5Context m_md5_context;
     char m_noso_hash_buffer[33];
@@ -199,10 +196,21 @@ public:
 
 class CCommThread {
 private:
+    static std::default_random_engine s_random_engine;
+    mutable std::mutex m_mutex_solutions;
+    mutable std::unique_lock<std::mutex> m_unique_lock_solutions;
     std::vector<std::shared_ptr<CNodeInet>> m_node_inets;
     std::vector<std::shared_ptr<CNodeInet>> m_node_inets_poor;
-    static std::default_random_engine s_random_engine;
-    CCommThread() {
+    std::multiset<std::shared_ptr<CSolution>, CSolsSetCompare> m_solutions;
+
+    std::uint32_t accepted_solutions_count = { 0 };
+    std::uint32_t rejected_solutions_count = { 0 };
+    std::uint32_t failured_solutions_count = { 0 };
+    std::uint32_t disposed_solutions_count = { 0 };
+    std::uint32_t pendings_solutions_count = { 0 };
+    std::uint32_t passover_solutions_count = { 0 };
+    CCommThread()
+        : m_unique_lock_solutions { m_mutex_solutions, std::defer_lock } {
         for( auto sn : g_seed_nodes )
             m_node_inets.push_back( std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ) ) );
     }
@@ -216,6 +224,35 @@ public:
     static std::shared_ptr<CCommThread> GetInstance() {
         static std::shared_ptr<CCommThread> singleton { new CCommThread() };
         return singleton;
+    }
+    void addSolution( std::uint32_t blck, const char base[33], const char hash[33], const char diff[33] ) {
+        m_unique_lock_solutions.lock();
+        m_solutions.insert( std::make_shared<CSolution>( blck, base, hash, diff ) );
+        m_unique_lock_solutions.unlock();
+    }
+    void clearSolutions() {
+        m_unique_lock_solutions.lock();
+        m_solutions.clear();
+        m_unique_lock_solutions.unlock();
+    }
+    std::shared_ptr<CSolution> bestSolution() {
+        std::shared_ptr<CSolution> solution { nullptr };
+        m_unique_lock_solutions.lock();
+        if ( m_solutions.size() > 0 ) {
+            auto itor_best = m_solutions.begin();
+            solution = *itor_best;
+            m_solutions.erase( itor_best );
+            // for ( auto s : m_solutions ) {
+            //     g_disposed_solutions.insert( s );
+            //     std::cout << "\tPASSOVER>>"
+            //         << "blck[" << s->m_blck << "]diff[" << s->m_diff
+            //         << "]hash[" << s->m_hash << "]base[" << s->m_base << "]" << std::endl;
+            // }
+            passover_solutions_count += m_solutions.size();
+            m_solutions.clear();
+        } else solution = nullptr;
+        m_unique_lock_solutions.unlock();
+        return solution;
     }
     void comm();
 };
@@ -241,9 +278,7 @@ std::uint32_t g_total_disposed_solutions_count { 0 };
 std::uint32_t g_total_passover_solutions_count { 0 };
 std::set<std::uint32_t> g_mined_blcks;
 std::vector<std::shared_ptr<CMineThread>> g_mineObjects;
-std::shared_ptr<CCommThread> g_commObjects = CCommThread::GetInstance();
 std::vector<std::thread> g_mineThreads;
-
 
 int main( int argc, char *argv[] ) {
     signal(SIGINT, signal_callback_handler);
@@ -281,7 +316,7 @@ int main( int argc, char *argv[] ) {
     };
     for ( int i = 0; i < g_threads_count - 1; i++ )
         g_mineObjects.push_back( std::make_shared<CMineThread>( minePrefix( i ).c_str() ) );
-    std::thread commThread( &CCommThread::comm, g_commObjects );
+    std::thread commThread( &CCommThread::comm, CCommThread::GetInstance() );
     for ( int i = 0; i < g_threads_count - 1; i++ )
         g_mineThreads.push_back( std::move( std::thread( &CMineThread::mine, g_mineObjects[i] ) ) );
     commThread.join();
@@ -332,8 +367,6 @@ void CMineThread::mine() {
     input[len + mod] = '\0';
     assert( strlen( input ) == 128 );
 
-    std::unique_lock<std::mutex> unique_lock_pendings_solutions( g_mutex_pendings_solutions, std::defer_lock );
-
     while ( g_loop_main ) {
         std::uint32_t prev_blck_no { 0 };
         bool first_takenap { true };
@@ -362,9 +395,7 @@ void CMineThread::mine() {
                 const char *hash { makeNosohash( input, m_noso_hash_buffer, m_noso_stat_buffer, &m_md5_context ) };
                 const char *diff { makeNosodiff( hash, m_lb_hash, m_noso_diff_buffer ) };
                 if ( strcmp( diff, m_mn_diff ) < 0 ) { // && strcmp( m_mn_diff, NOSO_MAX_DIFF ) < 0 )
-                    unique_lock_pendings_solutions.lock();
-                    s_pendings_solutions.insert( std::make_shared<CSolution>( m_blck_no + 1, base, hash, diff ) );
-                    unique_lock_pendings_solutions.unlock();
+                    CCommThread::GetInstance()->addSolution( m_blck_no + 1, base, hash, diff );
                 }
                 m_hashes_counter ++;
                 computed_hashes_count ++;
@@ -378,17 +409,10 @@ void CMineThread::mine() {
 }
 
 void CCommThread::comm() {
-    std::uint32_t accepted_solutions_count = { 0 };
-    std::uint32_t rejected_solutions_count = { 0 };
-    std::uint32_t failured_solutions_count = { 0 };
-    std::uint32_t disposed_solutions_count = { 0 };
-    std::uint32_t pendings_solutions_count = { 0 };
-    std::uint32_t passover_solutions_count = { 0 };
     std::uint32_t blck_no { 0 };
     char lb_hash[33];
     char mn_diff[33];
     char new_mn_diff[33];
-    std::unique_lock<std::mutex> unique_lock_pendings_solutions( g_mutex_pendings_solutions, std::defer_lock );
     std::vector<std::string> accepted_hashes;
 
     auto report = [&]( auto begin_blck ) {
@@ -439,21 +463,7 @@ void CCommThread::comm() {
         if ( !firstIter && elapsed_submit.count() >= SUBMIT_CIRCLE_SECONDS && utc_time() % 600 >= 5 ) {
             std::shared_ptr<CSolution> solution { nullptr };
             do { // BEGIN } while ( g_loop_main && solution != nullptr );
-                unique_lock_pendings_solutions.lock();
-                if ( s_pendings_solutions.size() > 0 ) {
-                    auto itor_best = s_pendings_solutions.begin();
-                    solution = *itor_best;
-                    s_pendings_solutions.erase( itor_best );
-                    // for ( auto s : s_pendings_solutions ) {
-                    //     g_disposed_solutions.insert( s );
-                    //     std::cout << "\tPASSOVER>>"
-                    //         << "blck[" << s->m_blck << "]diff[" << s->m_diff
-                    //         << "]hash[" << s->m_hash << "]base[" << s->m_base << "]" << std::endl;
-                    // }
-                    passover_solutions_count += s_pendings_solutions.size();
-                    s_pendings_solutions.clear();
-                } else solution = nullptr;
-                unique_lock_pendings_solutions.unlock();
+                solution = this->bestSolution();
                 if ( solution != nullptr ) {
                     if ( solution->m_blck > blck_no && solution->m_diff < mn_diff ) {
                         strcpy( mn_diff, solution->m_diff.c_str() );
@@ -566,9 +576,7 @@ void CCommThread::comm() {
                 }
                 if ( blck_no > 0 ) {
                     report( begin_blck );
-                    unique_lock_pendings_solutions.lock();
-                    s_pendings_solutions.clear();
-                    unique_lock_pendings_solutions.unlock();
+                    this->clearSolutions();
                 }
                 begin_blck = std::chrono::steady_clock::now();
                 blck_no = consensus.blck_no;
