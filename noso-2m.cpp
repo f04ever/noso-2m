@@ -180,7 +180,6 @@ public:
         assert( strlen( prefix ) == 18 );
         strcpy( m_prefix, prefix );
     }
-
     std::uint32_t getComputedHashesCount() {
         std::shared_lock shared_lock_computed_hashes_count( m_mutex_computed_hashes_count );
         return m_computed_hashes_count;
@@ -188,24 +187,34 @@ public:
     void mine();
 };
 
+class CCommThread {
+private:
+    std::vector<std::shared_ptr<CNodeInet>> m_node_inets;
+    std::vector<std::shared_ptr<CNodeInet>> m_node_inets_poor;
+    CCommThread() {
+        for( auto sn : g_seed_nodes )
+            m_node_inets.push_back( std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ) ) );
+    }
+    std::tuple<bool, bool, int> syncSolution( std::uint32_t blck, const char base[28], char new_mn_diff[33] );
+    std::vector<std::shared_ptr<CNodeStatus>> syncSources( int min_nodes_count );
+public:
+    CCommThread(const CCommThread&) = delete; // Copy prohibited
+    CCommThread(CCommThread&&) = delete; // Move prohibited
+    void operator=(const CCommThread&) = delete; // Assignment prohibited
+    CCommThread& operator=(CCommThread&&) = delete; // Move assignment prohibited
+    static std::shared_ptr<CCommThread> GetInstance() {
+        static std::shared_ptr<CCommThread> singleton { new CCommThread() };
+        return singleton;
+    }
+    void comm();
+};
+
 std::time_t utc_time( );
 std::string makePrefix( int num );
 char* makeNosohash( const char input[129], char output[33], char noso_stat_buffer[129][128], MD5Context *md5_context );
 char* makeNosodiff( const char hash[33], const char target[33], char diff[33] );
 CConsensus makeConsensus( const std::vector<std::shared_ptr<CNodeStatus>> &nodes );
-std::vector<std::shared_ptr<CNodeStatus>> syncSources( int nodes_max );
-std::tuple<bool, bool, int> syncSolution( const char miner[32], const char base[28], std::uint32_t blck, char new_mn_diff[33] );
-void comm_thread();
 void signal_callback_handler( int signum );
-
-const char NOSOHASH_INPUT_FILLER_CHARS[] { "%)+/5;=CGIOSYaegk" };
-const int NOSOHASH_INPUT_FILLER_COUNT = 17; // strlen( NOSOHASH_INPUT_FILLER_CHARS );
-
-auto g_node_inets = [](){
-    std::vector<std::shared_ptr<CNodeInet>> vec;
-    for( auto sn : g_seed_nodes ) vec.push_back( std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ) ) );
-    return vec; }();
-std::vector<std::shared_ptr<CNodeInet>> g_node_inets_poor;
 
 std::string g_source { DEFAULT_SOURCE };
 bool g_loop_main { true };
@@ -220,6 +229,7 @@ std::uint32_t g_total_disposed_solutions_count = { 0 };
 std::uint32_t g_total_passover_solutions_count = { 0 };
 std::set<std::uint32_t> g_mined_blcks;
 std::vector<std::shared_ptr<CMineThread>> g_mineObjects;
+std::shared_ptr<CCommThread> g_commObjects = CCommThread::GetInstance();
 std::vector<std::thread> g_mineThreads;
 auto g_random_engine = std::default_random_engine { std::random_device {}() };
 
@@ -263,11 +273,11 @@ int main( int argc, char *argv[] ) {
         result.append( 18 - result.size(), '!' );
         return result;
     };
-    std::thread commThread( comm_thread );
-    for ( int i = 0; i < g_threads_count - 1; i++ ) {
+    for ( int i = 0; i < g_threads_count - 1; i++ )
         g_mineObjects.push_back( std::make_shared<CMineThread>( minePrefix( i ).c_str() ) );
+    std::thread commThread( &CCommThread::comm, g_commObjects );
+    for ( int i = 0; i < g_threads_count - 1; i++ )
         g_mineThreads.push_back( std::move( std::thread( &CMineThread::mine, g_mineObjects[i] ) ) );
-    }
     commThread.join();
     std::cout << "TOTAL "
         << g_total_accepted_solutions_count << " ACCEPTED "
@@ -285,11 +295,14 @@ int main( int argc, char *argv[] ) {
 }
 
 void signal_callback_handler(int signum) {
-    std::cout << "\nCtrl+C pressed!\nFinising all threads..." << std::endl;
+    std::cout << "\nCtrl+C pressed! Wait for finishing all mining threads..." << std::endl;
     g_loop_main = false;
 }
 
 void CMineThread::mine() {
+    static const char NOSOHASH_INPUT_FILLER_CHARS[] { "%)+/5;=CGIOSYaegk" };
+    static const int NOSOHASH_INPUT_FILLER_COUNT = 17; // strlen( NOSOHASH_INPUT_FILLER_CHARS );
+
     const int prefix_size = 18; // strlen( m_prefix );
     const int counter_size = 9; // std::to_string( HASHES_COUNTER_BEGINNING ).size(); // counter_size = 9 -> max 999'999'999 - 100'000'000 hashes
     char input[129];
@@ -385,7 +398,7 @@ void CMineThread::mine() {
     } // END while ( g_loop_main ) {
 }
 
-void comm_thread() {
+void CCommThread::comm() {
     std::uint32_t accepted_solutions_count = { 0 };
     std::uint32_t rejected_solutions_count = { 0 };
     std::uint32_t failured_solutions_count = { 0 };
@@ -450,7 +463,7 @@ void comm_thread() {
         // }
         std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
         if ( !firstIter && elapsed_submit.count() >= SUBMIT_CIRCLE_SECONDS ) {
-            std::shared_ptr<CSolution> solution = nullptr;
+            std::shared_ptr<CSolution> solution { nullptr };
             do { // BEGIN } while ( g_loop_main && solution != nullptr );
                 unique_lock_pendings_solutions.lock();
                 if ( s_pendings_solutions.size() > 0 ) {
@@ -482,7 +495,7 @@ void comm_thread() {
                         // std::cout << "\tSOLUTION>>"
                         //     << "blck[" << solution->m_blck << "]diff[" << solution->m_diff
                         //     << "]hash[" << solution->m_hash << "]base[" << solution->m_base << "]" << std::endl;
-                        auto [ submited, accepted, code ] = syncSolution( g_miner_address, solution->m_base.c_str(), solution->m_blck, new_mn_diff );
+                        auto [ submited, accepted, code ] = this->syncSolution( solution->m_blck, solution->m_base.c_str(), new_mn_diff );
                         if ( submited ) {
                             if ( accepted ) {
                                 accepted_solutions_count ++;
@@ -567,10 +580,10 @@ void comm_thread() {
         } // END if ( !first && elapsed_submit.count() >= SUBMIT_CIRCLE_SECONDS ) {
         std::chrono::duration<double> elapsed_update = std::chrono::steady_clock::now() - begin_update;
         if ( firstIter || elapsed_update.count() >= UPDATE_CIRCLE_SECONDS ) {
-            std::vector<std::shared_ptr<CNodeStatus>> nodes = syncSources( CONSENSUS_NODES_COUNT );
+            std::vector<std::shared_ptr<CNodeStatus>> nodes = this->syncSources( CONSENSUS_NODES_COUNT );
             while ( g_loop_main && nodes.size() < CONSENSUS_NODES_COUNT ) {
                 std::cout << utc_time() << "))TRYING SYNC NODES ..." << std::endl;
-                nodes = syncSources( CONSENSUS_NODES_COUNT );
+                nodes = this->syncSources( CONSENSUS_NODES_COUNT );
             }
             if ( !g_loop_main ) break;
             CConsensus consensus = makeConsensus( nodes );
@@ -980,26 +993,26 @@ CNodeStatus& CNodeStatus::from_nodestatus( const char *ns ) {
     return *this;
 }
 
-std::vector<std::shared_ptr<CNodeStatus>> syncSources( int min_nodes_count ) {
-    if ( g_node_inets.size() < min_nodes_count ) {
-        for ( auto ni : g_node_inets_poor ) {
+std::vector<std::shared_ptr<CNodeStatus>> CCommThread::syncSources( int min_nodes_count ) {
+    if ( m_node_inets.size() < min_nodes_count ) {
+        for ( auto ni : m_node_inets_poor ) {
             ni->initService();
-            g_node_inets.push_back( ni );
+            m_node_inets.push_back( ni );
         }
-        g_node_inets_poor.clear();
-        std::cout << "poor network reset: " << g_node_inets.size() << "/" << g_node_inets_poor.size() << std::endl;
+        m_node_inets_poor.clear();
+        std::cout << "poor network reset: " << m_node_inets.size() << "/" << m_node_inets_poor.size() << std::endl;
     }
-    std::shuffle( g_node_inets.begin(), g_node_inets.end(), g_random_engine );
+    std::shuffle( m_node_inets.begin(), m_node_inets.end(), g_random_engine );
     std::size_t nodes_count { 0 };
     std::vector<std::shared_ptr<CNodeStatus>> vec;
-    // for( auto ni : g_node_inets ) {
-    for ( auto it = g_node_inets.begin(); it != g_node_inets.end(); ) {
+    // for( auto ni : m_node_inets ) {
+    for ( auto it = m_node_inets.begin(); it != m_node_inets.end(); ) {
         const char *ns { (*it)->fetchNodestatus() };
         if( ns == nullptr ) {
             (*it)->cleanService();
-            g_node_inets_poor.push_back( *it );
-            it = g_node_inets.erase( it );
-            std::cout << "poor network found: " << g_node_inets.size() << "/" << g_node_inets_poor.size() << std::endl;
+            m_node_inets_poor.push_back( *it );
+            it = m_node_inets.erase( it );
+            std::cout << "poor network found: " << m_node_inets.size() << "/" << m_node_inets_poor.size() << std::endl;
             continue;
         }
         ++it;
@@ -1017,24 +1030,24 @@ std::vector<std::shared_ptr<CNodeStatus>> syncSources( int min_nodes_count ) {
     return vec;
 }
 
-std::tuple<bool, bool, int> syncSolution( const char miner[32], const char base[28], std::uint32_t blck, char new_mn_diff[33] ) {
-    if ( g_node_inets.size() < 1 ) {
-        for ( auto ni : g_node_inets_poor ) {
+std::tuple<bool, bool, int> CCommThread::syncSolution( std::uint32_t blck, const char base[28], char new_mn_diff[33] ) {
+    if ( m_node_inets.size() < 1 ) {
+        for ( auto ni : m_node_inets_poor ) {
             ni->initService();
-            g_node_inets.push_back( ni );
+            m_node_inets.push_back( ni );
         }
-        g_node_inets_poor.clear();
-        std::cout << "poor network reset: " << g_node_inets.size() << "/" << g_node_inets_poor.size() << std::endl;
+        m_node_inets_poor.clear();
+        std::cout << "poor network reset: " << m_node_inets.size() << "/" << m_node_inets_poor.size() << std::endl;
     }
-    std::shuffle( g_node_inets.begin(), g_node_inets.end(), g_random_engine );
+    std::shuffle( m_node_inets.begin(), m_node_inets.end(), g_random_engine );
     int count { 0 };
-    for ( auto it = g_node_inets.begin(); it != g_node_inets.end(); ) {
-        const char *sr { (*it)->submitSolution( miner, base, blck ) };
+    for ( auto it = m_node_inets.begin(); it != m_node_inets.end(); ) {
+        const char *sr { (*it)->submitSolution( g_miner_address, base, blck ) };
         if ( sr == nullptr ) {
             (*it)->cleanService();
-            g_node_inets_poor.push_back( *it );
-            it = g_node_inets.erase( it );
-            std::cout << "poor network found: " << g_node_inets.size() << "/" << g_node_inets_poor.size() << std::endl;
+            m_node_inets_poor.push_back( *it );
+            it = m_node_inets.erase( it );
+            std::cout << "poor network found: " << m_node_inets.size() << "/" << m_node_inets_poor.size() << std::endl;
             continue;
         }
         ++it;
