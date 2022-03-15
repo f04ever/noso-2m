@@ -53,7 +53,7 @@
 #define NOSO_MAX_DIFF "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 // #define B58_ALPHABET "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
-const auto seed_nodes { std::to_array<std::tuple<std::string, std::string>>(
+const auto g_seed_nodes { std::to_array<std::tuple<std::string, std::string>>(
         {
             { "23.94.21.83", "8080" },
             { "45.146.252.103", "8080" },
@@ -203,7 +203,7 @@ const int NOSOHASH_INPUT_FILLER_COUNT = 17; // strlen( NOSOHASH_INPUT_FILLER_CHA
 
 auto g_node_inets = [](){
     std::vector<std::shared_ptr<CNodeInet>> vec;
-    for( auto sn : seed_nodes ) vec.push_back( std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ) ) );
+    for( auto sn : g_seed_nodes ) vec.push_back( std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ) ) );
     return vec; }();
 std::vector<std::shared_ptr<CNodeInet>> g_node_inets_poor;
 
