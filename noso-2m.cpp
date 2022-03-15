@@ -196,7 +196,7 @@ public:
 
 class CCommThread {
 private:
-    static std::default_random_engine s_random_engine;
+    mutable std::default_random_engine m_random_engine { std::default_random_engine { std::random_device {}() } };
     mutable std::mutex m_mutex_solutions;
     mutable std::unique_lock<std::mutex> m_unique_lock_solutions;
     std::vector<std::shared_ptr<CNodeInet>> m_node_inets;
@@ -256,7 +256,6 @@ public:
     }
     void comm();
 };
-auto CCommThread::s_random_engine { std::default_random_engine { std::random_device {}() } };
 
 std::time_t utc_time( );
 std::string makePrefix( int num );
@@ -953,7 +952,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::syncSources( int min_node
         m_node_inets_poor.clear();
         std::cout << "poor network reset: " << m_node_inets.size() << "/" << m_node_inets_poor.size() << std::endl;
     }
-    std::shuffle( m_node_inets.begin(), m_node_inets.end(), s_random_engine );
+    std::shuffle( m_node_inets.begin(), m_node_inets.end(), m_random_engine );
     std::size_t nodes_count { 0 };
     std::vector<std::shared_ptr<CNodeStatus>> vec;
     for ( auto it = m_node_inets.begin(); it != m_node_inets.end(); ) {
@@ -989,7 +988,7 @@ std::tuple<bool, bool, int> CCommThread::syncSolution( std::uint32_t blck, const
         m_node_inets_poor.clear();
         std::cout << "poor network reset: " << m_node_inets.size() << "/" << m_node_inets_poor.size() << std::endl;
     }
-    std::shuffle( m_node_inets.begin(), m_node_inets.end(), s_random_engine );
+    std::shuffle( m_node_inets.begin(), m_node_inets.end(), m_random_engine );
     int count { 0 };
     for ( auto it = m_node_inets.begin(); it != m_node_inets.end(); ) {
         const char *sr { (*it)->submitSolution( g_miner_address, base, blck ) };
