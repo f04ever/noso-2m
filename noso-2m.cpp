@@ -629,8 +629,7 @@ void CCommThread::Communicate() {
 }
 
 std::time_t utc_time() {
-    std::time_t loc_now { std::time( 0 ) };
-    return std::mktime( std::gmtime( &loc_now ) );
+    return std::time( 0 );
 }
 
 const char NOSOHASH_HASHEABLE_CHARS[] { "!\"#$%&')*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" };
