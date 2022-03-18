@@ -785,7 +785,7 @@ void CCommThread::Communicate() {
                     << "]addr[" << consensus->lb_addr
                     << "]time[" << consensus->lb_time << "]" << std::endl;
             }
-            if ( mn_diff != consensus->mn_diff ) {
+            if ( blck_no < consensus->blck_no || mn_diff > consensus->mn_diff ) {
                 strcpy( mn_diff, consensus->mn_diff.c_str() );
                 for ( auto mo : g_mine_objects ) mo->UpdateHashDiff( mn_diff );
                 COUT_NOSO_TIME << "CONSENSUS"
