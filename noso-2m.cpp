@@ -45,15 +45,15 @@
 #define CONSENSUS_NODES_COUNT 3
 #define UPDATE_CIRCLE_SECONDS 10.0
 #define SUBMIT_CIRCLE_SECONDS 0.01
-#define HASHING_BATCH_SIZE 100
 #define INET_BUFFER_SIZE 1024
-#define NOSO_ADDRESS_SIZE 31
+
 #define NOSO_MAX_DIFF "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+#define NOSOHASH_COUNTER_MIN 100'000'000;
+
 // #define NOSO_B58_ALPHABET "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 #define NOSO_TIMESTAMP std::time( 0 )
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
-#define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
 
 const auto g_seed_nodes { std::to_array<std::tuple<std::string, std::string>>(
         {
@@ -64,17 +64,112 @@ const auto g_seed_nodes { std::to_array<std::tuple<std::string, std::string>>(
             { "172.245.52.208", "8080" },
             { "192.210.226.118", "8080" },
             { "194.156.88.117", "8080" },
-            // MY NODES
-            { "209.126.80.203", "8080" },
-            { "141.144.236.130", "8080" },
-            { "130.61.53.192", "8080" },
-            { "130.61.250.115", "8080" },
-            { "152.70.177.209", "8080" },
-            { "3.122.235.191", "8080" },
-            { "18.156.76.83", "8080" },
-            { "34.70.75.74", "8080" },
-            { "20.126.46.54", "8080" },
+            // // MY NODES
+            // { "209.126.80.203", "8080" },
+            // { "141.144.236.130", "8080" },
+            // { "130.61.53.192", "8080" },
+            // { "130.61.250.115", "8080" },
+            // { "152.70.177.209", "8080" },
+            // { "3.122.235.191", "8080" },
+            // { "18.156.76.83", "8080" },
+            // { "34.70.75.74", "8080" },
+            // { "20.126.46.54", "8080" },
         } ) };
+
+int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize );
+int hex_char2dec(char hexchar);
+char hex_dec2char( int hexdec );
+int nosohash_char( int num );
+std::string nosohash_prefix( int num );
+
+class CNosoHasher {
+private:
+    char m_input[129]; // 128 = 18-chars-prefix + 9 chars-counter + 31-chars-address + fill chars
+    char m_base[28]; // 27 = 18-chars-prefix + 9-chars-counter
+    char m_hash[33];
+    char m_diff[33];
+    char m_stat[129][128];
+    MD5Context m_md5_ctx;
+    void _input() {
+        memcpy( m_input + 18, m_base + 18, 9 );  // update counter part as it was updated in base
+        assert( strlen( m_input ) == 128 && std::none_of( m_input, m_input + strlen( m_input ), []( int c ){ return 33 > c || c > 126; } ) );
+    }
+    void _hash() {
+        assert( strlen( m_input ) == 128 );
+        memcpy( m_stat[0], m_input, 128 );
+        for( int row = 1; row < 129; row++ ) {
+            for( int col = 0; col < 127; col++ )
+                m_stat[row][col] = nosohash_char( m_stat[row-1][col] + m_stat[row-1][col+1] );
+            m_stat[row][127] = nosohash_char( m_stat[row-1][127] + m_stat[row-1][0] );
+        }
+        for( int i = 0; i < 32; i++ )
+            m_hash[i] = hex_dec2char( nosohash_char(
+                                        m_stat[128][ ( i * 4 ) + 0 ] +
+                                        m_stat[128][ ( i * 4 ) + 1 ] +
+                                        m_stat[128][ ( i * 4 ) + 2 ] +
+                                        m_stat[128][ ( i * 4 ) + 3 ] ) % 16 );
+        m_hash[32] = '\0';
+        assert( strlen( m_hash ) == 32 );
+    }
+    void _md5() {
+        assert( strlen( m_hash ) == 32 );
+        md5Init( &m_md5_ctx );
+        md5Update( &m_md5_ctx, (uint8_t *)m_hash, 32 );
+        md5Finalize( &m_md5_ctx );
+        sprintf( m_hash,
+                "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+                m_md5_ctx.digest[ 0], m_md5_ctx.digest[ 1],
+                m_md5_ctx.digest[ 2], m_md5_ctx.digest[ 3],
+                m_md5_ctx.digest[ 4], m_md5_ctx.digest[ 5],
+                m_md5_ctx.digest[ 6], m_md5_ctx.digest[ 7],
+                m_md5_ctx.digest[ 8], m_md5_ctx.digest[ 9],
+                m_md5_ctx.digest[10], m_md5_ctx.digest[11],
+                m_md5_ctx.digest[12], m_md5_ctx.digest[13],
+                m_md5_ctx.digest[14], m_md5_ctx.digest[15] );
+        assert( strlen( m_hash ) == 32 );
+    }
+public:
+    CNosoHasher( const char prefix[19], const char address[32] ) {
+        constexpr static const char NOSOHASH_INPUT_FILLER_CHARS[] = "%)+/5;=CGIOSYaegk";
+        constexpr static const int NOSOHASH_INPUT_FILLER_COUNT = 17; // strlen( NOSOHASH_INPUT_FILLER_CHARS );
+        assert( strlen( prefix ) == 18 && strlen( address ) == 31 );
+        memcpy( m_base, prefix, 18 );
+        sprintf( m_base + 18, "%09d", 0 ); // placehold for 9-digits-counter
+        assert( strlen( m_base ) == 27 ); // 27 = 18 + 9 = 18-chars-prefix + 9-digits-counter
+        memcpy( m_input, prefix, 18 );
+        sprintf( m_input + 18, "%09d", 0 ); // placehold for 9-digits-counter
+        memcpy( m_input + 18 + 9, address, 31 );
+        int len = 58; // 58 = 18 + 9 + 31 = 18-chars-prefix + 9-digits-counter + 31-chars-address
+        int div = ( 128 - len ) / NOSOHASH_INPUT_FILLER_COUNT;
+        int mod = ( 128 - len ) % NOSOHASH_INPUT_FILLER_COUNT;
+        for ( int i = 0; i < div; i++ ) {
+            memcpy( m_input + len, NOSOHASH_INPUT_FILLER_CHARS, NOSOHASH_INPUT_FILLER_COUNT );
+            len += NOSOHASH_INPUT_FILLER_COUNT;
+        }
+        memcpy( m_input + len, NOSOHASH_INPUT_FILLER_CHARS, mod );
+        m_input[len + mod] = '\0';
+        assert( strlen( m_input ) == 128 && std::none_of( m_input, m_input + strlen( m_input ), []( int c ){ return 33 > c || c > 126; } ) );
+    }
+    const char* GetBase( std::uint32_t counter ) {
+        sprintf( m_base + 18, "%09d", counter ); // update 9-digits-counter part
+        assert( strlen( m_base ) == 27 ); // 27 = 18 + 9 = 18-chars-prefix + 9-digits-counter
+        return m_base;
+    }
+    const char* GetHash() {
+        _input();
+        _hash();
+        _md5();
+        return m_hash;
+    }
+    const char* GetDiff( const char target[33] ) {
+        assert( strlen( m_hash ) == 32 && strlen( target ) == 32 );
+        for ( std::size_t i = 0; i < 32; i ++ )
+            m_diff[i] = toupper( hex_dec2char( abs( hex_char2dec( m_hash[ i ] ) - hex_char2dec( target[ i ] ) ) ) );
+        m_diff[32] = '\0';
+        assert( strlen( m_diff ) == 32 );
+        return m_diff;
+    }
+};
 
 class CNodeInet {
 private:
@@ -90,10 +185,32 @@ public:
     ~CNodeInet() {
         this->CleanService();
     }
-    void InitService();
-    void CleanService();
-    int FetchNodestatus( char *buffer, std::size_t buffsize );
-    int SubmitSolution( std::uint32_t blck, const char base[28], const char miner[32], char *buffer, std::size_t buffsize );
+    void InitService() {
+        if ( m_serv_info != NULL ) return;
+        struct addrinfo hints, *serv_info;
+        memset( &hints, 0, sizeof( hints ) );
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        if ( int n = getaddrinfo( this->m_host.c_str(), this->m_port.c_str(),
+                &hints, &serv_info ); n != 0 ) {
+            fprintf( stderr, "getaddrinfo: %s\n", gai_strerror(n) );
+            m_serv_info = NULL;
+        }
+        m_serv_info = serv_info;
+    }
+    void CleanService() {
+        if ( m_serv_info == NULL ) return;
+        freeaddrinfo(m_serv_info);
+        m_serv_info = NULL;
+    }
+    int FetchNodestatus( char *buffer, std::size_t buffsize ) {
+        strcpy( buffer, "NODESTATUS\n" );
+        return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
+    }
+    int SubmitSolution( std::uint32_t blck, const char base[28], const char miner[32], char *buffer, std::size_t buffsize ) {
+        snprintf( buffer, INET_BUFFER_SIZE - 1, "BESTHASH 1 2 3 4 %s %s %d %lu\n", miner, base, blck, NOSO_TIMESTAMP );
+        return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
+    }
 };
 
 struct CNodeStatus {
@@ -210,21 +327,18 @@ struct CSolsSetCompare {
 
 class CMineThread {
 private:
+    char m_address[32];
     char m_prefix[19];
     std::uint32_t m_blck_no { 0 };
     char m_lb_hash[33];
     char m_mn_diff[33];
-    std::uint32_t m_hashes_counter { 0 };
     std::uint32_t m_computed_hashes_count { 0 };
     mutable std::shared_mutex m_mutex_computed_hashes_count;
-    MD5Context m_md5_context;
-    char m_noso_hash_buffer[33];
-    char m_noso_diff_buffer[33];
-    char m_noso_stat_buffer[129][128];
 public:
-    CMineThread( const char prefix[19] ) {
-        assert( strlen( prefix ) == 18 );
+    CMineThread( const char prefix[19], const char address[32] ) {
+        assert( strlen( prefix ) == 18 && strlen( address ) == 31 );
         strcpy( m_prefix, prefix );
+        strcpy( m_address, address );
     }
     void UpdateLastBlock( std::uint32_t blck_no, const char lb_hash[33] ) {
         m_blck_no = blck_no;
@@ -277,7 +391,38 @@ private:
         for( auto sn : g_seed_nodes ) m_node_inets_good.push_back(
             std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ) ) );
     }
-    std::vector<std::shared_ptr<CNodeStatus>> SyncSources( int min_nodes_count );
+    std::vector<std::shared_ptr<CNodeStatus>> SyncSources( int min_nodes_count ) {
+        if ( m_node_inets_good.size() < min_nodes_count ) {
+            for ( auto ni : m_node_inets_poor ) {
+                ni->InitService();
+                m_node_inets_good.push_back( ni );
+            }
+            m_node_inets_poor.clear();
+            std::cout << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+        }
+        std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
+        std::size_t nodes_count { 0 };
+        std::vector<std::shared_ptr<CNodeStatus>> vec;
+        for ( auto it = m_node_inets_good.begin(); it != m_node_inets_good.end(); ) {
+            if ( (*it)->FetchNodestatus( m_status_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+                (*it)->CleanService();
+                m_node_inets_poor.push_back( *it );
+                it = m_node_inets_good.erase( it );
+                std::cout << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+                continue;
+            }
+            ++it;
+            try {
+                vec.push_back( std::make_shared<CNodeStatus>( m_status_buffer ) );
+                nodes_count ++;
+                if ( nodes_count >= min_nodes_count ) break;
+            }
+            catch ( const std::exception &e ) {
+                std::cout << e.what();
+            }
+        }
+        return vec;
+    }
 public:
     CCommThread( const CCommThread& ) = delete; // Copy prohibited
     CCommThread( CCommThread&& ) = delete; // Move prohibited
@@ -315,14 +460,72 @@ public:
         m_mutex_solutions.unlock();
         return best_solution;
     }
+    std::tuple<bool, bool, int> PushSolution( std::uint32_t blck, const char base[28], const char address[32], char new_mn_diff[33] ) {
+        if ( m_node_inets_good.size() < 1 ) {
+            for ( auto ni : m_node_inets_poor ) {
+                ni->InitService();
+                m_node_inets_good.push_back( ni );
+            }
+            m_node_inets_poor.clear();
+            std::cout << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+        }
+        std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
+        for ( auto it = m_node_inets_good.begin(); it != m_node_inets_good.end(); ) {
+            if ( (*it)->SubmitSolution( blck, base, address, m_submit_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+                (*it)->CleanService();
+                m_node_inets_poor.push_back( *it );
+                it = m_node_inets_good.erase( it );
+                std::cout << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+                continue;
+            }
+            ++it;
+            assert( strlen( m_submit_buffer ) >= 40 + 2 ); //len=70[True Diff(32) Hash(32)] OR len=40[False Diff(32) #(1)] + "\r\n"
+            if ( strncmp( m_submit_buffer, "True", 4 ) == 0 ) {
+                assert( strlen( m_submit_buffer ) == 70 + 2 ); //len=70[True Diff(32) Hash(32)] + "\r\n"
+                strncpy( new_mn_diff, m_submit_buffer + 5, 32 );
+                new_mn_diff[32] = '\0';
+                return std::make_tuple( true, true, 0 );
+            }
+            else {
+                assert( strlen( m_submit_buffer ) == 40 + 2 && strncmp( m_submit_buffer, "False", 5 ) == 0
+                    && '1' <= m_submit_buffer[39] && m_submit_buffer[39] <= '7' ); // len=40[False Diff(32) #(1)] + "\r\n"
+                strncpy( new_mn_diff, m_submit_buffer + 6, 32 );
+                new_mn_diff[32] = '\0';
+                return std::make_tuple( true, false, m_submit_buffer[39] - '0' );
+            }
+        }
+        return std::make_tuple( false, false, 0 );
+    }
+    std::shared_ptr<CConsensus> MakeConsensus() {
+        std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->SyncSources( CONSENSUS_NODES_COUNT );
+        if ( status_of_nodes.size() < CONSENSUS_NODES_COUNT ) return nullptr;
+        const auto max_freq = []( const auto &freq ) {
+            return std::max_element(
+                std::begin( freq ), std::end( freq ),
+                [] ( const auto &p1, const auto &p2 ) {
+                    return p1.second < p2.second; } )->first;
+        };
+        m_freq_blck_no.clear();
+        m_freq_lb_hash.clear();
+        m_freq_mn_diff.clear();
+        m_freq_lb_time.clear();
+        m_freq_lb_addr.clear();
+        for( auto ns : status_of_nodes ) {
+            ++m_freq_blck_no [ns->blck_no];
+            ++m_freq_lb_hash [ns->lb_hash];
+            ++m_freq_mn_diff [ns->mn_diff];
+            ++m_freq_lb_time [ns->lb_time];
+            ++m_freq_lb_addr [ns->lb_addr];
+        }
+        return std::make_shared<CConsensus>(
+            max_freq( m_freq_blck_no ),
+            max_freq( m_freq_lb_hash ),
+            max_freq( m_freq_mn_diff ),
+            max_freq( m_freq_lb_time ),
+            max_freq( m_freq_lb_addr ) );
+    }
     void Communicate();
-    std::tuple<bool, bool, int> PushSolution( std::uint32_t blck, const char base[28], char new_mn_diff[33] );
-    std::shared_ptr<CConsensus> MakeConsensus();
 };
-
-std::string MakePrefix( int num );
-char* makeNosohash( const char input[129], char output[33], char noso_stat_buffer[129][128], MD5Context *md5_context );
-char* makeNosodiff( const char hash[33], const char target[33], char output[33] );
 
 std::string g_mining_source { DEFAULT_SOURCE };
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
@@ -356,10 +559,10 @@ int main( int argc, char *argv[] ) {
         exit( 0 );
     }
     std::string miner_address = result["address"].as<std::string>();
-    // TODO validate address, len = 31 (NOSO_ADDRESS_SIZE)
+    // TODO validate address, len = 31 (NOSO_ADDRESS_LENGTH)
     strcpy( g_miner_address, miner_address.c_str() );
-    assert( strlen( g_miner_address ) == NOSO_ADDRESS_SIZE );
-    if ( strlen( g_miner_address ) != NOSO_ADDRESS_SIZE ) exit(0);
+    assert( strlen( g_miner_address ) == 31 );
+    if ( strlen( g_miner_address ) != 31 ) exit(0);
     g_miner_id = result["minerid"].as<std::uint32_t>();
     assert( 0 <= g_miner_id && g_miner_id <= 8100 );
     if ( g_miner_id < 0 || g_miner_id > 8100 ) exit(0);
@@ -369,14 +572,14 @@ int main( int argc, char *argv[] ) {
     std::cout << "- Wallet address: " << g_miner_address << std::endl;
     std::cout << "-       Miner ID: " << g_miner_id << std::endl;
     std::cout << "-  Threads count: " << g_threads_count << std::endl;
-    const std::string miner_prefix { MakePrefix( g_miner_id ) };
+    const std::string miner_prefix { nosohash_prefix( g_miner_id ) };
     auto mine_thread_prefix = [ &prefix = std::as_const( miner_prefix ) ]( int num ) {
-        std::string result = std::string { prefix + MakePrefix( num ) };
+        std::string result = std::string { prefix + nosohash_prefix( num ) };
         result.append( 18 - result.size(), '!' );
         return result;
     };
     for ( int i = 0; i < g_threads_count - 1; i++ )
-        g_mine_objects.push_back( std::make_shared<CMineThread>( mine_thread_prefix( i ).c_str() ) );
+        g_mine_objects.push_back( std::make_shared<CMineThread>( mine_thread_prefix( i ).c_str(), g_miner_address ) );
     std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );
     for ( int i = 0; i < g_threads_count - 1; i++ )
         g_mine_threads.push_back( std::move( std::thread( &CMineThread::Mine, g_mine_objects[i] ) ) );
@@ -398,29 +601,8 @@ int main( int argc, char *argv[] ) {
 }
 
 void CMineThread::Mine() {
-    static const char NOSOHASH_INPUT_FILLER_CHARS[] { "%)+/5;=CGIOSYaegk" };
-    static const int NOSOHASH_INPUT_FILLER_COUNT = 17; // strlen( NOSOHASH_INPUT_FILLER_CHARS );
-    static const int NOSOHASH_COUNTER_BEGINNING = 100'000'000;
-    static const int prefix_size = 18; // strlen( m_prefix );
-    static const int counter_size = 9; // std::to_string( NOSOHASH_COUNTER_BEGINNING ).size(); // counter_size = 9 -> max 999'999'999 - 100'000'000 hashes
-    char base[28]; // 18-chars-prefix + 9-chars-counter = 27 chars
-    memcpy( base, m_prefix, prefix_size );
-    sprintf( base + prefix_size, "%d", NOSOHASH_COUNTER_BEGINNING ); // placehold for 9-chars-counter
-    char input[129];
-    memcpy( input, m_prefix, prefix_size );
-    sprintf( input + prefix_size, "%d", NOSOHASH_COUNTER_BEGINNING ); // placehold for 9-chars-counter
-    memcpy( input + prefix_size + counter_size, g_miner_address, NOSO_ADDRESS_SIZE );
-    int len = 58; // prefix_size + counter_size + NOSO_ADDRESS_SIZE;
-    int div = ( 128 - len ) / NOSOHASH_INPUT_FILLER_COUNT;
-    int mod = ( 128 - len ) % NOSOHASH_INPUT_FILLER_COUNT;
-    for ( int i = 0; i < div; i++ ) {
-        memcpy( input + len, NOSOHASH_INPUT_FILLER_CHARS, NOSOHASH_INPUT_FILLER_COUNT );
-        len += NOSOHASH_INPUT_FILLER_COUNT;
-    }
-    memcpy( input + len, NOSOHASH_INPUT_FILLER_CHARS, mod );
-    input[len + mod] = '\0';
-    assert( strlen( input ) == 128 );
-    m_hashes_counter = NOSOHASH_COUNTER_BEGINNING;
+    CNosoHasher noso_hasher( m_prefix, m_address );
+    std::uint32_t noso_hash_counter { 0 };
     while ( g_still_running ) {
         std::uint32_t prev_blck_no { 0 };
         bool first_takenap { true };
@@ -433,30 +615,21 @@ void CMineThread::Mine() {
             if ( m_blck_no > prev_blck_no ) {
                 this->ResetComputedHashesCount();
                 prev_blck_no = m_blck_no;
-                m_hashes_counter = NOSOHASH_COUNTER_BEGINNING;
+                noso_hash_counter = NOSOHASH_COUNTER_MIN;
             }
-            std::uint32_t computed_hashes_count { 0 };
-            // auto begin_batch = std::chrono::steady_clock::now();
-            // for ( std::uint32_t i = 0; g_still_running && i < HASHING_BATCH_SIZE; i++ ) {
-                sprintf( base + prefix_size, "%d", m_hashes_counter ); // update counter part (size = 9 chars)
-                assert( strlen( base ) == 27 ); // 27 = 18 + 9 = prefix_size + counter_size
-                memcpy( input + prefix_size, base + prefix_size, counter_size );  // update counter part as it is updated in base
-                assert( strlen( input ) == 128 ); // 128 = 18 + 9 + 31 + the rest of fills
-                const char *hash { makeNosohash( input, m_noso_hash_buffer, m_noso_stat_buffer, &m_md5_context ) };
-                const char *diff { makeNosodiff( hash, m_lb_hash, m_noso_diff_buffer ) };
-                if ( strcmp( diff, m_mn_diff ) < 0 ) { // && strcmp( m_mn_diff, NOSO_MAX_DIFF ) < 0 )
-                    CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no + 1, base, hash, diff ) );
-                }
-                m_hashes_counter ++;
-                computed_hashes_count ++;
-            // } // END for ( int i = 0; g_still_running && i < HASHING_BATCH_SIZE; i++ ) {
-            // std::chrono::duration<double> elapsed_batch = std::chrono::steady_clock::now() - begin_batch;
-            // double hashrate = computed_hashes_count / elapsed_batch.count();
-            // std::cout << "HASHRATE: " << hashrate << std::endl;
-            this->UpdateComputedHashesCount( computed_hashes_count );
+            const char *base { noso_hasher.GetBase( noso_hash_counter++ ) };
+            const char *hash { noso_hasher.GetHash() };
+            const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
+            if ( strcmp( diff, m_mn_diff ) < 0 ) { // && strcmp( m_mn_diff, NOSO_MAX_DIFF ) < 0 )
+                CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no + 1, base, hash, diff ) );
+            }
+            this->UpdateComputedHashesCount( 1 );
+            // std::cout << base << "|" << hash << "|" << diff << std::endl;
         } // END while ( g_still_running && blck_no > 0 ) {
     } // END while ( g_still_running ) {
 }
+
+#define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
 
 void CCommThread::Communicate() {
     std::uint32_t blck_no { 0 };
@@ -495,7 +668,7 @@ void CCommThread::Communicate() {
         accepted_hashes.clear();
         this->ClearSolutions();
     };
-    bool firstIter = true;
+    bool firstIter { true };
     auto begin_blck = std::chrono::steady_clock::now();
     auto begin_update = std::chrono::steady_clock::now();
     auto begin_submit = std::chrono::steady_clock::now();
@@ -517,7 +690,7 @@ void CCommThread::Communicate() {
                 if ( solution->blck > blck_no && solution->diff < mn_diff ) {
                     strcpy( mn_diff, solution->diff.c_str() );
                     for ( auto mo : g_mine_objects ) mo->UpdateHashDiff( mn_diff );
-                    auto [ submited, accepted, code ] = this->PushSolution( solution->blck, solution->base.c_str(), new_mn_diff );
+                    auto [ submited, accepted, code ] = this->PushSolution( solution->blck, solution->base.c_str(), g_miner_address, new_mn_diff );
                     if ( submited ) {
                         if ( accepted ) {
                             m_accepted_solutions_count ++;
@@ -633,9 +806,14 @@ void CCommThread::Communicate() {
 
 const char NOSOHASH_HASHEABLE_CHARS[] { "!\"#$%&')*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" };
 const std::size_t NOSOHASH_HASHEABLE_COUNT =  93 - 1; // strlen( NOSOHASH_HASHEABLE_COUNT );
-std::string MakePrefix( int num ) {
+std::string nosohash_prefix( int num ) {
     return std::string { NOSOHASH_HASHEABLE_CHARS[ num / NOSOHASH_HASHEABLE_COUNT ], NOSOHASH_HASHEABLE_CHARS[ num % NOSOHASH_HASHEABLE_COUNT ] };
 }
+
+int nosohash_char( int num ) {
+    while ( num > 126 ) num -= 95;
+    return num;
+};
 
 #ifndef NDEBUG
 const std::array<char, 16> HEXCHAR_DOMAIN { '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
@@ -653,80 +831,6 @@ char hex_dec2char( int hexdec ) {
     assert( std::find( HEXDEC_DOMAIN.begin(), HEXDEC_DOMAIN.end(), hexdec ) != HEXDEC_DOMAIN.end() );
     return  (  0 <= hexdec && hexdec <=  9 ) ? hexdec + '0' :
             ( 10 <= hexdec && hexdec <= 15 ) ? hexdec + 'A' - 10 : '\0';
-}
-
-int clean_char( int num ) {
-    while ( num > 126 ) num -= 95;
-    return num;
-};
-
-char* makeNosohash_hash( const char input[129], char output[33], char noso_stat_buffer[][128] ) {
-    assert( strlen( input ) == 128 );
-    memcpy( noso_stat_buffer[0], input, 128 );
-    for( int row = 1; row < 129; row++ ) {
-        for( int col = 0; col < 127; col++ )
-            noso_stat_buffer[row][col] = clean_char( noso_stat_buffer[row-1][col] + noso_stat_buffer[row-1][col+1] );
-        noso_stat_buffer[row][127] = clean_char( noso_stat_buffer[row-1][127] + noso_stat_buffer[row-1][0] );
-    }
-    for( int i = 0; i < 32; i++ )
-        output[i] = hex_dec2char( clean_char(
-                                    noso_stat_buffer[128][ ( i * 4 ) + 0 ] +
-                                    noso_stat_buffer[128][ ( i * 4 ) + 1 ] +
-                                    noso_stat_buffer[128][ ( i * 4 ) + 2 ] +
-                                    noso_stat_buffer[128][ ( i * 4 ) + 3 ] ) % 16 );
-    output[32] = '\0';
-    assert( strlen( output ) == 32 );
-    return output;
-}
-
-char* makeNosohash_md5( const char input[33], char output[33], MD5Context *ctx ) {
-    assert( strlen( input ) == 32 );
-    md5Init( ctx );
-    md5Update( ctx, (uint8_t *)input, 32 );
-    md5Finalize( ctx );
-    sprintf( output,
-            "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-            ctx->digest[ 0], ctx->digest[ 1], ctx->digest[ 2], ctx->digest[ 3],
-            ctx->digest[ 4], ctx->digest[ 5], ctx->digest[ 6], ctx->digest[ 7],
-            ctx->digest[ 8], ctx->digest[ 9], ctx->digest[10], ctx->digest[11],
-            ctx->digest[12], ctx->digest[13], ctx->digest[14], ctx->digest[15] );
-    assert( strlen( output ) == 32 );
-    return output;
-}
-
-char* makeNosohash( const char input[129], char output[33], char noso_stat_buffer[129][128], MD5Context *md5_context ) {
-    assert( strlen( input ) == 128 && std::none_of( input, input + strlen( input ), []( int c ){ return 33 > c || c > 126; } ) );
-    char *hash = makeNosohash_hash( input, output, noso_stat_buffer );
-    char *md5d = makeNosohash_md5( hash, output, md5_context );
-    return md5d;
-}
-
-char* makeNosodiff( const char hash[33], const char target[33], char output[33] ) {
-    assert( strlen( hash ) == 32 && strlen( target ) == 32 );
-    for ( std::size_t i = 0; i < 32; i ++ ) output[i] = toupper( hex_dec2char( abs( hex_char2dec( hash[ i ] ) - hex_char2dec( target[ i ] ) ) ) );
-    output[32] = '\0';
-    assert( strlen( output ) == 32 );
-    return output;
-}
-
-void CNodeInet::InitService() {
-    if ( m_serv_info != NULL ) return;
-    struct addrinfo hints, *serv_info;
-    memset( &hints, 0, sizeof( hints ) );
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    if ( int n = getaddrinfo( this->m_host.c_str(), this->m_port.c_str(),
-            &hints, &serv_info ); n != 0 ) {
-        fprintf( stderr, "getaddrinfo: %s\n", gai_strerror(n) );
-        m_serv_info = NULL;
-    }
-    m_serv_info = serv_info;
-}
-
-void CNodeInet::CleanService() {
-    if ( m_serv_info == NULL ) return;
-    freeaddrinfo(m_serv_info);
-    m_serv_info = NULL;
 }
 
 int inet_socket( struct addrinfo *serv_info, int timesec ) {
@@ -879,113 +983,4 @@ int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, s
     if ( rlen < 0 ) return rlen;
     close( sockfd );
     return rlen;
-}
-
-int CNodeInet::FetchNodestatus( char *buffer, std::size_t buffsize ) {
-    strcpy( buffer, "NODESTATUS\n" );
-    return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
-}
-
-int CNodeInet::SubmitSolution( std::uint32_t blck, const char base[28], const char miner[32], char *buffer, std::size_t buffsize ) {
-    snprintf( buffer, INET_BUFFER_SIZE - 1, "BESTHASH 1 2 3 4 %s %s %d %lu\n", miner, base, blck, NOSO_TIMESTAMP );
-    return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
-}
-
-std::vector<std::shared_ptr<CNodeStatus>> CCommThread::SyncSources( int min_nodes_count ) {
-    if ( m_node_inets_good.size() < min_nodes_count ) {
-        for ( auto ni : m_node_inets_poor ) {
-            ni->InitService();
-            m_node_inets_good.push_back( ni );
-        }
-        m_node_inets_poor.clear();
-        std::cout << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
-    }
-    std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
-    std::size_t nodes_count { 0 };
-    std::vector<std::shared_ptr<CNodeStatus>> vec;
-    for ( auto it = m_node_inets_good.begin(); it != m_node_inets_good.end(); ) {
-        if ( (*it)->FetchNodestatus( m_status_buffer, INET_BUFFER_SIZE ) <= 0 ) {
-            (*it)->CleanService();
-            m_node_inets_poor.push_back( *it );
-            it = m_node_inets_good.erase( it );
-            std::cout << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
-            continue;
-        }
-        ++it;
-        try {
-            vec.push_back( std::make_shared<CNodeStatus>( m_status_buffer ) );
-            nodes_count ++;
-            if ( nodes_count >= min_nodes_count ) break;
-        }
-        catch ( const std::exception &e ) {
-            std::cout << e.what();
-        }
-    }
-    return vec;
-}
-
-std::tuple<bool, bool, int> CCommThread::PushSolution( std::uint32_t blck, const char base[28], char new_mn_diff[33] ) {
-    if ( m_node_inets_good.size() < 1 ) {
-        for ( auto ni : m_node_inets_poor ) {
-            ni->InitService();
-            m_node_inets_good.push_back( ni );
-        }
-        m_node_inets_poor.clear();
-        std::cout << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
-    }
-    std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
-    for ( auto it = m_node_inets_good.begin(); it != m_node_inets_good.end(); ) {
-        if ( (*it)->SubmitSolution( blck, base, g_miner_address, m_submit_buffer, INET_BUFFER_SIZE ) <= 0 ) {
-            (*it)->CleanService();
-            m_node_inets_poor.push_back( *it );
-            it = m_node_inets_good.erase( it );
-            std::cout << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
-            continue;
-        }
-        ++it;
-        assert( strlen( m_submit_buffer ) >= 40 + 2 ); //len=70[True Diff(32) Hash(32)] OR len=40[False Diff(32) #(1)] + "\r\n"
-        if ( strncmp( m_submit_buffer, "True", 4 ) == 0 ) {
-            assert( strlen( m_submit_buffer ) == 70 + 2 ); //len=70[True Diff(32) Hash(32)] + "\r\n"
-            strncpy( new_mn_diff, m_submit_buffer + 5, 32 );
-            new_mn_diff[32] = '\0';
-            return std::make_tuple( true, true, 0 );
-        }
-        else {
-            assert( strlen( m_submit_buffer ) == 40 + 2 && strncmp( m_submit_buffer, "False", 5 ) == 0
-                   && '1' <= m_submit_buffer[39] && m_submit_buffer[39] <= '7' ); // len=40[False Diff(32) #(1)] + "\r\n"
-            strncpy( new_mn_diff, m_submit_buffer + 6, 32 );
-            new_mn_diff[32] = '\0';
-            return std::make_tuple( true, false, m_submit_buffer[39] - '0' );
-        }
-    }
-    return std::make_tuple( false, false, 0 );
-}
-
-std::shared_ptr<CConsensus> CCommThread::MakeConsensus() {
-    std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->SyncSources( CONSENSUS_NODES_COUNT );
-    if ( status_of_nodes.size() < CONSENSUS_NODES_COUNT ) return nullptr;
-    const auto max_freq = []( const auto &freq ) {
-        return std::max_element(
-            std::begin( freq ), std::end( freq ),
-            [] ( const auto &p1, const auto &p2 ) {
-                return p1.second < p2.second; } )->first;
-    };
-    m_freq_blck_no.clear();
-    m_freq_lb_hash.clear();
-    m_freq_mn_diff.clear();
-    m_freq_lb_time.clear();
-    m_freq_lb_addr.clear();
-    for( auto ns : status_of_nodes ) {
-        ++m_freq_blck_no [ns->blck_no];
-        ++m_freq_lb_hash [ns->lb_hash];
-        ++m_freq_mn_diff [ns->mn_diff];
-        ++m_freq_lb_time [ns->lb_time];
-        ++m_freq_lb_addr [ns->lb_addr];
-    }
-    return std::make_shared<CConsensus>(
-        max_freq( m_freq_blck_no ),
-        max_freq( m_freq_lb_hash ),
-        max_freq( m_freq_mn_diff ),
-        max_freq( m_freq_lb_time ),
-        max_freq( m_freq_lb_addr ) );
 }
