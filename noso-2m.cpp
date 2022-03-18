@@ -331,7 +331,7 @@ private:
     char m_prefix[19];
     std::uint32_t m_blck_no { 0 };
     char m_lb_hash[33];
-    char m_mn_diff[33];
+    char m_mn_diff[33] { NOSO_MAX_DIFF };
     std::uint32_t m_computed_hashes_count { 0 };
     mutable std::shared_mutex m_mutex_computed_hashes_count;
 public:
@@ -634,8 +634,8 @@ void CMineThread::Mine() {
 void CCommThread::Communicate() {
     std::uint32_t blck_no { 0 };
     char lb_hash[33];
-    char mn_diff[33];
-    char new_mn_diff[33];
+    char mn_diff[33] { NOSO_MAX_DIFF };
+    char new_mn_diff[33] { NOSO_MAX_DIFF };
     std::vector<std::string> accepted_hashes;
     auto print_block_summary = [&]( auto begin_blck ) {
         std::chrono::duration<double> elapsed_blck = std::chrono::steady_clock::now() - begin_blck;
