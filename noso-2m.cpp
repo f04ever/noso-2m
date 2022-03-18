@@ -757,7 +757,7 @@ void CCommThread::Communicate() {
                 }
             } // END if ( std::shared_ptr<CSolution> solution { this->BestSolution() }; solution != nullptr ) {
             begin_submit = std::chrono::steady_clock::now();
-        // } // END if ( !first && elapsed_submit.count() >= SUBMIT_CIRCLE_SECONDS ) {
+        // } // END if ( !firstIter && elapsed_submit.count() >= SUBMIT_CIRCLE_SECONDS ) {
         std::chrono::duration<double> elapsed_update = std::chrono::steady_clock::now() - begin_update;
         if ( firstIter || elapsed_update.count() >= UPDATE_CIRCLE_SECONDS ) {
             std::shared_ptr<CConsensus> consensus = this->MakeConsensus();
@@ -794,7 +794,7 @@ void CCommThread::Communicate() {
                     << "]hash["   << consensus->lb_hash << "]" << std::endl;
             }
             begin_update = std::chrono::steady_clock::now();
-        } // END if ( first || elapsed_update.count() >= UPDATE_CIRCLE_SECONDS ) {
+        } // END if ( firstIter || elapsed_update.count() >= UPDATE_CIRCLE_SECONDS ) {
         if ( elapsed_submit.count() < SUBMIT_CIRCLE_SECONDS && elapsed_update.count() < UPDATE_CIRCLE_SECONDS ) {
             std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * SUBMIT_CIRCLE_SECONDS ) ) );
         }
