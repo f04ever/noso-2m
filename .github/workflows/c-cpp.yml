@@ -19,3 +19,5 @@ jobs:
       run: clang++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -lpthread -Ofast
     - name: strip
       run: strip -s noso-2m
+    - name: runone
+      run: ./noso-2m --help
