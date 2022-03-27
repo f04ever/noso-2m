@@ -1,7 +1,7 @@
-#include <netdb.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <set>
 #include <mutex>
 #include <tuple>
@@ -11,9 +11,20 @@
 #include <thread>
 #include <random>
 #include <chrono>
+#include <numeric>
 #include <iomanip>
 #include <cassert>
 #include <iostream>
+
+#include <signal.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <unistd.h>
+#include <netdb.h>
+#include <fcntl.h>
+#endif
 
 #include "md5-c.hpp"
 #include "cxxopts.hpp"
@@ -24,16 +35,16 @@
 #define DEFAULT_MINER_ADDRESS "N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS"
 #define DEFAULT_MINER_ID 0
 #define DEFAULT_THREADS_COUNT 2
-#define DEFAULT_INET_TIMEOSEC 10
+#define DEFAULT_INET_TIMEOSEC 30
 
 #define CONSENSUS_NODES_COUNT 3
-#define UPDATE_CIRCLE_SECONDS 05.0
+#define UPDATE_CIRCLE_SECONDS 10.0
 #define SUBMIT_CIRCLE_SECONDS 0.01
 #define INET_BUFFER_SIZE 1024
 
 #define NOSOHASH_COUNTER_MIN 100'000'000
 #define NOSO_MAX_DIFF "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-#define NOSO_TIMESTAMP std::time( 0 )
+#define NOSO_TIMESTAMP long( std::time( 0 ) )
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
 
 const auto g_seed_nodes { std::to_array<std::tuple<std::string, std::string>>(
@@ -284,7 +295,7 @@ public:
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
     int SubmitSolution( std::uint32_t blck, const char base[19], const char miner[32], char *buffer, std::size_t buffsize ) {
-        snprintf( buffer, INET_BUFFER_SIZE - 1, "BESTHASH 1 2 3 4 %s %s %d %lu\n", miner, base, blck, NOSO_TIMESTAMP );
+        snprintf( buffer, INET_BUFFER_SIZE - 1, "BESTHASH 1 2 3 4 %s %s %d %ld\n", miner, base, blck, NOSO_TIMESTAMP );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
 };
@@ -611,6 +622,13 @@ bool g_still_running { true };
 const std::uint32_t g_cache_section { 1'000'000 };
 
 int main( int argc, char *argv[] ) {
+    #ifdef _WIN32
+    WSADATA wsaData;
+    if( WSAStartup( MAKEWORD(2,2), &wsaData ) != NO_ERROR ) {
+        fprintf( stderr, "Error at WSAStartup\n" );
+        exit( 1 );
+    }
+    #endif
     signal( SIGINT, []( int /* signum */ ) {
         std::cout << "\nCtrl+C pressed! Wait for finishing all mining threads..." << std::endl;
         g_still_running = false; });
@@ -671,6 +689,9 @@ int main( int argc, char *argv[] ) {
         for( auto b : g_mined_blocks ) std::cout << b << " ";
         std::cout << std::endl;
     }
+    #ifdef _WIN32
+    WSACleanup();
+    #endif
     return 0;
 }
 
@@ -916,7 +937,7 @@ int inet_socket( struct addrinfo *serv_info, int timesec ) {
         .tv_sec = timesec,
         .tv_usec = 0
     };
-    int sockfd;
+    int sockfd, rc;
     fd_set rset, wset;
     for( ; psi != NULL; psi = psi->ai_next ) {
         if ( (sockfd = socket( psi->ai_family, psi->ai_socktype,
@@ -924,77 +945,101 @@ int inet_socket( struct addrinfo *serv_info, int timesec ) {
             perror( "socket: error" );
             continue;
         }
+        #ifdef _WIN32
+        u_long iMode = 1;
+        if ( ioctlsocket( sockfd, FIONBIO, &iMode ) != NO_ERROR ) {
+            closesocket( sockfd );
+            perror( "ioctlsocket/socket failed" );
+            continue;
+        }
+        #else
         int flags = 0;
         if ( ( flags = fcntl( sockfd, F_GETFL, 0 ) ) < 0 ) {
             close( sockfd );
-            perror( "fcntl/socket: error" );
+            perror( "fcntl/socket failed" );
             continue;
         }
         if ( fcntl( sockfd, F_SETFL, flags | O_NONBLOCK ) < 0 ) {
             close( sockfd );
-            perror( "connect/socket: error" );
+            perror( "fcntl/socket failed" );
             continue;
         }
-        if ( connect( sockfd, psi->ai_addr, psi->ai_addrlen ) >= 0 ) {
-            // NONBLOCK socket so not need to restore previous flags
-            // if ( fcntl( sockfd, F_SETFL, flags ) < 0 ) {
-            //     close( sockfd );
-            //     perror( "connect/socket: error" );
-            //     continue;
-            // }
-            // break;
+        #endif
+        if ( ( rc = connect( sockfd, psi->ai_addr, psi->ai_addrlen ) ) >= 0 ) {
             return sockfd;
         }
-        if ( errno != EINPROGRESS ) {
-            close( sockfd );
-            perror( "connect: error" );
+        #ifdef _WIN32
+        if ( rc != SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK ) {
+            closesocket( sockfd );
+            perror( "connect/socket failed" );
             continue;
         }
+        #else
+        if ( errno != EINPROGRESS ) {
+            close( sockfd );
+            perror( "connect/socket failed" );
+            continue;
+        }
+        #endif
         FD_ZERO( &rset );
         FD_ZERO( &wset );
         FD_SET( sockfd, &rset );
         FD_SET( sockfd, &wset );
-        // wset = rset;
         int n = select( sockfd + 1, &rset, &wset, NULL, &timeout );
         if ( n == 0 ) {
+            #ifdef _WIN32
+            closesocket( sockfd );
+            #else
             close( sockfd );
-            perror("select/socket: timeout");
+            #endif
+            perror("select/socket timeout");
             continue;
         }
         if ( n == -1 ) {
+            #ifdef _WIN32
+            closesocket( sockfd );
+            #else
             close( sockfd );
-            perror( "select/socket: failed" );
+            #endif
+            perror( "select/socket failed" );
             continue;
         }
         if ( FD_ISSET( sockfd, &rset ) || FD_ISSET( sockfd, &wset ) ) {
             int error = 0;
             socklen_t slen = sizeof( error );
-            if ( getsockopt( sockfd, SOL_SOCKET, SO_ERROR, &error, &slen ) < 0 ) {
+            #ifdef _WIN32
+            if ( getsockopt( sockfd, SOL_SOCKET, SO_ERROR, (char*)&error, &slen ) < 0 ) {
+            #else
+            if ( getsockopt( sockfd, SOL_SOCKET, SO_ERROR, (char*)&error, &slen ) < 0 ) {
+            #endif
+                #ifdef _WIN32
+                closesocket( sockfd );
+                #else
                 close( sockfd );
+                #endif
                 perror( "getsockopt/socket: failed" );
                 continue;
             }
             if ( error ) {
+                #ifdef _WIN32
+                closesocket( sockfd );
+                #else
                 close( sockfd );
-                perror( "getsockopt/socket: failed" );
+                #endif
+                perror( "getsockopt/socket failed" );
                 continue;
             }
         }
         else {
-            perror( "select/socket: failed" );
+            perror( "select/socket failed" );
             continue;
         }
-        // if ( fcntl( sockfd, F_SETFL, flags ) < 0 ) {
-        //     close( sockfd );
-        //     perror( "connect/socket: error" );
-        //     continue;
-        // }
         return sockfd;
-    }
+    } // END for( ; psi != NULL; psi = psi->ai_next ) {
     return -1;
 }
 
-int inet_send( int sockfd, uint32_t timesec, const char *message, size_t size ) {
+int inet_send( int sockfd, int timesec, const char *message, size_t size ) {
     struct timeval timeout {
         .tv_sec = timesec,
         .tv_usec = 0
@@ -1004,25 +1049,37 @@ int inet_send( int sockfd, uint32_t timesec, const char *message, size_t size ) 
     FD_SET( sockfd, &fds );
     int n = select( sockfd + 1, NULL, &fds, NULL, &timeout );
     if ( n == 0 ) {
+        #ifdef _WIN32
+        closesocket( sockfd );
+        #else
         close( sockfd );
-        perror( "select/send: timeout" );
+        #endif
+        perror( "select/send timeout" );
         return -2; // timeout!
     }
     if ( n == -1 ) {
+        #ifdef _WIN32
+        closesocket( sockfd );
+        #else
         close( sockfd );
-        perror( "select/send: failed" );
+        #endif
+        perror( "select/send failed" );
         return -1; // error
     }
     int slen = send( sockfd, message, size, 0 );
     if ( slen < 1 ) {
-        perror( "send: error" );
+        #ifdef _WIN32
+        closesocket( sockfd );
+        #else
         close( sockfd );
+        #endif
+        perror( "send failed" );
         return -1;
     }
     return slen;
 }
 
-int inet_recv( int sockfd, uint32_t timesec, char *buffer, size_t buffsize ) {
+int inet_recv( int sockfd, int timesec, char *buffer, size_t buffsize ) {
     struct timeval timeout {
         .tv_sec = timesec,
         .tv_usec = 0
@@ -1032,20 +1089,33 @@ int inet_recv( int sockfd, uint32_t timesec, char *buffer, size_t buffsize ) {
     FD_SET( sockfd, &fds );
     int n = select( sockfd + 1, &fds, NULL, NULL, &timeout );
     if ( n == 0 ) {
+        #ifdef _WIN32
+        closesocket( sockfd );
+        #else
         close( sockfd );
-        perror( "select/recv: timeout" );
+        #endif
+        perror( "select/recv timeout" );
         return -2; // timeout!
     }
     if ( n == -1 ) {
+        #ifdef _WIN32
+        closesocket( sockfd );
+        #else
         close( sockfd );
-        perror( "select/recv: failed" );
+        #endif
+        perror( "select/recv failed" );
         return -1; // error
     }
     int rlen = recv( sockfd, buffer, buffsize - 1, 0 );
     // if (rlen < 0) { //TODO rlen == 1
     if ( rlen < 1 ) {
+        #ifdef _WIN32
+        closesocket( sockfd );
+        #else
         close( sockfd );
-        perror( "recv: error" );
+        #endif
+        if ( rlen == 0 ) perror( "recv timeout" );
+        else  perror( "recv failed" );
         return -1;
     }
     buffer[ rlen ] = '\0';
@@ -1059,6 +1129,10 @@ int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, s
     if ( slen < 0 ) return slen;
     int rlen = inet_recv( sockfd, timeosec, buffer, buffsize );
     if ( rlen < 0 ) return rlen;
+    #ifdef _WIN32
+    closesocket( sockfd );
+    #else
     close( sockfd );
+    #endif
     return rlen;
 }
