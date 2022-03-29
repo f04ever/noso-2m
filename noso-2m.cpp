@@ -78,7 +78,7 @@ inline int nosohash_char( int num ) {
 #ifndef NDEBUG
 const std::array<char, 16> HEXCHAR_DOMAIN { '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
 #endif
-inline int hex_char2dec(char hexchar) {
+inline int hex_char2dec( char hexchar ) {
     assert( std::find( HEXCHAR_DOMAIN.begin(), HEXCHAR_DOMAIN.end(), hexchar ) != HEXCHAR_DOMAIN.end() );
     return  ( '0' <= hexchar && hexchar <= '9' ) ? hexchar - '0' :
             ( 'A' <= hexchar && hexchar <= 'F' ) ? hexchar - 'A' + 10 : 0;
@@ -263,10 +263,10 @@ private:
 public:
     const std::string m_host;
     const std::string m_port;
-    const int m_timeosec { DEFAULT_INET_TIMEOSEC };
-    CNodeInet( const std::string &host, const std::string &port )
+    const int m_timeosec;
+    CNodeInet( const std::string &host, const std::string &port, int timeosec )
         :   m_serv_info { NULL },
-            m_host { host }, m_port { port } {
+            m_host { host }, m_port { port }, m_timeosec { timeosec } {
         this->InitService();
     }
     ~CNodeInet() {
@@ -278,8 +278,8 @@ public:
         memset( &hints, 0, sizeof( hints ) );
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
-        if ( int n = getaddrinfo( this->m_host.c_str(), this->m_port.c_str(),
-                &hints, &serv_info ); n != 0 ) {
+        int n = getaddrinfo( this->m_host.c_str(), this->m_port.c_str(), &hints, &serv_info );
+        if ( n ) {
             fprintf( stderr, "getaddrinfo: %s\n", gai_strerror(n) );
             m_serv_info = NULL;
         }
@@ -287,15 +287,17 @@ public:
     }
     void CleanService() {
         if ( m_serv_info == NULL ) return;
-        freeaddrinfo(m_serv_info);
+        freeaddrinfo( m_serv_info );
         m_serv_info = NULL;
     }
     int FetchNodestatus( char *buffer, std::size_t buffsize ) {
         strcpy( buffer, "NODESTATUS\n" );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
-    int SubmitSolution( std::uint32_t blck, const char base[19], const char miner[32], char *buffer, std::size_t buffsize ) {
-        snprintf( buffer, INET_BUFFER_SIZE - 1, "BESTHASH 1 2 3 4 %s %s %d %ld\n", miner, base, blck, NOSO_TIMESTAMP );
+    int SubmitSolution( std::uint32_t blck, const char base[19], const char address[32], char *buffer, std::size_t buffsize ) {
+        assert( strlen( address ) == 30 || strlen( address ) == 31 );
+        assert( strlen( base ) == 18 );
+        std::snprintf( buffer, buffsize, "BESTHASH 1 2 3 4 %s %s %d %ld\n", address, base, blck, NOSO_TIMESTAMP );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
 };
@@ -465,7 +467,7 @@ private:
     std::map<std::string  , int> m_freq_lb_addr;
     CCommThread() {
         for( auto sn : g_seed_nodes ) m_node_inets_good.push_back(
-            std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ) ) );
+            std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ), DEFAULT_INET_TIMEOSEC ) );
     }
     std::vector<std::shared_ptr<CNodeStatus>> SyncSources( std::size_t min_nodes_count ) {
         if ( m_node_inets_good.size() < min_nodes_count ) {
@@ -537,7 +539,7 @@ public:
         return best_solution;
     }
     std::tuple<bool, bool, int> PushSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] ) {
-        assert( strlen( base ) == 18 && ( strlen( address ) == 30 || strlen( address ) ==31 ) );
+        assert( strlen( base ) == 18 && ( strlen( address ) == 30 || strlen( address ) == 31 ) );
         if ( m_node_inets_good.size() < 1 ) {
             for ( auto ni : m_node_inets_poor ) {
                 ni->InitService();
@@ -624,7 +626,7 @@ const std::uint32_t g_cache_section { 1'000'000 };
 int main( int argc, char *argv[] ) {
     #ifdef _WIN32
     WSADATA wsaData;
-    if( WSAStartup( MAKEWORD(2,2), &wsaData ) != NO_ERROR ) {
+    if( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != NO_ERROR ) {
         fprintf( stderr, "Error at WSAStartup\n" );
         exit( 1 );
     }
@@ -657,8 +659,8 @@ int main( int argc, char *argv[] ) {
         std::string result = std::string { prefix + nosohash_prefix( num ) };
         result.append( 9 - result.size(), '!' );
         return result; };
-    std::cout << "Noso-2m - A miner for Nosocryptocurrency Protocol 2\n";
-    std::cout << "by f04ever (c) 2022 at https://github.com/f04ever/noso-2m\n";
+    std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2\n";
+    std::cout << "by f04ever (c) 2022 @ https://github.com/f04ever/noso-2m\n";
     std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "\n";
     std::cout << "\n";
     std::cout << "- Wallet address: " << g_miner_address << std::endl;
@@ -931,10 +933,10 @@ void CCommThread::Communicate() {
     for ( auto &thr : g_mine_threads ) thr.join();
 }
 
-int inet_socket( struct addrinfo *serv_info, int timesec ) {
+int inet_socket( struct addrinfo *serv_info, int timeosec ) {
     struct addrinfo *psi = serv_info;
     struct timeval timeout {
-        .tv_sec = timesec,
+        .tv_sec = timeosec,
         .tv_usec = 0
     };
     int sockfd, rc;
@@ -1039,9 +1041,9 @@ int inet_socket( struct addrinfo *serv_info, int timesec ) {
     return -1;
 }
 
-int inet_send( int sockfd, int timesec, const char *message, size_t size ) {
+int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
     struct timeval timeout {
-        .tv_sec = timesec,
+        .tv_sec = timeosec,
         .tv_usec = 0
     };
     fd_set fds;
@@ -1079,9 +1081,9 @@ int inet_send( int sockfd, int timesec, const char *message, size_t size ) {
     return slen;
 }
 
-int inet_recv( int sockfd, int timesec, char *buffer, size_t buffsize ) {
+int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
     struct timeval timeout {
-        .tv_sec = timesec,
+        .tv_sec = timeosec,
         .tv_usec = 0
     };
     fd_set fds;
