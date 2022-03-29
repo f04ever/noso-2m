@@ -31,6 +31,7 @@
 
 #define NOSO_2M_VERSION_MAJOR 0
 #define NOSO_2M_VERSION_MINOR 1
+#define NOSO_2M_VERSION_PATCH 2
 
 #define DEFAULT_MINER_ADDRESS "N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS"
 #define DEFAULT_MINER_ID 0
@@ -659,7 +660,7 @@ int main( int argc, char *argv[] ) {
         return result; };
     std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2\n";
     std::cout << "by f04ever (c) 2022 @ https://github.com/f04ever/noso-2m\n";
-    std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "\n";
+    std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << "\n";
     std::cout << "\n";
     std::cout << "- Wallet address: " << g_miner_address << std::endl;
     std::cout << "-       Miner ID: " << g_miner_id << std::endl;
