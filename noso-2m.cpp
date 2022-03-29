@@ -47,17 +47,16 @@
 #define NOSO_TIMESTAMP long( std::time( 0 ) )
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
 
-const auto g_seed_nodes { std::to_array<std::tuple<std::string, std::string>>(
-        {
-            { "23.94.21.83",        "8080" },
-            { "45.146.252.103",     "8080" },
-            { "107.172.5.8",        "8080" },
-            { "109.230.238.240",    "8080" },
-            { "172.245.52.208",     "8080" },
-            { "192.210.226.118",    "8080" },
-            { "194.156.88.117",     "8080" },
-            { "107.175.59.177",     "8080" },
-        } ) };
+const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
+        { "23.94.21.83",        "8080" },
+        { "45.146.252.103",     "8080" },
+        { "107.172.5.8",        "8080" },
+        { "109.230.238.240",    "8080" },
+        { "172.245.52.208",     "8080" },
+        { "192.210.226.118",    "8080" },
+        { "194.156.88.117",     "8080" },
+        { "107.175.59.177",     "8080" },
+    }; // seed nodes
 
 const char NOSOHASH_HASHEABLE_CHARS[] {
     "!\"#$%&')*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" };
@@ -466,7 +465,7 @@ private:
     std::map<std::time_t  , int> m_freq_lb_time;
     std::map<std::string  , int> m_freq_lb_addr;
     CCommThread() {
-        for( auto sn : g_seed_nodes ) m_node_inets_good.push_back(
+        for( auto sn : g_default_nodes ) m_node_inets_good.push_back(
             std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ), DEFAULT_INET_TIMEOSEC ) );
     }
     std::vector<std::shared_ptr<CNodeStatus>> SyncSources( std::size_t min_nodes_count ) {
@@ -655,7 +654,7 @@ int main( int argc, char *argv[] ) {
     if ( g_miner_id < 0 || g_miner_id > 8100 ) exit(0);
     g_threads_count = result["threads"].as<std::uint32_t>();
     const std::string miner_prefix { nosohash_prefix( g_miner_id ) };
-    auto miner_thread_prefix = [ &prefix = std::as_const( miner_prefix ) ]( int num ) {
+    auto miner_thread_prefix = [ prefix = miner_prefix ]( int num ) {
         std::string result = std::string { prefix + nosohash_prefix( num ) };
         result.append( 9 - result.size(), '!' );
         return result; };
