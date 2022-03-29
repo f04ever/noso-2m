@@ -317,61 +317,60 @@ struct CNodeStatus {
     std::string lb_addr;
     CNodeStatus( const char *ns_line ) {
         assert( ns_line != nullptr && strlen( ns_line ) > 1 );
-        std::string nodestatus { ns_line };
-        nodestatus.erase( nodestatus.length() - 2 ); // remove the carriage return and new line charaters
-        size_t p_pos = -1, c_pos = -1;
-        auto next_nodestatus_token = [&p_pos, &c_pos, &nodestatus]() {
+        auto next_status_token = []( size_t &p_pos, size_t &c_pos, const std::string &status ) {
             p_pos = c_pos;
-            c_pos = nodestatus.find(' ', c_pos + 1);
+            c_pos = status.find( ' ', c_pos + 1 );
         };
-        auto extract_nodestatus_token = [&p_pos, &c_pos, &nodestatus]() {
-            std::string token = nodestatus.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : (c_pos - p_pos - 1) );
-            return token;
+        auto extract_status_token = []( size_t p_pos, size_t c_pos, const std::string& status ) {
+            return status.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : ( c_pos - p_pos - 1 ) );
         };
+        std::string status { ns_line };
+        status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
+        size_t p_pos = -1, c_pos = -1;
         //NODESTATUS 1{Peers} 2{LastBlock} 3{Pendings} 4{Delta} 5{headers} 6{version} 7{UTCTime} 8{MNsHash} 9{MNscount}
         //           10{LastBlockHash} 11{BestHashDiff} 12{LastBlockTimeEnd} 13{LBMiner}
-        // 0{nodestatus}
-        next_nodestatus_token();
-        // std::string nodestatus = extract_nodestatus_token();
+        // 0{NODESTATUS}
+        next_status_token( p_pos, c_pos, status );
+        // std::string nodestatus = extract_status_token( p_pos, c_pos, status );
         // 1{peer}
-        next_nodestatus_token();
-        // this->peer = std::stoul( extract_nodestatus_token() );
+        next_status_token( p_pos, c_pos, status );
+        // this->peer = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 2{blck}
-        next_nodestatus_token();
-        this->blck_no = std::stoul( extract_nodestatus_token() );
+        next_status_token( p_pos, c_pos, status );
+        this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 3{pending}
-        next_nodestatus_token();
-        // this->pending = std::stoul( extract_nodestatus_token() );
+        next_status_token( p_pos, c_pos, status );
+        // this->pending = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 4{delta}
-        next_nodestatus_token();
-        // this->delta = std::stoul( extract_nodestatus_token() );
+        next_status_token( p_pos, c_pos, status );
+        // this->delta = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 5{header/branch}
-        next_nodestatus_token();
-        // this->branch = extract_nodestatus_token();
+        next_status_token( p_pos, c_pos, status );
+        // this->branch = extract_status_token( p_pos, c_pos, status );
         // 6{version}
-        next_nodestatus_token();
-        // this->version = extract_nodestatus_token();
+        next_status_token( p_pos, c_pos, status );
+        // this->version = extract_status_token( p_pos, c_pos, status );
         // 7{utctime}
-        next_nodestatus_token();
-        // this->utctime = std::stoul( extract_nodestatus_token() );
+        next_status_token( p_pos, c_pos, status );
+        // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 8{mn_hash}
-        next_nodestatus_token();
-        // this->mn_hash = extract_nodestatus_token();
+        next_status_token( p_pos, c_pos, status );
+        // this->mn_hash = extract_status_token( p_pos, c_pos, status );
         // 9{mn_count}
-        next_nodestatus_token();
-        // this->mn_count = std::stoul( extract_nodestatus_token() );
+        next_status_token( p_pos, c_pos, status );
+        // this->mn_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 10{lb_hash}
-        next_nodestatus_token();
-        this->lb_hash = extract_nodestatus_token();
+        next_status_token( p_pos, c_pos, status );
+        this->lb_hash = extract_status_token( p_pos, c_pos, status );
         // 11{bh_diff/mn_diff}
-        next_nodestatus_token();
-        this->mn_diff = extract_nodestatus_token();
+        next_status_token( p_pos, c_pos, status );
+        this->mn_diff = extract_status_token( p_pos, c_pos, status );
         // 12{lb_time}
-        next_nodestatus_token();
-        this->lb_time = std::stoul( extract_nodestatus_token() );
+        next_status_token( p_pos, c_pos, status );
+        this->lb_time = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 13{lb_addr}
-        next_nodestatus_token();
-        this->lb_addr = extract_nodestatus_token();
+        next_status_token( p_pos, c_pos, status );
+        this->lb_addr = extract_status_token( p_pos, c_pos, status );
     }
 };
 
