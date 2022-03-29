@@ -619,7 +619,6 @@ std::set<std::uint32_t> g_mined_blocks;
 std::vector<std::thread> g_mine_threads;
 std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
 bool g_still_running { true };
-const std::uint32_t g_cache_section { 1'000'000 };
 
 int main( int argc, char *argv[] ) {
     #ifdef _WIN32
@@ -703,7 +702,7 @@ void CMineThread::Mine() {
     CNosoHasher noso_hasher( m_prefix, m_address );
     while ( g_still_running ) {
         while ( g_still_running && m_blck_no <= 0 ) {
-            std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * SUBMIT_CIRCLE_SECONDS ) ) );
+            std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
         }
         if ( g_still_running && m_blck_no > 0 ) {
             this->ResetComputedHashesCount();
@@ -712,8 +711,8 @@ void CMineThread::Mine() {
             char best_diff[33] { NOSO_MAX_DIFF };
             char sent_diff[33] { NOSO_MAX_DIFF };
             std::uint32_t noso_hash_counter { 0 };
-            auto begin_search { std::chrono::steady_clock::now() };
-            while ( g_still_running && NOSO_BLOCK_AGE < 584 ) {
+            // auto begin_mining { std::chrono::steady_clock::now() };
+            while ( g_still_running && 1 <= NOSO_BLOCK_AGE && NOSO_BLOCK_AGE <= 585 ) {
                 const char *base { noso_hasher.GetBase( noso_hash_counter++ ) };
                 const char *hash { noso_hasher.GetHash() };
                 const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
@@ -722,27 +721,23 @@ void CMineThread::Mine() {
                     strcpy( best_hash, hash );
                     strcpy( best_base, base );
                 }
-                if ( noso_hash_counter % g_cache_section == 0 && strcmp( best_diff, sent_diff ) < 0 ) {
-                    CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no + 1, best_base, best_hash, best_diff ) );
+                if ( strcmp( best_diff, sent_diff ) < 0 ) {
+                    CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, best_base, best_hash, best_diff ) );
                     strcpy( sent_diff, best_diff );
                 }
             }
-            if ( strcmp( best_diff, sent_diff) < 0 ) {
-                CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no + 1, best_base, best_hash, best_diff ) );
-                // strcpy( sent_diff, best_diff );
-            }
             this->UpdateComputedHashesCount( noso_hash_counter );
-            std::chrono::duration<double> elapsed_search = std::chrono::steady_clock::now() - begin_search;
-            mtx_print.lock();
-            COUT_NOSO_TIME << " DID HASH"
-                << ")blck[" << m_blck_no + 1
-                << "]diff[" << best_diff
-                << "]hash[" << best_hash
-                << "]base[" << best_base << "]"
-                << std::setw(9) << noso_hash_counter  << "hashes "
-                << std::fixed << std::setprecision(3) << elapsed_search.count() << "secs "
-                << noso_hash_counter / elapsed_search.count() / 1000 << "Kh/s" << std::endl;
-            mtx_print.unlock();
+            // std::chrono::duration<double> elapsed_mining = std::chrono::steady_clock::now() - begin_mining;
+            // mtx_print.lock();
+            // COUT_NOSO_TIME << "THREADSUM"
+            //     << ")blck[" << m_blck_no
+            //     << "]diff[" << best_diff
+            //     << "]hash[" << best_hash
+            //     << "]base[" << best_base << "]"
+            //     << std::setw(9) << noso_hash_counter  << "hashes "
+            //     << std::fixed << std::setprecision(3) << elapsed_mining.count() / 60 << "min "
+            //     << noso_hash_counter / elapsed_mining.count() / 1000 << "Kh/s" << std::endl;
+            // mtx_print.unlock();
             m_blck_no = 0;
         } // END if ( g_still_running && m_blck_no > 0 ) {
     } // END while ( g_still_running ) {
