@@ -500,7 +500,7 @@ private:
         return vec;
     }
     void _ResetMiningBlock();
-    void _PrintBlockSummary( std::uint32_t blck_no, auto elapsed_blck );
+    void _PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck );
 public:
     CCommThread( const CCommThread& ) = delete; // Copy prohibited
     CCommThread( CCommThread&& ) = delete; // Move prohibited
@@ -538,7 +538,8 @@ public:
         m_mutex_solutions.unlock();
         return best_solution;
     }
-    std::tuple<bool, bool, int> PushSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] ) {
+    void PushSolution( std::uint32_t blck, const char base[19], const char address[32],
+                                             char new_mn_diff[33], bool &submitted, bool &accepted, int &code ) {
         assert( strlen( base ) == 18 && ( strlen( address ) == 30 || strlen( address ) == 31 ) );
         if ( m_node_inets_good.size() < 1 ) {
             for ( auto ni : m_node_inets_poor ) {
@@ -564,7 +565,10 @@ public:
                 strncpy( new_mn_diff, m_submit_buffer + 5, 32 );
                 new_mn_diff[32] = '\0';
                 assert( strlen( new_mn_diff ) == 32 );
-                return std::make_tuple( true, true, 0 );
+                submitted = true;
+                accepted = true;
+                code = 0;
+                return;
             }
             else {
                 assert( strlen( m_submit_buffer ) == 40 + 2 && strncmp( m_submit_buffer, "False", 5 ) == 0
@@ -572,10 +576,16 @@ public:
                 strncpy( new_mn_diff, m_submit_buffer + 6, 32 );
                 new_mn_diff[32] = '\0';
                 assert( strlen( new_mn_diff ) == 32 );
-                return std::make_tuple( true, false, m_submit_buffer[39] - '0' );
+                submitted = true;
+                accepted = false;
+                code = m_submit_buffer[39] - '0';
+                return;
             }
         }
-        return std::make_tuple( false, false, 0 );
+        submitted = false;
+        accepted = false;
+        code = 0;
+        return;
     }
     std::shared_ptr<CConsensus> MakeConsensus() {
         std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->SyncSources( CONSENSUS_NODES_COUNT );
@@ -654,7 +664,7 @@ int main( int argc, char *argv[] ) {
     if ( g_miner_id < 0 || g_miner_id > 8100 ) exit(0);
     g_threads_count = result["threads"].as<std::uint32_t>();
     const std::string miner_prefix { nosohash_prefix( g_miner_id ) };
-    auto miner_thread_prefix = [ prefix = miner_prefix ]( int num ) {
+    auto miner_thread_prefix = []( int num, const std::string &prefix ) {
         std::string result = std::string { prefix + nosohash_prefix( num ) };
         result.append( 9 - result.size(), '!' );
         return result; };
@@ -669,7 +679,7 @@ int main( int argc, char *argv[] ) {
     std::cout << "Press Ctrl+C to stop" << std::endl;
     std::vector<std::string> miner_thread_prefixes;
     for ( std::uint32_t i = 0; i < g_threads_count - 1; i++ ) {
-        miner_thread_prefixes.push_back( miner_thread_prefix( i ) );
+        miner_thread_prefixes.push_back( miner_thread_prefix( i, miner_prefix ) );
     }
     for ( std::uint32_t i = 0; i < g_threads_count - 1; i++ )
         g_mine_objects.push_back( std::make_shared<CMineThread>( miner_thread_prefixes[i].c_str(), g_miner_address ) );
@@ -745,7 +755,7 @@ void CMineThread::Mine() {
     } // END while ( g_still_running ) {
 }
 
-void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, auto elapsed_blck ) {
+void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
     std::uint32_t computed_hashes_count = std::accumulate(
             g_mine_objects.begin(), g_mine_objects.end(), 0,
             []( int a, const std::shared_ptr<CMineThread> &o ) { return a + o->GetComputedHashesCount(); } );
@@ -825,7 +835,10 @@ void CCommThread::Communicate() {
                 if ( solution != nullptr ) {
                     if ( solution->diff < mn_diff ) {
                         strcpy( mn_diff, solution->diff.c_str() );
-                        auto [ submited, accepted, code ] = this->PushSolution( solution->blck, solution->base.c_str(), g_miner_address, new_mn_diff );
+                        bool submited { false }, accepted { false };
+                        int code { 0 };
+                        this->PushSolution( solution->blck, solution->base.c_str(), g_miner_address,
+                                           new_mn_diff, submited, accepted, code );
                         if ( submited ) {
                             if ( accepted ) {
                                 m_accepted_solutions_count ++;
