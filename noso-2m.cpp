@@ -253,6 +253,8 @@ public:
         return m_diff;
     }
 };
+constexpr const char CNosoHasher::hexchars_table[];
+constexpr std::uint16_t CNosoHasher::nosohash_chars_table[];
 
 int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize );
 
