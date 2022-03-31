@@ -310,6 +310,24 @@ public:
     }
 };
 
+class CPoolInet : public CInet {
+public:
+    std::string m_name;
+    CPoolInet( const std::string& name, const std::string &host, const std::string &port , int timeosec)
+        :   CInet( host, port, timeosec ), m_name { name } {
+    }
+    int FetchSource( const char address[32], char *buffer, std::size_t buffsize ) {
+        assert( strlen( address ) == 30 || strlen( address ) == 31 );
+        std::snprintf( buffer, buffsize, "SOURCE %s\n", address );
+        return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
+    }
+    int SubmitShare( const char base[19], const char address[32], char *buffer, std::size_t buffsize ) {
+        assert( strlen( base ) == 18 );
+        std::snprintf( buffer, buffsize, "SHARE %s %s\n", address, base );
+        return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
+    }
+};
+
 struct CNodeStatus {
     // std::uint32_t peer;
     std::uint32_t blck_no;
@@ -383,6 +401,50 @@ struct CNodeStatus {
     }
 };
 
+struct CPoolStatus {
+    std::uint32_t blck_no;
+    std::string lb_hash;
+    std::string mn_diff;
+    std::string prefix;
+    std::string address;
+    std::uint32_t balance;
+    CPoolStatus( const char *ps_line ) {
+        assert( ps_line != nullptr && strlen( ps_line ) > 1 );
+        auto next_status_token = []( size_t &p_pos, size_t &c_pos, const std::string &status ) {
+            p_pos = c_pos;
+            c_pos = status.find(' ', c_pos + 1);
+        };
+        auto extract_status_token = []( size_t p_pos, size_t c_pos, const std::string& status ) {
+            return status.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : (c_pos - p_pos - 1) );
+        };
+        std::string status { ps_line };
+        status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
+        size_t p_pos = -1, c_pos = -1;
+        // {0}OK 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber} 6{MinerBalance}
+        // 0{OK}
+        next_status_token( p_pos, c_pos, status );
+        // std::string status = extract_status_token( p_pos, c_pos, status );
+        // 1{prefix}
+        next_status_token( p_pos, c_pos, status );
+        this->prefix = extract_status_token( p_pos, c_pos, status );
+        // 2{address}
+        next_status_token( p_pos, c_pos, status );
+        this->address = extract_status_token( p_pos, c_pos, status );
+        // 3{mn_diff}
+        next_status_token( p_pos, c_pos, status );
+        this->mn_diff = extract_status_token( p_pos, c_pos, status );
+        // 4{lb_hash}
+        next_status_token( p_pos, c_pos, status );
+        this->lb_hash = extract_status_token( p_pos, c_pos, status );
+        // 5{blck_no}
+        next_status_token( p_pos, c_pos, status );
+        this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // 6{balance}
+        next_status_token( p_pos, c_pos, status );
+        this->balance = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    }
+};
+
 struct CData {
     std::uint32_t blck_no;
     std::string lb_hash;
@@ -409,6 +471,16 @@ struct CNodeData : public CData {
     CNodeData( std::uint32_t blck_no, const std::string& lb_hash, const std::string& mn_diff,
               std::time_t lb_time, const std::string& lb_addr )
         : CData( blck_no, lb_hash, mn_diff ), lb_time { lb_time }, lb_addr { lb_addr } {
+    }
+};
+
+struct CPoolData : public CData {
+    std::string prefix;
+    std::string address;
+    std::uint32_t balance;
+    CPoolData( std::uint32_t blck_no, const std::string& lb_hash, const std::string& mn_diff,
+              std::string& prefix, const std::string& address, std::uint32_t balance )
+        : CData( blck_no, lb_hash, mn_diff ), prefix { prefix }, address { address }, balance { balance } {
     }
 };
 
@@ -468,6 +540,7 @@ private:
     mutable std::mutex m_mutex_solutions;
     std::vector<std::shared_ptr<CNodeInet>> m_node_inets_good;
     std::vector<std::shared_ptr<CNodeInet>> m_node_inets_poor;
+    CPoolInet m_pool_inet { "devnoso", "45.146.252.103", "8082", DEFAULT_INET_TIMEOSEC };
     std::multiset<std::shared_ptr<CSolution>, CSolsSetCompare> m_solutions;
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
@@ -549,6 +622,17 @@ public:
         m_mutex_solutions.unlock();
         return best_solution;
     }
+    const std::shared_ptr<CSolution> GoodSolution() {
+        std::shared_ptr<CSolution> good_solution { nullptr };
+        m_mutex_solutions.lock();
+        if ( m_solutions.begin() != m_solutions.end() ) {
+            auto itor_good_solution = m_solutions.begin();
+            good_solution = *itor_good_solution;
+            m_solutions.erase( itor_good_solution );
+        }
+        m_mutex_solutions.unlock();
+        return good_solution;
+    }
     void PushSolution( std::uint32_t blck, const char base[19], const char address[32],
                                              char new_mn_diff[33], bool &submitted, bool &accepted, int &code ) {
         assert( strlen( base ) == 18 && ( strlen( address ) == 30 || strlen( address ) == 31 ) );
@@ -626,6 +710,25 @@ public:
             max_freq( m_freq_lb_time ),
             max_freq( m_freq_lb_addr ) );
     }
+    std::shared_ptr<CPoolData> ReceivePoolData( const char address[32] ) {
+        assert( strlen( address ) == 30 || strlen( address ) == 31 );
+        if ( m_pool_inet.FetchSource( address, m_status_buffer, INET_BUFFER_SIZE ) <= 0 )
+            return nullptr;
+        try {
+            CPoolStatus ps( m_status_buffer );
+            return std::make_shared<CPoolData>(
+                ps.blck_no,
+                ps.lb_hash,
+                ps.mn_diff,
+                ps.prefix,
+                ps.address,
+                ps.balance );
+        }
+        catch ( const std::exception &e ) {
+            std::cout << e.what();
+            return nullptr;
+        }
+    }
     void Communicate();
 };
 
@@ -636,6 +739,7 @@ std::uint32_t g_mined_block_count { 0 };
 std::vector<std::thread> g_mine_threads;
 std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
 bool g_still_running { true };
+bool g_solo_mining { true };
 
 int main( int argc, char *argv[] ) {
     #ifdef _WIN32
