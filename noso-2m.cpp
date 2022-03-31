@@ -267,7 +267,7 @@ public:
     const int m_timeosec;
     CNodeInet( const std::string &host, const std::string &port, int timeosec )
         :   m_serv_info { NULL },
-            m_host { host }, m_port { port }, m_timeosec { timeosec } {
+            m_host { host }, m_port { port }, m_timeosec( timeosec ) {
         this->InitService();
     }
     ~CNodeInet() {
@@ -455,9 +455,7 @@ private:
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
-    std::uint32_t m_disposed_solutions_count { 0 };
     std::uint32_t m_pendings_solutions_count { 0 };
-    std::uint32_t m_passover_solutions_count { 0 };
     char m_status_buffer[INET_BUFFER_SIZE];
     char m_submit_buffer[INET_BUFFER_SIZE];
     std::map<std::uint32_t, int> m_freq_blck_no;
@@ -503,6 +501,7 @@ private:
     }
     void _ResetMiningBlock();
     void _PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck );
+    void _ReportFailSubmittedSolution( int code, const std::shared_ptr<CSolution> &solution );
 public:
     CCommThread( const CCommThread& ) = delete; // Copy prohibited
     CCommThread( CCommThread&& ) = delete; // Move prohibited
@@ -528,13 +527,6 @@ public:
         if ( m_solutions.begin() != m_solutions.end() ) {
             auto itor_best_solution = m_solutions.begin();
             best_solution = *itor_best_solution;
-            m_solutions.erase( itor_best_solution );
-            // for ( auto s : m_solutions ) {
-            //     std::cout << "\tPASSOVER>>"
-            //         << "blck[" << s->blck << "]diff[" << s->diff
-            //         << "]hash[" << s->hash << "]base[" << s->base << "]" << std::endl;
-            // }
-            m_passover_solutions_count += m_solutions.size();
             m_solutions.clear();
         }
         m_mutex_solutions.unlock();
@@ -623,13 +615,7 @@ public:
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_miner_id { DEFAULT_MINER_ID };
 std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
-std::uint32_t g_total_pendings_solutions_count { 0 };
-std::uint32_t g_total_accepted_solutions_count { 0 };
-std::uint32_t g_total_rejected_solutions_count { 0 };
-std::uint32_t g_total_failured_solutions_count { 0 };
-std::uint32_t g_total_disposed_solutions_count { 0 };
-std::uint32_t g_total_passover_solutions_count { 0 };
-std::set<std::uint32_t> g_mined_blocks;
+std::uint32_t g_mined_block_count { 0 };
 std::vector<std::thread> g_mine_threads;
 std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
 bool g_still_running { true };
@@ -689,19 +675,6 @@ int main( int argc, char *argv[] ) {
     for ( std::uint32_t i = 0; i < g_threads_count - 1; i++ )
         g_mine_threads.emplace_back( &CMineThread::Mine, g_mine_objects[i] );
     comm_thread.join();
-    std::cout << "================================================================================================================\n"
-        << "TOTAL "
-        << g_total_accepted_solutions_count << " ACCEPTED "
-        << g_total_rejected_solutions_count << " REJECTED "
-        << g_total_failured_solutions_count << " FAILURED "
-        << g_total_disposed_solutions_count << " DISPOSED "
-        << g_total_passover_solutions_count << " PASSOVER "
-        << g_total_pendings_solutions_count << " PENDINGS " << "SOLUTION(S)" << std::endl;
-    std::cout << "MINED " << g_mined_blocks.size() << " BLOCKS" << std::endl;
-    if ( g_mined_blocks.size() > 0 ) {
-        for( auto b : g_mined_blocks ) std::cout << b << " ";
-        std::cout << std::endl;
-    }
     #ifdef _WIN32
     WSACleanup();
     #endif
@@ -761,37 +734,74 @@ void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::
     std::uint32_t computed_hashes_count = std::accumulate(
             g_mine_objects.begin(), g_mine_objects.end(), 0,
             []( int a, const std::shared_ptr<CMineThread> &o ) { return a + o->GetComputedHashesCount(); } );
-    std::cout << "SUMMARY BLOCK#" << blck_no << " : " << computed_hashes_count<< " hashes computed within "
-        << elapsed_blck.count() / 60 << " minutes (" << computed_hashes_count / elapsed_blck.count() / 1000 << "Kh/s)\n\t"
+    std::cout << "SUMMARY BLOCK#" << blck_no << " : "
+        << computed_hashes_count<< " hashes computed in "
+        << std::fixed << std::setprecision(3)
+        << elapsed_blck.count() / 60 << " minutes, hashrate approx. "
+        << computed_hashes_count / elapsed_blck.count() / 1000 << " Kh/s\n\t"
         << " accepted " << m_accepted_solutions_count
         << " rejected " << m_rejected_solutions_count
         << " failured " << m_failured_solutions_count
-        << " disposed " << m_disposed_solutions_count
-        << " passover " << m_passover_solutions_count
         << " pendings " << m_pendings_solutions_count << " solution(s)" << std::endl;
-    std::cout << "MINED " << g_mined_blocks.size() << " BLOCKS" << std::endl;
-    g_total_accepted_solutions_count += m_accepted_solutions_count;
-    g_total_rejected_solutions_count += m_rejected_solutions_count;
-    g_total_failured_solutions_count += m_failured_solutions_count;
-    g_total_disposed_solutions_count += m_disposed_solutions_count;
-    g_total_passover_solutions_count += m_passover_solutions_count;
-    g_total_pendings_solutions_count += m_pendings_solutions_count;
+    std::cout << "TOTAL MINED " << g_mined_block_count << " BLOCKS" << std::endl;
 };
+
 void CCommThread::_ResetMiningBlock() {
     m_accepted_solutions_count = 0;
     m_rejected_solutions_count = 0;
     m_failured_solutions_count = 0;
-    m_disposed_solutions_count = 0;
-    m_passover_solutions_count = 0;
     m_pendings_solutions_count = 0;
     this->ClearSolutions();
 };
+
+void CCommThread::_ReportFailSubmittedSolution( int code, const std::shared_ptr<CSolution> &solution ) {
+    if      ( code == 1 ) {
+        COUT_NOSO_TIME << "    ERROR"
+            << ")blck[" << solution->blck
+            << "]diff[" << solution->diff
+            << "]hash[" << solution->hash
+            << "]base[" << solution->base << "]Wrong block number " << solution->blck << " submitted!" << std::endl;
+    } else if ( code == 2 ) {
+        COUT_NOSO_TIME << "    ERROR"
+            << ")blck[" << solution->blck
+            << "]diff[" << solution->diff
+            << "]hash[" << solution->hash
+            << "]base[" << solution->base << "]Incorrect timestamp submitted!" << std::endl;
+    } else if ( code == 3 ) {
+        COUT_NOSO_TIME << "    ERROR"
+            << ")blck[" << solution->blck
+            << "]diff[" << solution->diff
+            << "]hash[" << solution->hash
+            << "]base[" << solution->base << "]Invalid address (" << g_miner_address << ")!" << std::endl;
+    } else if ( code == 7 ) {
+        COUT_NOSO_TIME << "    ERROR"
+            << ")blck[" << solution->blck
+            << "]diff[" << solution->diff
+            << "]hash[" << solution->hash
+            << "]base[" << solution->base << "]Wrong hash base (" << solution->base << ")!" << std::endl;
+    } else if ( code == 4 ) {
+        COUT_NOSO_TIME << " DUPLICAT"
+            << ")blck[" << solution->blck
+            << "]diff[" << solution->diff
+            << "]hash[" << solution->hash
+            << "]base[" << solution->base << "]THIS SHOULD NOT HAPPEND!" << std::endl;
+    } else if ( code == 5 ) {
+        COUT_NOSO_TIME << " REJECTED"
+            << ")blck[" << solution->blck
+            << "]diff[" << solution->diff
+            << "]hash[" << solution->hash
+            << "]base[" << solution->base << "]" << std::endl;
+    } else { // code == 6
+        COUT_NOSO_TIME << "WAITBLOCK"
+            << ")blck[" << solution->blck
+            << "]diff[" << solution->diff
+            << "]hash[" << solution->hash
+            << "]base[" << solution->base << "]Network building block!" << std::endl;
+    }
+}
+
 void CCommThread::Communicate() {
-    std::uint32_t blck_no { 0 };
-    char lb_hash[33];
-    char mn_diff[33] { NOSO_MAX_DIFF };
     char new_mn_diff[33] { NOSO_MAX_DIFF };
-    std::vector<std::string> accepted_hashes;
     auto begin_blck = std::chrono::steady_clock::now();
     while ( g_still_running ) {
         if ( NOSO_BLOCK_AGE < 1 || 585 < NOSO_BLOCK_AGE ) {
@@ -809,34 +819,26 @@ void CCommThread::Communicate() {
         }
         if ( !g_still_running ) break;
         std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
-        begin_blck = std::chrono::steady_clock::now();
-        blck_no = consensus->blck_no + 1;
-        strcpy( lb_hash, consensus->lb_hash.c_str() );
-        strcpy( mn_diff, consensus->mn_diff.c_str() );
-        for ( auto mo : g_mine_objects ) mo->UpdateLastBlock( consensus->blck_no + 1, lb_hash );
         COUT_NOSO_TIME << "PREVBLOCK"
             << ")blck[" << consensus->blck_no
-            << "]addr[" << consensus->lb_addr
-            << "]time[" << consensus->lb_time << "]" << std::endl;
+            << "]addr[" << consensus->lb_addr << "]" << std::endl;
         if ( consensus->lb_addr == g_miner_address ) {
-            g_mined_blocks.insert( consensus->blck_no );
-            bool this_machine = std::find( accepted_hashes.begin(), accepted_hashes.end(), consensus->lb_hash ) != accepted_hashes.end();
-            COUT_NOSO_TIME << "YAY! YOU HAVE MINED BLOCK#" << consensus->blck_no
-                << " TO ADDRESS " << consensus->lb_addr
-                << ( this_machine ? " BY THIS MACHINE!!!" : "" ) << std::endl;
-            accepted_hashes.clear();
+            g_mined_block_count++;
+            COUT_NOSO_TIME << "YAY! YOU HAVE MINED BLOCK#" << consensus->blck_no << std::endl;
         }
         COUT_NOSO_TIME << "CONSENSUS"
             << ")blck["   << consensus->blck_no + 1
             << "]diff["   << consensus->mn_diff
             << "]hash["   << consensus->lb_hash << "]" << std::endl;
+        begin_blck = std::chrono::steady_clock::now();
+        for ( auto mo : g_mine_objects ) mo->UpdateLastBlock( consensus->blck_no + 1, consensus->lb_hash.c_str() );
         while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
             auto begin_submit = std::chrono::steady_clock::now();
             if ( NOSO_BLOCK_AGE >= 10 ) {
                 std::shared_ptr<CSolution> solution { this->BestSolution() };
                 if ( solution != nullptr ) {
-                    if ( solution->diff < mn_diff ) {
-                        strcpy( mn_diff, solution->diff.c_str() );
+                    if ( solution->diff < consensus->mn_diff ) {
+                        consensus->mn_diff = solution->diff;
                         bool submited { false }, accepted { false };
                         int code { 0 };
                         this->PushSolution( solution->blck, solution->base.c_str(), g_miner_address,
@@ -844,68 +846,20 @@ void CCommThread::Communicate() {
                         if ( submited ) {
                             if ( accepted ) {
                                 m_accepted_solutions_count ++;
-                                assert( strcmp( mn_diff, new_mn_diff ) == 0 );
-                                // strcpy( mn_diff, new_mn_diff );
-                                accepted_hashes.push_back( solution->hash );
+                                assert( solution->diff == new_mn_diff );
+                                assert( consensus->mn_diff == new_mn_diff );
+                                // consensus->mn_diff = new_mn_diff;
                                 COUT_NOSO_TIME << " ACCEPTED"
                                     << ")blck[" << solution->blck
                                     << "]diff[" << solution->diff
                                     << "]hash[" << solution->hash
                                     << "]base[" << solution->base << "]" << std::endl;
                             } else {
-                                m_rejected_solutions_count ++;
-                                if ( strcmp( mn_diff, new_mn_diff ) > 0 ) strcpy( mn_diff, new_mn_diff );
-                                if      ( code == 1 ) {
-                                    COUT_NOSO_TIME << "    ERROR"
-                                        << ")blck[" << solution->blck
-                                        << "]diff[" << solution->diff
-                                        << "]hash[" << solution->hash
-                                        << "]base[" << solution->base << "]Wrong block number " << solution->blck << " submitted!" << std::endl;
-                                } else if ( code == 2 ) {
-                                    COUT_NOSO_TIME << "    ERROR"
-                                        << ")blck[" << solution->blck
-                                        << "]diff[" << solution->diff
-                                        << "]hash[" << solution->hash
-                                        << "]base[" << solution->base << "]Incorrect timestamp submitted!" << std::endl;
-                                    // g_still_running = false;
-                                } else if ( code == 3 ) {
-                                    COUT_NOSO_TIME << "    ERROR"
-                                        << ")blck[" << solution->blck
-                                        << "]diff[" << solution->diff
-                                        << "]hash[" << solution->hash
-                                        << "]base[" << solution->base << "]Invalid address (" << g_miner_address << ")!" << std::endl;
-                                    // g_still_running = false;
-                                } else if ( code == 7 ) {
-                                    COUT_NOSO_TIME << "    ERROR"
-                                        << ")blck[" << solution->blck
-                                        << "]diff[" << solution->diff
-                                        << "]hash[" << solution->hash
-                                        << "]base[" << solution->base << "]Wrong hash base (" << solution->base << ")!" << std::endl;
-                                } else if ( code == 4 ) {
-                                    COUT_NOSO_TIME << " DUPLICAT"
-                                        << ")blck[" << solution->blck
-                                        << "]diff[" << solution->diff
-                                        << "]hash[" << solution->hash
-                                        << "]base[" << solution->base << "]THIS SHOULD NOT HAPPEND!" << std::endl;
-                                } else if ( code == 5 ) {
-                                    COUT_NOSO_TIME << " REJECTED"
-                                        << ")blck[" << solution->blck
-                                        << "]diff[" << solution->diff
-                                        << "]hash[" << solution->hash
-                                        << "]base[" << solution->base << "]" << std::endl;
-                                } else { // code == 6
-                                    if ( strcmp( mn_diff, new_mn_diff ) < 0 ) this->AddSolution( solution );
-                                    COUT_NOSO_TIME << "WAITBLOCK"
-                                        << ")blck[" << solution->blck
-                                        << "]diff[" << solution->diff
-                                        << "]hash[" << solution->hash
-                                        << "]base[" << solution->base << "]Network building block!" << std::endl;
-                                }
-                                COUT_NOSO_TIME << "UPTODATED"
-                                    << ")blck[" << blck_no
-                                    << "]diff[" << mn_diff
-                                    << "]hash[" << lb_hash << "]" << std::endl;
-                            } // OF if ( accepted ) { ... } else {
+                                if ( consensus->mn_diff > new_mn_diff ) consensus->mn_diff = new_mn_diff;
+                                if ( code == 5 ) m_rejected_solutions_count ++;
+                                if ( code == 6 && solution->diff < new_mn_diff ) this->AddSolution( solution );
+                                this->_ReportFailSubmittedSolution( code, solution );
+                            } // END if ( accepted ) { ... } else {
                         } else { // OF if ( submited ) {
                             m_failured_solutions_count ++;
                             this->AddSolution( solution );
@@ -915,23 +869,16 @@ void CCommThread::Communicate() {
                                 << "]hash[" << solution->hash
                                 << "]base[" << solution->base << "Re-submitted!" << std::endl;
                         }
-                    } else { // OF if ( solution->m_diff < mn_diff ) {
-                        m_disposed_solutions_count ++;
-                        // COUT_NOSO_TIME << " DISPOSED"
-                        //     << ")blck[" << solution->blck
-                        //     << "]diff[" << solution->diff
-                        //     << "]hash[" << solution->hash
-                        //     << "]base[" << solution->base << "]" << std::endl;
-                    }
+                    } // END if ( solution->m_diff < mn_diff ) {
                 } // END if ( solution != nullptr ) {
-            } // if ( NOSO_BLOCK_AGE >= 10 ) {
+            } // END if ( NOSO_BLOCK_AGE >= 10 ) {
             std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
             if ( elapsed_submit.count() < INET_CIRCLE_SECONDS ) {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
             }
-        } // while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
+        } // END while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
         std::chrono::duration<double> elapsed_blck = std::chrono::steady_clock::now() - begin_blck;
-        this->_PrintBlockSummary( blck_no, elapsed_blck );
+        this->_PrintBlockSummary( consensus->blck_no, elapsed_blck );
         this->_ResetMiningBlock();
     } // END while ( g_still_running ) {
     for ( auto &thr : g_mine_threads ) thr.join();
