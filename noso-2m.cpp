@@ -258,19 +258,19 @@ constexpr std::uint16_t CNosoHasher::nosohash_chars_table[];
 
 int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize );
 
-class CNodeInet {
-private:
+class CInet {
+protected:
     struct addrinfo *m_serv_info;
 public:
     const std::string m_host;
     const std::string m_port;
     const int m_timeosec;
-    CNodeInet( const std::string &host, const std::string &port, int timeosec )
+    CInet( const std::string &host, const std::string &port, int timeosec )
         :   m_serv_info { NULL },
             m_host { host }, m_port { port }, m_timeosec( timeosec ) {
         this->InitService();
     }
-    ~CNodeInet() {
+    ~CInet() {
         this->CleanService();
     }
     void InitService() {
@@ -290,6 +290,13 @@ public:
         if ( m_serv_info == NULL ) return;
         freeaddrinfo( m_serv_info );
         m_serv_info = NULL;
+    }
+};
+
+class CNodeInet : public CInet {
+public:
+    CNodeInet( const std::string &host, const std::string &port , int timeosec)
+    :   CInet( host, port, timeosec ) {
     }
     int FetchNodestatus( char *buffer, std::size_t buffsize ) {
         strcpy( buffer, "NODESTATUS\n" );
@@ -376,9 +383,18 @@ struct CNodeStatus {
     }
 };
 
-struct CConsensus {
-    // std::uint32_t peer;
+struct CData {
     std::uint32_t blck_no;
+    std::string lb_hash;
+    std::string mn_diff;
+    CData( std::uint32_t blck_no, const std::string& lb_hash, const std::string& mn_diff)
+        : blck_no { blck_no }, lb_hash { lb_hash }, mn_diff { mn_diff } {
+    }
+};
+
+struct CNodeData : public CData {
+    // std::uint32_t peer;
+    // // std::uint32_t blck_no;
     // std::uint32_t pending;
     // std::uint32_t delta;
     // std::string branch;
@@ -386,12 +402,13 @@ struct CConsensus {
     // std::time_t utctime;
     // std::string mn_hash;
     // std::uint32_t mn_count;
-    std::string lb_hash;
-    std::string mn_diff;
+    // // std::string lb_hash;
+    // // std::string mn_diff;
     std::time_t lb_time;
     std::string lb_addr;
-    CConsensus( std::uint32_t blck_no_, const std::string& lb_hash_, const std::string& mn_diff_, std::time_t lb_time_, const std::string& lb_addr_ )
-        : blck_no { blck_no_ }, lb_hash { lb_hash_ }, mn_diff { mn_diff_ }, lb_time { lb_time_ }, lb_addr { lb_addr_ } {
+    CNodeData( std::uint32_t blck_no, const std::string& lb_hash, const std::string& mn_diff,
+              std::time_t lb_time, const std::string& lb_addr )
+        : CData( blck_no, lb_hash, mn_diff ), lb_time { lb_time }, lb_addr { lb_addr } {
     }
 };
 
@@ -581,7 +598,7 @@ public:
         code = 0;
         return;
     }
-    std::shared_ptr<CConsensus> MakeConsensus() {
+    std::shared_ptr<CNodeData> MakeConsensus() {
         std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->SyncSources( CONSENSUS_NODES_COUNT );
         if ( status_of_nodes.size() < CONSENSUS_NODES_COUNT ) return nullptr;
         const auto max_freq = []( const auto &freq ) {
@@ -602,7 +619,7 @@ public:
             ++m_freq_lb_time [ns->lb_time];
             ++m_freq_lb_addr [ns->lb_addr];
         }
-        return std::make_shared<CConsensus>(
+        return std::make_shared<CNodeData>(
             max_freq( m_freq_blck_no ),
             max_freq( m_freq_lb_hash ),
             max_freq( m_freq_mn_diff ),
@@ -812,33 +829,33 @@ void CCommThread::Communicate() {
             std::cout << std::endl;
             if ( !g_still_running ) break;
         }
-        std::shared_ptr<CConsensus> consensus = this->MakeConsensus();
-        while ( g_still_running && consensus == nullptr ) {
+        std::shared_ptr<CNodeData> nodedata = this->MakeConsensus();
+        while ( g_still_running && nodedata == nullptr ) {
             COUT_NOSO_TIME << "MAKING CONSENSUS..." << std::endl;
-            consensus = this->MakeConsensus();
+            nodedata = this->MakeConsensus();
         }
-        if ( !g_still_running ) break;
         std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
         COUT_NOSO_TIME << "PREVBLOCK"
-            << ")blck[" << consensus->blck_no
-            << "]addr[" << consensus->lb_addr << "]" << std::endl;
-        if ( consensus->lb_addr == g_miner_address ) {
+            << ")blck[" << nodedata->blck_no
+            << "]addr[" << nodedata->lb_addr << "]" << std::endl;
+        if ( nodedata->lb_addr == g_miner_address ) {
             g_mined_block_count++;
-            COUT_NOSO_TIME << "YAY! YOU HAVE MINED BLOCK#" << consensus->blck_no << std::endl;
+            COUT_NOSO_TIME << "YAY! YOU HAVE MINED BLOCK#" << nodedata->blck_no << std::endl;
         }
         COUT_NOSO_TIME << "CONSENSUS"
-            << ")blck["   << consensus->blck_no + 1
-            << "]diff["   << consensus->mn_diff
-            << "]hash["   << consensus->lb_hash << "]" << std::endl;
+            << ")blck["   << nodedata->blck_no + 1
+            << "]diff["   << nodedata->mn_diff
+            << "]hash["   << nodedata->lb_hash << "]" << std::endl;
+        if ( !g_still_running ) break;
         begin_blck = std::chrono::steady_clock::now();
-        for ( auto mo : g_mine_objects ) mo->UpdateLastBlock( consensus->blck_no + 1, consensus->lb_hash.c_str() );
+        for ( auto mo : g_mine_objects ) mo->UpdateLastBlock( nodedata->blck_no + 1, nodedata->lb_hash.c_str() );
         while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
             auto begin_submit = std::chrono::steady_clock::now();
             if ( NOSO_BLOCK_AGE >= 10 ) {
                 std::shared_ptr<CSolution> solution { this->BestSolution() };
                 if ( solution != nullptr ) {
-                    if ( solution->diff < consensus->mn_diff ) {
-                        consensus->mn_diff = solution->diff;
+                    if ( solution->diff < nodedata->mn_diff ) {
+                        nodedata->mn_diff = solution->diff;
                         bool submited { false }, accepted { false };
                         int code { 0 };
                         this->PushSolution( solution->blck, solution->base.c_str(), g_miner_address,
@@ -847,15 +864,15 @@ void CCommThread::Communicate() {
                             if ( accepted ) {
                                 m_accepted_solutions_count ++;
                                 assert( solution->diff == new_mn_diff );
-                                assert( consensus->mn_diff == new_mn_diff );
-                                // consensus->mn_diff = new_mn_diff;
+                                assert( nodedata->mn_diff == new_mn_diff );
+                                // nodedata->mn_diff = new_mn_diff;
                                 COUT_NOSO_TIME << " ACCEPTED"
                                     << ")blck[" << solution->blck
                                     << "]diff[" << solution->diff
                                     << "]hash[" << solution->hash
                                     << "]base[" << solution->base << "]" << std::endl;
                             } else {
-                                if ( consensus->mn_diff > new_mn_diff ) consensus->mn_diff = new_mn_diff;
+                                if ( nodedata->mn_diff > new_mn_diff ) nodedata->mn_diff = new_mn_diff;
                                 if ( code == 5 ) m_rejected_solutions_count ++;
                                 if ( code == 6 && solution->diff < new_mn_diff ) this->AddSolution( solution );
                                 this->_ReportFailSubmittedSolution( code, solution );
@@ -878,7 +895,7 @@ void CCommThread::Communicate() {
             }
         } // END while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
         std::chrono::duration<double> elapsed_blck = std::chrono::steady_clock::now() - begin_blck;
-        this->_PrintBlockSummary( consensus->blck_no, elapsed_blck );
+        this->_PrintBlockSummary( nodedata->blck_no, elapsed_blck );
         this->_ResetMiningBlock();
     } // END while ( g_still_running ) {
     for ( auto &thr : g_mine_threads ) thr.join();
