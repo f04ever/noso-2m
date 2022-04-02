@@ -48,14 +48,14 @@
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
 
 const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
-        { "23.94.21.83",        "8080" },
-        { "45.146.252.103",     "8080" },
-        { "107.172.5.8",        "8080" },
-        { "109.230.238.240",    "8080" },
-        { "172.245.52.208",     "8080" },
-        { "192.210.226.118",    "8080" },
-        { "194.156.88.117",     "8080" },
-        { "107.175.59.177",     "8080" },
+        { "45.146.252.103"  ,   "8080" },
+        { "109.230.238.240" ,   "8080" },
+        { "194.156.88.117"  ,   "8080" },
+        { "23.94.21.83"     ,   "8080" },
+        { "107.175.59.177"  ,   "8080" },
+        { "107.172.193.176" ,   "8080" },
+        { "107.175.194.151" ,   "8080" },
+        { "192.3.173.184"   ,   "8080" },
     }; // seed nodes
 
 const char NOSOHASH_HASHEABLE_CHARS[] {
@@ -253,6 +253,8 @@ public:
         return m_diff;
     }
 };
+constexpr const char CNosoHasher::hexchars_table[];
+constexpr std::uint16_t CNosoHasher::nosohash_chars_table[];
 
 int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize );
 
