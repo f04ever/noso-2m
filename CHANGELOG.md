@@ -1,3 +1,7 @@
+Version 0.1.3
+
+- Update mainnet seed nodes
+
 Version 0.1.2
 
 - Consensus only once at beginning each blocks
