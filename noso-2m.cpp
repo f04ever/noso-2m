@@ -55,7 +55,7 @@ const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
         { "107.175.59.177"  ,   "8080" },
         { "107.172.193.176" ,   "8080" },
         { "107.175.194.151" ,   "8080" },
-        { "192.210.226.118" ,   "8080" },
+        { "192.3.173.184"   ,   "8080" },
     }; // seed nodes
 
 const char NOSOHASH_HASHEABLE_CHARS[] {
