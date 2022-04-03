@@ -650,11 +650,16 @@ int main( int argc, char *argv[] ) {
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "i,minerid",  "Miner ID - a number between 0-8100",   cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_MINER_ID ) ) )
         ( "t,threads",  "Number of threads use for mining",     cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
+        ( "v,version",  "Print current version" )
         ( "h,help",     "Print this usage" )
         ;
     auto result = options.parse( argc, argv );
     if ( result.count( "help" ) ) {
         std::cout << options.help() << std::endl;
+        exit( 0 );
+    }
+    if ( result.count( "version" ) ) {
+        std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
         exit( 0 );
     }
     std::string miner_address = result["address"].as<std::string>();
