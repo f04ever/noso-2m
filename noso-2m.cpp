@@ -60,7 +60,7 @@ const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
 
 const char NOSOHASH_HASHEABLE_CHARS[] {
     "!\"#$%&')*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" };
-const std::size_t NOSOHASH_HASHEABLE_COUNT =  93 - 1; // strlen( NOSOHASH_HASHEABLE_COUNT );
+const std::size_t NOSOHASH_HASHEABLE_COUNT =  93 - 1; // std::strlen( NOSOHASH_HASHEABLE_COUNT );
 inline std::string nosohash_prefix( int num ) {
     return std::string {
         NOSOHASH_HASHEABLE_CHARS[ num / NOSOHASH_HASHEABLE_COUNT ],
@@ -155,23 +155,23 @@ private:
                                         m_stat[128][ ( i * 4 ) + 2 ] +
                                         m_stat[128][ ( i * 4 ) + 3 ] ] % 16 );
         m_hash[32] = '\0';
-        assert( strlen( m_hash ) == 32 );
+        assert( std::strlen( m_hash ) == 32 );
     }
     inline void _md5() {
-        assert( strlen( m_hash ) == 32 );
+        assert( std::strlen( m_hash ) == 32 );
         md5Init( &m_md5_ctx );
         md5Update( &m_md5_ctx, (uint8_t *)m_hash, 32 );
         md5Finalize( &m_md5_ctx );
-        // sprintf( m_hash,
-        //         "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-        //         m_md5_ctx.digest[ 0], m_md5_ctx.digest[ 1],
-        //         m_md5_ctx.digest[ 2], m_md5_ctx.digest[ 3],
-        //         m_md5_ctx.digest[ 4], m_md5_ctx.digest[ 5],
-        //         m_md5_ctx.digest[ 6], m_md5_ctx.digest[ 7],
-        //         m_md5_ctx.digest[ 8], m_md5_ctx.digest[ 9],
-        //         m_md5_ctx.digest[10], m_md5_ctx.digest[11],
-        //         m_md5_ctx.digest[12], m_md5_ctx.digest[13],
-        //         m_md5_ctx.digest[14], m_md5_ctx.digest[15] );
+        // std::sprintf( m_hash,
+        //             "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+        //             m_md5_ctx.digest[ 0], m_md5_ctx.digest[ 1],
+        //             m_md5_ctx.digest[ 2], m_md5_ctx.digest[ 3],
+        //             m_md5_ctx.digest[ 4], m_md5_ctx.digest[ 5],
+        //             m_md5_ctx.digest[ 6], m_md5_ctx.digest[ 7],
+        //             m_md5_ctx.digest[ 8], m_md5_ctx.digest[ 9],
+        //             m_md5_ctx.digest[10], m_md5_ctx.digest[11],
+        //             m_md5_ctx.digest[12], m_md5_ctx.digest[13],
+        //             m_md5_ctx.digest[14], m_md5_ctx.digest[15] );
         m_hash[ 0] = hexchars_table[m_md5_ctx.digest[ 0] >>  4];
         m_hash[ 1] = hexchars_table[m_md5_ctx.digest[ 0] & 0xF];
         m_hash[ 2] = hexchars_table[m_md5_ctx.digest[ 1] >>  4];
@@ -205,37 +205,38 @@ private:
         m_hash[30] = hexchars_table[m_md5_ctx.digest[15] >>  4];
         m_hash[31] = hexchars_table[m_md5_ctx.digest[15] & 0xF];
         m_hash[32] = '\0';
-        assert( strlen( m_hash ) == 32 );
+        assert( std::strlen( m_hash ) == 32 );
     }
 public:
     CNosoHasher( const char prefix[10], const char address[32] ) {
         constexpr static const char NOSOHASH_FILLER_CHARS[] = "%)+/5;=CGIOSYaegk";
-        constexpr static const int NOSOHASH_FILLER_COUNT = 17; // strlen( NOSOHASH_FILLER_CHARS );
-        assert( strlen( prefix ) == 9 && ( strlen( address ) == 30 || strlen( address ) == 31 ) );
-        memcpy( m_base, prefix, 9 );
-        sprintf( m_base + 9, "%09d", 0 ); // placehold for 9-digits-counter
-        assert( strlen( m_base ) == 18 ); // 18 = 9 + 9 = 9-chars-prefix + 9-digits-counter
-        int addr_len = strlen( address );
-        memcpy( m_stat[0], m_base, 9 );
-        memcpy( m_stat[0] + 9, m_base + 9, 9 );  // update the 9-digits-counter part as the same as it is updated in base
-        memcpy( m_stat[0] + 9 + 9, address, addr_len );
+        constexpr static const int NOSOHASH_FILLER_COUNT = 17; // std::strlen( NOSOHASH_FILLER_CHARS );
+        assert( std::strlen( prefix ) == 9
+               && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
+        std::memcpy( m_base, prefix, 9 );
+        std::sprintf( m_base + 9, "%09d", 0 ); // placehold for 9-digits-counter
+        assert( std::strlen( m_base ) == 18 ); // 18 = 9 + 9 = 9-chars-prefix + 9-digits-counter
+        int addr_len = std::strlen( address );
+        std::memcpy( m_stat[0], m_base, 9 );
+        std::memcpy( m_stat[0] + 9, m_base + 9, 9 );  // update the 9-digits-counter part as the same as it is updated in base
+        std::memcpy( m_stat[0] + 9 + 9, address, addr_len );
         int len = 18 + addr_len; // 48/49 = 9 + 9 + 30/31 = 9-chars-prefix + 9-digits-counter + 30/31-chars-address
         int div = ( 128 - len ) / NOSOHASH_FILLER_COUNT;
         int mod = ( 128 - len ) % NOSOHASH_FILLER_COUNT;
         for ( int i = 0; i < div; i++ ) {
-            memcpy( m_stat[0] + len, NOSOHASH_FILLER_CHARS, NOSOHASH_FILLER_COUNT );
+            std::memcpy( m_stat[0] + len, NOSOHASH_FILLER_CHARS, NOSOHASH_FILLER_COUNT );
             len += NOSOHASH_FILLER_COUNT;
         }
-        memcpy( m_stat[0] + len, NOSOHASH_FILLER_CHARS, mod );
+        std::memcpy( m_stat[0] + len, NOSOHASH_FILLER_CHARS, mod );
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
     }
     const char* GetBase( std::uint32_t counter ) {
         // TODO consider case counter > 999'999'999 => base len > 18. Currently
         // it does not happen, each single thread can hash/search under
         // 700'000'000 hashes each block
-        sprintf( m_base + 9, "%09d", NOSOHASH_COUNTER_MIN + counter ); // update 9-digits-counter part
-        assert( strlen( m_base ) == 18 ); // 18 = 9 + 9 = 9-chars-prefix + 9-digits-counter
-        memcpy( m_stat[0] + 9, m_base + 9, 9 );  // update the 9-digits-counter part as it was updated in base
+        std::sprintf( m_base + 9, "%09d", NOSOHASH_COUNTER_MIN + counter ); // update 9-digits-counter part
+        assert( std::strlen( m_base ) == 18 ); // 18 = 9 + 9 = 9-chars-prefix + 9-digits-counter
+        std::memcpy( m_stat[0] + 9, m_base + 9, 9 );  // update the 9-digits-counter part as it was updated in base
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
         return m_base;
     }
@@ -245,11 +246,11 @@ public:
         return m_hash;
     }
     const char* GetDiff( const char target[33] ) {
-        assert( strlen( m_hash ) == 32 && strlen( target ) == 32 );
+        assert( std::strlen( m_hash ) == 32 && std::strlen( target ) == 32 );
         for ( std::size_t i = 0; i < 32; i ++ )
-            m_diff[i] = toupper( hex_dec2char( abs( hex_char2dec( m_hash[ i ] ) - hex_char2dec( target[ i ] ) ) ) );
+            m_diff[i] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ i ] ) - hex_char2dec( target[ i ] ) ) ) );
         m_diff[32] = '\0';
-        assert( strlen( m_diff ) == 32 );
+        assert( std::strlen( m_diff ) == 32 );
         return m_diff;
     }
 };
@@ -276,12 +277,12 @@ public:
     void InitService() {
         if ( m_serv_info != NULL ) return;
         struct addrinfo hints, *serv_info;
-        memset( &hints, 0, sizeof( hints ) );
+        std::memset( &hints, 0, sizeof( hints ) );
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
         int n = getaddrinfo( this->m_host.c_str(), this->m_port.c_str(), &hints, &serv_info );
         if ( n ) {
-            fprintf( stderr, "getaddrinfo: %s\n", gai_strerror(n) );
+            std::fprintf( stderr, "getaddrinfo: %s\n", gai_strerror(n) );
             m_serv_info = NULL;
         }
         m_serv_info = serv_info;
@@ -295,16 +296,17 @@ public:
 
 class CNodeInet : public CInet {
 public:
-    CNodeInet( const std::string &host, const std::string &port , int timeosec)
-    :   CInet( host, port, timeosec ) {
+    CNodeInet( const std::string &host, const std::string &port , int timeosec )
+        :   CInet( host, port, timeosec ) {
     }
     int FetchNodestatus( char *buffer, std::size_t buffsize ) {
-        strcpy( buffer, "NODESTATUS\n" );
+        std::strcpy( buffer, "NODESTATUS\n" );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
-    int SubmitSolution( std::uint32_t blck, const char base[19], const char address[32], char *buffer, std::size_t buffsize ) {
-        assert( strlen( address ) == 30 || strlen( address ) == 31 );
-        assert( strlen( base ) == 18 );
+    int SubmitSolution( std::uint32_t blck, const char base[19], const char address[32],
+                       char *buffer, std::size_t buffsize ) {
+        assert( std::strlen( base ) == 18
+               && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
         std::snprintf( buffer, buffsize, "BESTHASH 1 2 3 4 %s %s %d %ld\n", address, base, blck, NOSO_TIMESTAMP );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
@@ -313,16 +315,17 @@ public:
 class CPoolInet : public CInet {
 public:
     std::string m_name;
-    CPoolInet( const std::string& name, const std::string &host, const std::string &port , int timeosec)
+    CPoolInet( const std::string& name, const std::string &host, const std::string &port , int timeosec )
         :   CInet( host, port, timeosec ), m_name { name } {
     }
     int FetchSource( const char address[32], char *buffer, std::size_t buffsize ) {
-        assert( strlen( address ) == 30 || strlen( address ) == 31 );
+        assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
         std::snprintf( buffer, buffsize, "SOURCE %s\n", address );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
     int SubmitShare( const char base[19], const char address[32], char *buffer, std::size_t buffsize ) {
-        assert( strlen( base ) == 18 );
+        assert( std::strlen( base ) == 18
+               && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
         std::snprintf( buffer, buffsize, "SHARE %s %s\n", address, base );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
@@ -343,7 +346,7 @@ struct CNodeStatus {
     std::time_t lb_time;
     std::string lb_addr;
     CNodeStatus( const char *ns_line ) {
-        assert( ns_line != nullptr && strlen( ns_line ) > 1 );
+        assert( ns_line != nullptr && std::strlen( ns_line ) > 1 );
         auto next_status_token = []( size_t &p_pos, size_t &c_pos, const std::string &status ) {
             p_pos = c_pos;
             c_pos = status.find( ' ', c_pos + 1 );
@@ -389,15 +392,18 @@ struct CNodeStatus {
         // 10{lb_hash}
         next_status_token( p_pos, c_pos, status );
         this->lb_hash = extract_status_token( p_pos, c_pos, status );
+        assert( this->lb_hash.length() == 32 );
         // 11{bh_diff/mn_diff}
         next_status_token( p_pos, c_pos, status );
         this->mn_diff = extract_status_token( p_pos, c_pos, status );
+        assert( this->mn_diff.length() == 32 );
         // 12{lb_time}
         next_status_token( p_pos, c_pos, status );
         this->lb_time = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 13{lb_addr}
         next_status_token( p_pos, c_pos, status );
         this->lb_addr = extract_status_token( p_pos, c_pos, status );
+        assert( this->lb_addr.length() == 30 || this->lb_addr.length() == 31 );
     }
 };
 
@@ -409,7 +415,7 @@ struct CPoolStatus {
     std::string address;
     std::uint32_t balance;
     CPoolStatus( const char *ps_line ) {
-        assert( ps_line != nullptr && strlen( ps_line ) > 1 );
+        assert( ps_line != nullptr && std::strlen( ps_line ) > 1 );
         auto next_status_token = []( size_t &p_pos, size_t &c_pos, const std::string &status ) {
             p_pos = c_pos;
             c_pos = status.find(' ', c_pos + 1);
@@ -427,15 +433,19 @@ struct CPoolStatus {
         // 1{prefix}
         next_status_token( p_pos, c_pos, status );
         this->prefix = extract_status_token( p_pos, c_pos, status );
+        assert( this->prefix.length() == 3 );
         // 2{address}
         next_status_token( p_pos, c_pos, status );
         this->address = extract_status_token( p_pos, c_pos, status );
+        assert( this->address.length() == 30 || this->address.length() == 31 );
         // 3{mn_diff}
         next_status_token( p_pos, c_pos, status );
         this->mn_diff = extract_status_token( p_pos, c_pos, status );
+        assert( this->mn_diff.length() == 32 );
         // 4{lb_hash}
         next_status_token( p_pos, c_pos, status );
         this->lb_hash = extract_status_token( p_pos, c_pos, status );
+        assert(this->lb_hash.length() == 32 );
         // 5{blck_no}
         next_status_token( p_pos, c_pos, status );
         this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
@@ -449,28 +459,17 @@ struct CData {
     std::uint32_t blck_no;
     std::string lb_hash;
     std::string mn_diff;
-    CData( std::uint32_t blck_no, const std::string& lb_hash, const std::string& mn_diff)
-        : blck_no { blck_no }, lb_hash { lb_hash }, mn_diff { mn_diff } {
+    CData( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff )
+        :   blck_no { blck_no }, lb_hash { lb_hash }, mn_diff { mn_diff } {
     }
 };
 
 struct CNodeData : public CData {
-    // std::uint32_t peer;
-    // // std::uint32_t blck_no;
-    // std::uint32_t pending;
-    // std::uint32_t delta;
-    // std::string branch;
-    // std::string version;
-    // std::time_t utctime;
-    // std::string mn_hash;
-    // std::uint32_t mn_count;
-    // // std::string lb_hash;
-    // // std::string mn_diff;
     std::time_t lb_time;
     std::string lb_addr;
-    CNodeData( std::uint32_t blck_no, const std::string& lb_hash, const std::string& mn_diff,
-              std::time_t lb_time, const std::string& lb_addr )
-        : CData( blck_no, lb_hash, mn_diff ), lb_time { lb_time }, lb_addr { lb_addr } {
+    CNodeData( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
+              std::time_t lb_time, const std::string &lb_addr )
+        :   CData( blck_no, lb_hash, mn_diff ), lb_time { lb_time }, lb_addr { lb_addr } {
     }
 };
 
@@ -478,9 +477,9 @@ struct CPoolData : public CData {
     std::string prefix;
     std::string address;
     std::uint32_t balance;
-    CPoolData( std::uint32_t blck_no, const std::string& lb_hash, const std::string& mn_diff,
-              std::string& prefix, const std::string& address, std::uint32_t balance )
-        : CData( blck_no, lb_hash, mn_diff ), prefix { prefix }, address { address }, balance { balance } {
+    CPoolData( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
+              std::string &prefix, const std::string &address, std::uint32_t balance )
+        :   CData( blck_no, lb_hash, mn_diff ), prefix { prefix }, address { address }, balance { balance } {
     }
 };
 
@@ -491,7 +490,7 @@ struct CSolution {
     std::string diff;
     CSolution( std::uint32_t blck_, const char base_[19], const char hash_[33], const char diff_[33] )
         :   blck { blck_ }, base { base_ }, hash { hash_ }, diff { diff_ } {
-        assert( strlen( base_ ) == 18 && strlen( hash_ ) == 32 && strlen( diff_ ) == 32 );
+        assert( std::strlen( base_ ) == 18 && std::strlen( hash_ ) == 32 && std::strlen( diff_ ) == 32 );
     }
 };
 
@@ -545,7 +544,6 @@ private:
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
-    std::uint32_t m_pendings_solutions_count { 0 };
     char m_status_buffer[INET_BUFFER_SIZE];
     char m_submit_buffer[INET_BUFFER_SIZE];
     std::map<std::uint32_t, int> m_freq_blck_no;
@@ -555,7 +553,7 @@ private:
     std::map<std::string  , int> m_freq_lb_addr;
     CCommThread() {
         for( auto sn : g_default_nodes ) m_node_inets_good.push_back(
-            std::make_shared<CNodeInet>(std::get<0>( sn ), std::get<1>( sn ), DEFAULT_INET_TIMEOSEC ) );
+            std::make_shared<CNodeInet>( std::get<0>( sn ), std::get<1>( sn ), DEFAULT_INET_TIMEOSEC ) );
     }
     std::vector<std::shared_ptr<CNodeStatus>> SyncSources( std::size_t min_nodes_count ) {
         if ( m_node_inets_good.size() < min_nodes_count ) {
@@ -634,8 +632,9 @@ public:
         return good_solution;
     }
     void PushSolution( std::uint32_t blck, const char base[19], const char address[32],
-                                             char new_mn_diff[33], bool &submitted, bool &accepted, int &code ) {
-        assert( strlen( base ) == 18 && ( strlen( address ) == 30 || strlen( address ) == 31 ) );
+                      char new_mn_diff[33], bool &submitted, bool &accepted, int &code ) {
+        assert( std::strlen( base ) == 18
+               && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
         if ( m_node_inets_good.size() < 1 ) {
             for ( auto ni : m_node_inets_poor ) {
                 ni->InitService();
@@ -654,21 +653,22 @@ public:
                 continue;
             }
             ++it;
-            assert( strlen( m_submit_buffer ) >= 40 + 2 ); //len=70[True Diff(32) Hash(32)] OR len=40[False Diff(32) #(1)] + "\r\n"
+            assert( std::strlen( m_submit_buffer ) >= 40 + 2 ); // len=(70+2)~[True Diff(32) Hash(32)\r\n] OR len=(40+2)~[False Diff(32) Code#(1)\r\n]
             if ( strncmp( m_submit_buffer, "True", 4 ) == 0 ) {
-                assert( strlen( m_submit_buffer ) == 70 + 2 ); //len=70[True Diff(32) Hash(32)] + "\r\n"
-                strncpy( new_mn_diff, m_submit_buffer + 5, 32 );
+                assert( std::strlen( m_submit_buffer ) == 70 + 2 ); // len=(70+2)~[True Diff(32) Hash(32)\r\n]
+                std::strncpy( new_mn_diff, m_submit_buffer + 5, 32 );
                 new_mn_diff[32] = '\0';
-                assert( strlen( new_mn_diff ) == 32 );
+                assert( std::strlen( new_mn_diff ) == 32 );
                 submitted = true;
                 accepted = true;
                 code = 0;
                 return;
             }
             else {
-                assert( strlen( m_submit_buffer ) == 40 + 2 && strncmp( m_submit_buffer, "False", 5 ) == 0
-                    && '1' <= m_submit_buffer[39] && m_submit_buffer[39] <= '7' ); // len=40[False Diff(32) #(1)] + "\r\n"
-                strncpy( new_mn_diff, m_submit_buffer + 6, 32 );
+                assert( std::strncmp( m_submit_buffer, "False", 5 ) == 0
+                       && std::strlen( m_submit_buffer ) == 40 + 2 // len=(40+2)~[False Diff(32) Code#(1)\r\n]
+                       && '1' <= m_submit_buffer[39] && m_submit_buffer[39] <= '7' );
+                std::strncpy( new_mn_diff, m_submit_buffer + 6, 32 );
                 new_mn_diff[32] = '\0';
                 assert( strlen( new_mn_diff ) == 32 );
                 submitted = true;
@@ -711,7 +711,7 @@ public:
             max_freq( m_freq_lb_addr ) );
     }
     std::shared_ptr<CPoolData> ReceivePoolData( const char address[32] ) {
-        assert( strlen( address ) == 30 || strlen( address ) == 31 );
+        assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
         if ( m_pool_inet.FetchSource( address, m_status_buffer, INET_BUFFER_SIZE ) <= 0 )
             return nullptr;
         try {
@@ -742,16 +742,17 @@ bool g_still_running { true };
 bool g_solo_mining { true };
 
 int main( int argc, char *argv[] ) {
+    signal( SIGINT, []( int /* signum */ ) {
+        if ( !g_still_running ) return;
+        std::cout << "\nCtrl+C pressed! Wait for finishing all mining threads..." << std::endl;
+        g_still_running = false; });
     #ifdef _WIN32
     WSADATA wsaData;
     if( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != NO_ERROR ) {
-        fprintf( stderr, "Error at WSAStartup\n" );
-        exit( 1 );
+        std::fprintf( stderr, "Error at WSAStartup\n" );
+        std::exit( 1 );
     }
     #endif
-    signal( SIGINT, []( int /* signum */ ) {
-        std::cout << "\nCtrl+C pressed! Wait for finishing all mining threads..." << std::endl;
-        g_still_running = false; });
     cxxopts::Options options( "noso-2m", "A miner for Nosocryptocurrency Protocol 2" );
     options.add_options()
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
@@ -762,15 +763,15 @@ int main( int argc, char *argv[] ) {
     auto result = options.parse( argc, argv );
     if ( result.count( "help" ) ) {
         std::cout << options.help() << std::endl;
-        exit( 0 );
+        std::exit( 0 );
     }
     std::string miner_address = result["address"].as<std::string>();
-    strcpy( g_miner_address, miner_address.c_str() );
-    assert( strlen( g_miner_address ) == 30 || strlen( g_miner_address ) == 31 );
-    if ( strlen( g_miner_address ) < 30 || strlen( g_miner_address ) > 31 ) exit(0);
+    std::strcpy( g_miner_address, miner_address.c_str() );
+    assert( std::strlen( g_miner_address ) == 30 || std::strlen( g_miner_address ) == 31 );
+    if ( std::strlen( g_miner_address ) < 30 || std::strlen( g_miner_address ) > 31 ) std::exit(0);
     g_miner_id = result["minerid"].as<std::uint32_t>();
     assert( 0 <= g_miner_id && g_miner_id <= 8100 );
-    if ( g_miner_id < 0 || g_miner_id > 8100 ) exit(0);
+    if ( g_miner_id < 0 || g_miner_id > 8100 ) std::exit(0);
     g_threads_count = result["threads"].as<std::uint32_t>();
     const std::string miner_prefix { nosohash_prefix( g_miner_id ) };
     auto miner_thread_prefix = []( int num, const std::string &prefix ) {
@@ -804,8 +805,6 @@ int main( int argc, char *argv[] ) {
 
 #define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
 
-std::mutex mtx_print;
-
 void CMineThread::Mine() {
     CNosoHasher noso_hasher( m_prefix, m_address );
     while ( g_still_running ) {
@@ -813,39 +812,32 @@ void CMineThread::Mine() {
             std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
         }
         if ( g_still_running && m_blck_no > 0 ) {
+            assert( std::strlen( m_lb_hash ) == 32 );
             this->ResetComputedHashesCount();
             char best_base[19];
             char best_hash[33];
             char best_diff[33] { NOSO_MAX_DIFF };
             char sent_diff[33] { NOSO_MAX_DIFF };
             std::uint32_t noso_hash_counter { 0 };
-            // auto begin_mining { std::chrono::steady_clock::now() };
+            CNosoHasher noso_hasher( m_prefix, m_address );
+            auto begin_mining { std::chrono::steady_clock::now() };
             while ( g_still_running && 1 <= NOSO_BLOCK_AGE && NOSO_BLOCK_AGE <= 585 ) {
                 const char *base { noso_hasher.GetBase( noso_hash_counter++ ) };
                 const char *hash { noso_hasher.GetHash() };
                 const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
-                if ( strcmp( diff, best_diff ) < 0 ) {
-                    strcpy( best_diff, diff );
-                    strcpy( best_hash, hash );
-                    strcpy( best_base, base );
+                assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 && std::strlen( diff ) == 32 );
+                if ( std::strcmp( diff, best_diff ) < 0 ) {
+                    std::strcpy( best_diff, diff );
+                    std::strcpy( best_hash, hash );
+                    std::strcpy( best_base, base );
                 }
-                if ( strcmp( best_diff, sent_diff ) < 0 ) {
+                if ( std::strcmp( best_diff, sent_diff ) < 0 ) {
                     CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, best_base, best_hash, best_diff ) );
-                    strcpy( sent_diff, best_diff );
+                    std::strcpy( sent_diff, best_diff );
                 }
             }
+            std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
             this->UpdateComputedHashesCount( noso_hash_counter );
-            // std::chrono::duration<double> elapsed_mining = std::chrono::steady_clock::now() - begin_mining;
-            // mtx_print.lock();
-            // COUT_NOSO_TIME << "THREADSUM"
-            //     << ")blck[" << m_blck_no
-            //     << "]diff[" << best_diff
-            //     << "]hash[" << best_hash
-            //     << "]base[" << best_base << "]"
-            //     << std::setw(9) << noso_hash_counter  << "hashes "
-            //     << std::fixed << std::setprecision(3) << elapsed_mining.count() / 60 << "min "
-            //     << noso_hash_counter / elapsed_mining.count() / 1000 << "Kh/s" << std::endl;
-            // mtx_print.unlock();
             m_blck_no = 0;
         } // END if ( g_still_running && m_blck_no > 0 ) {
     } // END while ( g_still_running ) {
@@ -854,7 +846,8 @@ void CMineThread::Mine() {
 void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
     std::uint32_t computed_hashes_count = std::accumulate(
             g_mine_objects.begin(), g_mine_objects.end(), 0,
-            []( int a, const std::shared_ptr<CMineThread> &o ) { return a + o->GetComputedHashesCount(); } );
+            []( int a, const std::shared_ptr<CMineThread> &o ) {
+                return a + o->GetComputedHashesCount(); } );
     std::cout << "SUMMARY BLOCK#" << blck_no << " : "
         << computed_hashes_count<< " hashes computed in "
         << std::fixed << std::setprecision(3)
@@ -863,7 +856,7 @@ void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::
         << " accepted " << m_accepted_solutions_count
         << " rejected " << m_rejected_solutions_count
         << " failured " << m_failured_solutions_count
-        << " pendings " << m_pendings_solutions_count << " solution(s)" << std::endl;
+        << " solution(s)" << std::endl;
     std::cout << "TOTAL MINED " << g_mined_block_count << " BLOCKS" << std::endl;
 };
 
@@ -871,7 +864,6 @@ void CCommThread::_ResetMiningBlock() {
     m_accepted_solutions_count = 0;
     m_rejected_solutions_count = 0;
     m_failured_solutions_count = 0;
-    m_pendings_solutions_count = 0;
     this->ClearSolutions();
 };
 
@@ -927,9 +919,9 @@ void CCommThread::Communicate() {
     while ( g_still_running ) {
         if ( NOSO_BLOCK_AGE < 1 || 585 < NOSO_BLOCK_AGE ) {
             COUT_NOSO_TIME << "WAITBLOCK..." << std::flush;
-            while ( g_still_running && ( NOSO_BLOCK_AGE < 1 || 585 < NOSO_BLOCK_AGE ) ) {
+            do {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
-            }
+            } while ( g_still_running && ( NOSO_BLOCK_AGE < 1 || 585 < NOSO_BLOCK_AGE ) );
             std::cout << std::endl;
             if ( !g_still_running ) break;
         }
@@ -981,14 +973,14 @@ void CCommThread::Communicate() {
                                 if ( code == 6 && solution->diff < new_mn_diff ) this->AddSolution( solution );
                                 this->_ReportFailSubmittedSolution( code, solution );
                             } // END if ( accepted ) { ... } else {
-                        } else { // OF if ( submited ) {
+                        } else { // OF if ( submitted ) {
                             m_failured_solutions_count ++;
                             this->AddSolution( solution );
                             COUT_NOSO_TIME << " FAILURED"
                                 << ")blck[" << solution->blck
                                 << "]diff[" << solution->diff
                                 << "]hash[" << solution->hash
-                                << "]base[" << solution->base << "Re-submitted!" << std::endl;
+                                << "]base[" << solution->base << "Will retry submitting!" << std::endl;
                         }
                     } // END if ( solution->m_diff < mn_diff ) {
                 } // END if ( solution != nullptr ) {
@@ -1016,26 +1008,26 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
     for( ; psi != NULL; psi = psi->ai_next ) {
         if ( (sockfd = socket( psi->ai_family, psi->ai_socktype,
                                psi->ai_protocol ) ) == -1 ) {
-            perror( "socket: error" );
+            std::perror( "socket: error" );
             continue;
         }
         #ifdef _WIN32
         u_long iMode = 1;
         if ( ioctlsocket( sockfd, FIONBIO, &iMode ) != NO_ERROR ) {
             closesocket( sockfd );
-            perror( "ioctlsocket/socket failed" );
+            std::perror( "ioctlsocket/socket failed" );
             continue;
         }
         #else
         int flags = 0;
         if ( ( flags = fcntl( sockfd, F_GETFL, 0 ) ) < 0 ) {
             close( sockfd );
-            perror( "fcntl/socket failed" );
+            std::perror( "fcntl/socket failed" );
             continue;
         }
         if ( fcntl( sockfd, F_SETFL, flags | O_NONBLOCK ) < 0 ) {
             close( sockfd );
-            perror( "fcntl/socket failed" );
+            std::perror( "fcntl/socket failed" );
             continue;
         }
         #endif
@@ -1045,13 +1037,13 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
         #ifdef _WIN32
         if ( rc != SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK ) {
             closesocket( sockfd );
-            perror( "connect/socket failed" );
+            std::perror( "connect/socket failed" );
             continue;
         }
         #else
         if ( errno != EINPROGRESS ) {
             close( sockfd );
-            perror( "connect/socket failed" );
+            std::perror( "connect/socket failed" );
             continue;
         }
         #endif
@@ -1066,7 +1058,7 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
             #else
             close( sockfd );
             #endif
-            perror("select/socket timeout");
+            std::perror("select/socket timeout");
             continue;
         }
         if ( n == -1 ) {
@@ -1075,7 +1067,7 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
             #else
             close( sockfd );
             #endif
-            perror( "select/socket failed" );
+            std::perror( "select/socket failed" );
             continue;
         }
         if ( FD_ISSET( sockfd, &rset ) || FD_ISSET( sockfd, &wset ) ) {
@@ -1091,7 +1083,7 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
                 #else
                 close( sockfd );
                 #endif
-                perror( "getsockopt/socket: failed" );
+                std::perror( "getsockopt/socket: failed" );
                 continue;
             }
             if ( error ) {
@@ -1100,12 +1092,12 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
                 #else
                 close( sockfd );
                 #endif
-                perror( "getsockopt/socket failed" );
+                std::perror( "getsockopt/socket failed" );
                 continue;
             }
         }
         else {
-            perror( "select/socket failed" );
+            std::perror( "select/socket failed" );
             continue;
         }
         return sockfd;
@@ -1128,7 +1120,7 @@ int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
         #else
         close( sockfd );
         #endif
-        perror( "select/send timeout" );
+        std::perror( "select/send timeout" );
         return -2; // timeout!
     }
     if ( n == -1 ) {
@@ -1137,7 +1129,7 @@ int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
         #else
         close( sockfd );
         #endif
-        perror( "select/send failed" );
+        std::perror( "select/send failed" );
         return -1; // error
     }
     int slen = send( sockfd, message, size, 0 );
@@ -1147,7 +1139,7 @@ int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
         #else
         close( sockfd );
         #endif
-        perror( "send failed" );
+        std::perror( "send failed" );
         return -1;
     }
     return slen;
@@ -1168,7 +1160,7 @@ int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
         #else
         close( sockfd );
         #endif
-        perror( "select/recv timeout" );
+        std::perror( "select/recv timeout" );
         return -2; // timeout!
     }
     if ( n == -1 ) {
@@ -1177,7 +1169,7 @@ int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
         #else
         close( sockfd );
         #endif
-        perror( "select/recv failed" );
+        std::perror( "select/recv failed" );
         return -1; // error
     }
     int rlen = recv( sockfd, buffer, buffsize - 1, 0 );
@@ -1188,8 +1180,8 @@ int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
         #else
         close( sockfd );
         #endif
-        if ( rlen == 0 ) perror( "recv timeout" );
-        else  perror( "recv failed" );
+        if ( rlen == 0 ) std::perror( "recv timeout" );
+        else  std::perror( "recv failed" );
         return -1;
     }
     buffer[ rlen ] = '\0';
@@ -1199,7 +1191,7 @@ int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
 int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize ) {
     int sockfd = inet_socket( serv_info, timeosec );
     if (sockfd < 0) return -1;
-    int slen = inet_send( sockfd, timeosec, buffer, strlen( buffer ) );
+    int slen = inet_send( sockfd, timeosec, buffer, std::strlen( buffer ) );
     if ( slen < 0 ) return slen;
     int rlen = inet_recv( sockfd, timeosec, buffer, buffsize );
     if ( rlen < 0 ) return rlen;
