@@ -2,8 +2,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
+#include <map>
 #include <set>
 #include <mutex>
+#include <regex>
 #include <tuple>
 #include <array>
 #include <vector>
@@ -36,7 +38,8 @@
 #define DEFAULT_MINER_ADDRESS "N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS"
 #define DEFAULT_MINER_ID 0
 #define DEFAULT_THREADS_COUNT 2
-#define DEFAULT_INET_TIMEOSEC 30
+#define DEFAULT_NODE_INET_TIMEOSEC 10
+#define DEFAULT_POOL_INET_TIMEOSEC 30
 
 #define CONSENSUS_NODES_COUNT 3
 #define INET_CIRCLE_SECONDS 0.01
@@ -57,6 +60,10 @@ const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
         { "194.156.88.117",     "8080" },
         { "107.175.59.177",     "8080" },
     }; // seed nodes
+
+const std::vector<std::tuple<std::string, std::string, std::string>> g_default_pools {
+        { "devnoso", "45.146.252.103", "8082" },
+    };
 
 const char NOSOHASH_HASHEABLE_CHARS[] {
     "!\"#$%&')*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" };
@@ -455,31 +462,36 @@ struct CPoolStatus {
     }
 };
 
-struct CData {
+struct CTarget {
+    std::string prefix;
+    std::string address;
     std::uint32_t blck_no;
     std::string lb_hash;
     std::string mn_diff;
-    CData( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff )
+    CTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff )
         :   blck_no { blck_no }, lb_hash { lb_hash }, mn_diff { mn_diff } {
+        // prefix = "";
+        // address = "";
     }
+    virtual ~CTarget() = default;
 };
 
-struct CNodeData : public CData {
+struct CNodeTarget : public CTarget {
     std::time_t lb_time;
     std::string lb_addr;
-    CNodeData( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
+    CNodeTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
               std::time_t lb_time, const std::string &lb_addr )
-        :   CData( blck_no, lb_hash, mn_diff ), lb_time { lb_time }, lb_addr { lb_addr } {
+        :   CTarget( blck_no, lb_hash, mn_diff ), lb_time { lb_time }, lb_addr { lb_addr } {
     }
 };
 
-struct CPoolData : public CData {
-    std::string prefix;
-    std::string address;
+struct CPoolTarget : public CTarget {
     std::uint32_t balance;
-    CPoolData( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
+    CPoolTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
               std::string &prefix, const std::string &address, std::uint32_t balance )
-        :   CData( blck_no, lb_hash, mn_diff ), prefix { prefix }, address { address }, balance { balance } {
+        : CTarget( blck_no, lb_hash, mn_diff ), balance { balance } {
+        this->prefix = prefix;
+        this->address = address;
     }
 };
 
@@ -504,27 +516,30 @@ struct CSolsSetCompare {
 
 class CMineThread {
 protected:
+    std::uint32_t m_miner_id;
+    std::uint32_t m_thread_id;
     char m_address[32];
     char m_prefix[10];
     std::uint32_t m_blck_no { 0 };
     char m_lb_hash[33];
+    char m_mn_diff[33];
     std::uint32_t m_computed_hashes_count { 0 };
 public:
-    CMineThread( const char prefix[10], const char address[32] ) {
-        assert( strlen( prefix ) == 9 && ( strlen( address ) == 30 || strlen( address ) == 31 ) );
-        strcpy( m_prefix, prefix );
-        strcpy( m_address, address );
+    CMineThread( std::uint32_t miner_id, std::uint32_t thread_id )
+        : m_miner_id { miner_id }, m_thread_id { thread_id } {
     }
-    void UpdateLastBlock( std::uint32_t blck_no, const char lb_hash[33] ) {
-        assert( strlen( lb_hash ) == 32 );
-        strcpy( m_lb_hash, lb_hash );
-        m_blck_no = blck_no;
+    void NewTarget( const std::shared_ptr<CTarget> &target ) {
+        std::string thread_prefix = { target->prefix + nosohash_prefix( m_miner_id ) + nosohash_prefix( m_thread_id ) };
+        thread_prefix.append( 9 - thread_prefix.size(), '!' );
+        std::strcpy( m_prefix, thread_prefix.c_str() );
+        std::strcpy( m_address, target->address.c_str() );
+        std::strcpy( m_lb_hash, target->lb_hash.c_str() );
+        std::strcpy( m_mn_diff, target->mn_diff.c_str() );
+        m_computed_hashes_count = 0;
+        m_blck_no = target->blck_no + 1;
     }
     void UpdateComputedHashesCount( std::uint32_t more ) {
         m_computed_hashes_count += more;
-    }
-    void ResetComputedHashesCount() {
-        m_computed_hashes_count = 0;
     }
     std::uint32_t GetComputedHashesCount() {
         return m_computed_hashes_count;
@@ -539,7 +554,8 @@ private:
     mutable std::mutex m_mutex_solutions;
     std::vector<std::shared_ptr<CNodeInet>> m_node_inets_good;
     std::vector<std::shared_ptr<CNodeInet>> m_node_inets_poor;
-    CPoolInet m_pool_inet { "devnoso", "45.146.252.103", "8082", DEFAULT_INET_TIMEOSEC };
+    std::vector<std::shared_ptr<CPoolInet>> m_pool_inets;
+    std::uint32_t m_pool_inet_id;
     std::multiset<std::shared_ptr<CSolution>, CSolsSetCompare> m_solutions;
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
@@ -551,10 +567,7 @@ private:
     std::map<std::string  , int> m_freq_mn_diff;
     std::map<std::time_t  , int> m_freq_lb_time;
     std::map<std::string  , int> m_freq_lb_addr;
-    CCommThread() {
-        for( auto sn : g_default_nodes ) m_node_inets_good.push_back(
-            std::make_shared<CNodeInet>( std::get<0>( sn ), std::get<1>( sn ), DEFAULT_INET_TIMEOSEC ) );
-    }
+    CCommThread();
     std::vector<std::shared_ptr<CNodeStatus>> SyncSources( std::size_t min_nodes_count ) {
         if ( m_node_inets_good.size() < min_nodes_count ) {
             for ( auto ni : m_node_inets_poor ) {
@@ -589,7 +602,7 @@ private:
     }
     void _ResetMiningBlock();
     void _PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck );
-    void _ReportFailSubmittedSolution( int code, const std::shared_ptr<CSolution> &solution );
+    void _ReportErrorSubmitting( int code, const std::shared_ptr<CSolution> &solution );
 public:
     CCommThread( const CCommThread& ) = delete; // Copy prohibited
     CCommThread( CCommThread&& ) = delete; // Move prohibited
@@ -631,8 +644,8 @@ public:
         m_mutex_solutions.unlock();
         return good_solution;
     }
-    void PushSolution( std::uint32_t blck, const char base[19], const char address[32],
-                      char new_mn_diff[33], bool &submitted, bool &accepted, int &code ) {
+    std::shared_ptr<CSolution> GetSolution();
+    int PushSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] ) {
         assert( std::strlen( base ) == 18
                && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
         if ( m_node_inets_good.size() < 1 ) {
@@ -659,10 +672,7 @@ public:
                 std::strncpy( new_mn_diff, m_submit_buffer + 5, 32 );
                 new_mn_diff[32] = '\0';
                 assert( std::strlen( new_mn_diff ) == 32 );
-                submitted = true;
-                accepted = true;
-                code = 0;
-                return;
+                return 0;
             }
             else {
                 assert( std::strncmp( m_submit_buffer, "False", 5 ) == 0
@@ -671,18 +681,12 @@ public:
                 std::strncpy( new_mn_diff, m_submit_buffer + 6, 32 );
                 new_mn_diff[32] = '\0';
                 assert( strlen( new_mn_diff ) == 32 );
-                submitted = true;
-                accepted = false;
-                code = m_submit_buffer[39] - '0';
-                return;
+                return m_submit_buffer[39] - '0';
             }
         }
-        submitted = false;
-        accepted = false;
-        code = 0;
-        return;
+        return -1;
     }
-    std::shared_ptr<CNodeData> MakeConsensus() {
+    std::shared_ptr<CNodeTarget> MakeConsensus() {
         std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->SyncSources( CONSENSUS_NODES_COUNT );
         if ( status_of_nodes.size() < CONSENSUS_NODES_COUNT ) return nullptr;
         const auto max_freq = []( const auto &freq ) {
@@ -703,20 +707,20 @@ public:
             ++m_freq_lb_time [ns->lb_time];
             ++m_freq_lb_addr [ns->lb_addr];
         }
-        return std::make_shared<CNodeData>(
+        return std::make_shared<CNodeTarget>(
             max_freq( m_freq_blck_no ),
             max_freq( m_freq_lb_hash ),
             max_freq( m_freq_mn_diff ),
             max_freq( m_freq_lb_time ),
             max_freq( m_freq_lb_addr ) );
     }
-    std::shared_ptr<CPoolData> ReceivePoolData( const char address[32] ) {
+    std::shared_ptr<CPoolTarget> ReceivePoolData( const char address[32] ) {
         assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
-        if ( m_pool_inet.FetchSource( address, m_status_buffer, INET_BUFFER_SIZE ) <= 0 )
+        if ( m_pool_inets[m_pool_inet_id]->FetchSource( address, m_status_buffer, INET_BUFFER_SIZE ) <= 0 )
             return nullptr;
         try {
             CPoolStatus ps( m_status_buffer );
-            return std::make_shared<CPoolData>(
+            return std::make_shared<CPoolTarget>(
                 ps.blck_no,
                 ps.lb_hash,
                 ps.mn_diff,
@@ -729,17 +733,43 @@ public:
             return nullptr;
         }
     }
+    std::shared_ptr<CTarget> GetTarget();
+    int SendSolution( const char base[19], const char address[32] ) {
+        assert( std::strlen( base ) == 18
+               && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
+        for ( int i = 0; i < 5 ; ++i ) {
+            if ( m_pool_inets[m_pool_inet_id]->SubmitShare( base, address, m_submit_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+                    std::cerr << "poor pool network! retrying " << i + 1 << std::endl;
+                    continue;
+            } else {
+                assert( std::strlen( m_submit_buffer ) >= 4 + 2 ); //len=(4+2)~[True\r\n] OR len=(5+2)~[False\r\n]
+                if ( std::strncmp( m_submit_buffer, "True", 4 ) == 0 ) {
+                    assert( std::strlen( m_submit_buffer ) == 4 + 2 ); //len=(4+2)~[True"\r\n]"
+                    return 0;
+                }
+                else {
+                    assert( std::strncmp( m_submit_buffer, "False", 5 ) == 0
+                           && std::strlen( m_submit_buffer ) == 5 + 2 ); //len=(5+2)~[False\r\n]
+                    return 5;
+                }
+            }
+        }
+        return -1;
+    }
+    void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };
 
+std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr );
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_miner_id { DEFAULT_MINER_ID };
 std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
 std::uint32_t g_mined_block_count { 0 };
 std::vector<std::thread> g_mine_threads;
 std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
+std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
 bool g_still_running { true };
-bool g_solo_mining { true };
+bool g_solo_mining { false };
 
 int main( int argc, char *argv[] ) {
     signal( SIGINT, []( int /* signum */ ) {
@@ -758,6 +788,8 @@ int main( int argc, char *argv[] ) {
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "i,minerid",  "Miner ID - a number between 0-8100",   cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_MINER_ID ) ) )
         ( "t,threads",  "Number of threads use for mining",     cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
+        ( "p,pools",    "List of pools in pool mining mode",    cxxopts::value<std::string>()->default_value( "f04ever;devnoso;" ) )
+        ( "s,solo",     "Mining mode solo? Default pool mining" )
         ( "h,help",     "Print this usage" )
         ;
     auto result = options.parse( argc, argv );
@@ -773,11 +805,10 @@ int main( int argc, char *argv[] ) {
     assert( 0 <= g_miner_id && g_miner_id <= 8100 );
     if ( g_miner_id < 0 || g_miner_id > 8100 ) std::exit(0);
     g_threads_count = result["threads"].as<std::uint32_t>();
-    const std::string miner_prefix { nosohash_prefix( g_miner_id ) };
-    auto miner_thread_prefix = []( int num, const std::string &prefix ) {
-        std::string result = std::string { prefix + nosohash_prefix( num ) };
-        result.append( 9 - result.size(), '!' );
-        return result; };
+    g_mining_pools = parse_pools_argv( result["pools"].as<std::string>() );
+    g_solo_mining = result.count( "solo" ) ? true : false;
+    auto next_pool = g_mining_pools.cbegin();
+    auto last_pool = g_mining_pools.cend();
     std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2\n";
     std::cout << "by f04ever (c) 2022 @ https://github.com/f04ever/noso-2m\n";
     std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << "\n";
@@ -785,17 +816,21 @@ int main( int argc, char *argv[] ) {
     std::cout << "- Wallet address: " << g_miner_address << std::endl;
     std::cout << "-       Miner ID: " << g_miner_id << std::endl;
     std::cout << "-  Threads count: " << g_threads_count << std::endl;
+    std::cout << "-    Mining mode: " << ( g_solo_mining ? "solo" : "pool " + std::get<0>( *next_pool )
+        + " \t(" + std::get<1>( *next_pool ) + ":" + std::get<2>( *next_pool ) + ")" ) << std::endl;
+    if ( !g_solo_mining ) {
+        for( next_pool = std::next( next_pool ); next_pool != last_pool; ++next_pool ) {
+            std::cout << "                       " << ( std::get<0>( *next_pool )
+                + " \t(" + std::get<1>( *next_pool ) + ":" + std::get<2>( *next_pool ) + ")" ) << std::endl;
+        }
+    }
     std::cout << "\n";
     std::cout << "Press Ctrl+C to stop" << std::endl;
-    std::vector<std::string> miner_thread_prefixes;
-    for ( std::uint32_t i = 0; i < g_threads_count - 1; i++ ) {
-        miner_thread_prefixes.push_back( miner_thread_prefix( i, miner_prefix ) );
-    }
-    for ( std::uint32_t i = 0; i < g_threads_count - 1; i++ )
-        g_mine_objects.push_back( std::make_shared<CMineThread>( miner_thread_prefixes[i].c_str(), g_miner_address ) );
+    for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
+        g_mine_objects.push_back( std::make_shared<CMineThread>( g_miner_id, thread_id ) );
     std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );
-    for ( std::uint32_t i = 0; i < g_threads_count - 1; i++ )
-        g_mine_threads.emplace_back( &CMineThread::Mine, g_mine_objects[i] );
+    for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
+        g_mine_threads.emplace_back( &CMineThread::Mine, g_mine_objects[thread_id] );
     comm_thread.join();
     #ifdef _WIN32
     WSACleanup();
@@ -806,18 +841,14 @@ int main( int argc, char *argv[] ) {
 #define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
 
 void CMineThread::Mine() {
-    CNosoHasher noso_hasher( m_prefix, m_address );
     while ( g_still_running ) {
         while ( g_still_running && m_blck_no <= 0 ) {
             std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
         }
         if ( g_still_running && m_blck_no > 0 ) {
             assert( std::strlen( m_lb_hash ) == 32 );
-            this->ResetComputedHashesCount();
-            char best_base[19];
-            char best_hash[33];
-            char best_diff[33] { NOSO_MAX_DIFF };
-            char sent_diff[33] { NOSO_MAX_DIFF };
+            char best_diff[33];
+            std::strcpy( best_diff, m_mn_diff );
             std::uint32_t noso_hash_counter { 0 };
             CNosoHasher noso_hasher( m_prefix, m_address );
             auto begin_mining { std::chrono::steady_clock::now() };
@@ -827,13 +858,8 @@ void CMineThread::Mine() {
                 const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
                 assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 && std::strlen( diff ) == 32 );
                 if ( std::strcmp( diff, best_diff ) < 0 ) {
-                    std::strcpy( best_diff, diff );
-                    std::strcpy( best_hash, hash );
-                    std::strcpy( best_base, base );
-                }
-                if ( std::strcmp( best_diff, sent_diff ) < 0 ) {
-                    CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, best_base, best_hash, best_diff ) );
-                    std::strcpy( sent_diff, best_diff );
+                    CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
+                    if ( g_solo_mining ) std::strcpy( best_diff, diff );
                 }
             }
             std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
@@ -841,6 +867,14 @@ void CMineThread::Mine() {
             m_blck_no = 0;
         } // END if ( g_still_running && m_blck_no > 0 ) {
     } // END while ( g_still_running ) {
+}
+
+CCommThread::CCommThread() {
+    for( auto sn : g_default_nodes ) m_node_inets_good.push_back(
+        std::make_shared<CNodeInet>( std::get<0>( sn ), std::get<1>( sn ), DEFAULT_NODE_INET_TIMEOSEC ) );
+    for( auto dp : g_mining_pools ) m_pool_inets.push_back(
+        std::make_shared<CPoolInet>( std::get<0>( dp ), std::get<1>( dp ), std::get<2>( dp ), DEFAULT_POOL_INET_TIMEOSEC ) );
+    m_pool_inet_id = 0;
 }
 
 void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
@@ -867,7 +901,7 @@ void CCommThread::_ResetMiningBlock() {
     this->ClearSolutions();
 };
 
-void CCommThread::_ReportFailSubmittedSolution( int code, const std::shared_ptr<CSolution> &solution ) {
+void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolution> &solution ) {
     if      ( code == 1 ) {
         COUT_NOSO_TIME << "    ERROR"
             << ")blck[" << solution->blck
@@ -891,30 +925,107 @@ void CCommThread::_ReportFailSubmittedSolution( int code, const std::shared_ptr<
             << ")blck[" << solution->blck
             << "]diff[" << solution->diff
             << "]hash[" << solution->hash
-            << "]base[" << solution->base << "]Wrong hash base (" << solution->base << ")!" << std::endl;
+            << "]base[" << solution->base << "]Wrong hash base submitted!" << std::endl;
     } else if ( code == 4 ) {
-        COUT_NOSO_TIME << " DUPLICAT"
+        COUT_NOSO_TIME << "    ERROR"
             << ")blck[" << solution->blck
             << "]diff[" << solution->diff
             << "]hash[" << solution->hash
-            << "]base[" << solution->base << "]THIS SHOULD NOT HAPPEND!" << std::endl;
-    } else if ( code == 5 ) {
+            << "]base[" << solution->base << "]Duplicate hash submited!" << std::endl;
+    }
+}
+
+std::shared_ptr<CTarget> CCommThread::GetTarget() {
+    std::shared_ptr<CTarget> target = nullptr;
+    if ( g_solo_mining ) {
+        std::shared_ptr<CNodeTarget> nodedata = this->MakeConsensus();
+        while ( g_still_running && nodedata == nullptr ) {
+            COUT_NOSO_TIME << "WAITING CONSENSUS..." << std::endl;
+            nodedata = this->MakeConsensus();
+        }
+        nodedata->prefix = ""; //TODO
+        nodedata->address = g_miner_address;
+        if ( nodedata->lb_addr == g_miner_address ) {
+            g_mined_block_count++;
+            COUT_NOSO_TIME << "YAY! YOU HAVE MINED BLOCK#" << nodedata->blck_no << std::endl;
+        }
+        return nodedata;
+    } else {
+        std::shared_ptr<CPoolTarget> pooldata = this->ReceivePoolData( g_miner_address );
+        int trying_count = 1;
+        while ( g_still_running && pooldata == nullptr ) {
+            if ( trying_count > 5 ) {
+                trying_count = 0;
+                ++m_pool_inet_id;
+                if ( m_pool_inet_id >= m_pool_inets.size() ) m_pool_inet_id = 0;
+                if ( m_pool_inets.size() > 1 )
+                    COUT_NOSO_TIME << "FAILOVER TO POOL "
+                        << m_pool_inets[m_pool_inet_id]->m_name << " ("
+                        << m_pool_inets[m_pool_inet_id]->m_host << ":"
+                        << m_pool_inets[m_pool_inet_id]->m_port << ")" << std::endl;
+            }
+            COUT_NOSO_TIME << "WAITING POOL DATA... " << trying_count << std::endl;
+            pooldata = this->ReceivePoolData( g_miner_address );
+            ++trying_count;
+        }
+        COUT_NOSO_TIME << "MINING ON POOL "
+            << m_pool_inets[m_pool_inet_id]->m_name << " ("
+            << m_pool_inets[m_pool_inet_id]->m_host << ":"
+            << m_pool_inets[m_pool_inet_id]->m_port << ")"
+            << " YOUR BALANCE " << pooldata->balance << std::endl;
+        return pooldata;
+    }
+}
+
+std::shared_ptr<CSolution> CCommThread::GetSolution() {
+    return g_solo_mining ? this->BestSolution() : this->GoodSolution();
+}
+
+void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target ) {
+    int code { 0 };
+    if ( g_solo_mining ) {
+        target->mn_diff = solution->diff;
+        char new_mn_diff[33] { NOSO_MAX_DIFF };
+        code = this->PushSolution( solution->blck, solution->base.c_str(), g_miner_address, new_mn_diff );
+        if ( target->mn_diff > new_mn_diff ) target->mn_diff = new_mn_diff;
+        if ( code == 6 ) {
+            if ( solution->diff < new_mn_diff ) this->AddSolution( solution );
+            COUT_NOSO_TIME << "WAITBLOCK"
+                << ")blck[" << solution->blck
+                << "]diff[" << solution->diff
+                << "]hash[" << solution->hash
+                << "]base[" << solution->base << "]Network building block!" << std::endl;
+        }
+        if ( code > 0 ) this->_ReportErrorSubmitting( code, solution ); // rest other error codes 1, 2, 3, 4, 7
+    } else {
+        code = this->SendSolution( solution->base.c_str(), g_miner_address );
+    }
+    if ( code == 0 ) {
+        m_accepted_solutions_count ++;
+        COUT_NOSO_TIME << " ACCEPTED"
+            << ")blck[" << solution->blck
+            << "]diff[" << solution->diff
+            << "]hash[" << solution->hash
+            << "]base[" << solution->base << "]" << std::endl;
+    } else if ( code > 0) {
+        m_rejected_solutions_count ++;
         COUT_NOSO_TIME << " REJECTED"
             << ")blck[" << solution->blck
             << "]diff[" << solution->diff
             << "]hash[" << solution->hash
             << "]base[" << solution->base << "]" << std::endl;
-    } else { // code == 6
-        COUT_NOSO_TIME << "WAITBLOCK"
+    } else {
+        this->AddSolution( solution );
+        m_failured_solutions_count ++;
+        COUT_NOSO_TIME << " FAILURED"
             << ")blck[" << solution->blck
             << "]diff[" << solution->diff
             << "]hash[" << solution->hash
-            << "]base[" << solution->base << "]Network building block!" << std::endl;
+            << "]base[" << solution->base << "Will retry submitting!" << std::endl;
     }
 }
 
 void CCommThread::Communicate() {
-    char new_mn_diff[33] { NOSO_MAX_DIFF };
     auto begin_blck = std::chrono::steady_clock::now();
     while ( g_still_running ) {
         if ( NOSO_BLOCK_AGE < 1 || 585 < NOSO_BLOCK_AGE ) {
@@ -925,76 +1036,99 @@ void CCommThread::Communicate() {
             std::cout << std::endl;
             if ( !g_still_running ) break;
         }
-        std::shared_ptr<CNodeData> nodedata = this->MakeConsensus();
-        while ( g_still_running && nodedata == nullptr ) {
-            COUT_NOSO_TIME << "MAKING CONSENSUS..." << std::endl;
-            nodedata = this->MakeConsensus();
-        }
-        std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
-        COUT_NOSO_TIME << "PREVBLOCK"
-            << ")blck[" << nodedata->blck_no
-            << "]addr[" << nodedata->lb_addr << "]" << std::endl;
-        if ( nodedata->lb_addr == g_miner_address ) {
-            g_mined_block_count++;
-            COUT_NOSO_TIME << "YAY! YOU HAVE MINED BLOCK#" << nodedata->blck_no << std::endl;
-        }
-        COUT_NOSO_TIME << "CONSENSUS"
-            << ")blck["   << nodedata->blck_no + 1
-            << "]diff["   << nodedata->mn_diff
-            << "]hash["   << nodedata->lb_hash << "]" << std::endl;
+        std::shared_ptr<CTarget> target = this->GetTarget();
         if ( !g_still_running ) break;
+        std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
+        COUT_NOSO_TIME << "NEWTARGET"
+            << ")blck[" << target->blck_no + 1
+            << "]hash[" << target->lb_hash
+            << "]diff[" << target->mn_diff
+            << "]pref[" << target->prefix
+            << "]addr[" << target->address
+            << "]" << std::endl;
         begin_blck = std::chrono::steady_clock::now();
-        for ( auto mo : g_mine_objects ) mo->UpdateLastBlock( nodedata->blck_no + 1, nodedata->lb_hash.c_str() );
+        for ( auto mo : g_mine_objects ) mo->NewTarget( target );
         while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
             auto begin_submit = std::chrono::steady_clock::now();
             if ( NOSO_BLOCK_AGE >= 10 ) {
-                std::shared_ptr<CSolution> solution { this->BestSolution() };
-                if ( solution != nullptr ) {
-                    if ( solution->diff < nodedata->mn_diff ) {
-                        nodedata->mn_diff = solution->diff;
-                        bool submited { false }, accepted { false };
-                        int code { 0 };
-                        this->PushSolution( solution->blck, solution->base.c_str(), g_miner_address,
-                                           new_mn_diff, submited, accepted, code );
-                        if ( submited ) {
-                            if ( accepted ) {
-                                m_accepted_solutions_count ++;
-                                assert( solution->diff == new_mn_diff );
-                                assert( nodedata->mn_diff == new_mn_diff );
-                                // nodedata->mn_diff = new_mn_diff;
-                                COUT_NOSO_TIME << " ACCEPTED"
-                                    << ")blck[" << solution->blck
-                                    << "]diff[" << solution->diff
-                                    << "]hash[" << solution->hash
-                                    << "]base[" << solution->base << "]" << std::endl;
-                            } else {
-                                if ( nodedata->mn_diff > new_mn_diff ) nodedata->mn_diff = new_mn_diff;
-                                if ( code == 5 ) m_rejected_solutions_count ++;
-                                if ( code == 6 && solution->diff < new_mn_diff ) this->AddSolution( solution );
-                                this->_ReportFailSubmittedSolution( code, solution );
-                            } // END if ( accepted ) { ... } else {
-                        } else { // OF if ( submitted ) {
-                            m_failured_solutions_count ++;
-                            this->AddSolution( solution );
-                            COUT_NOSO_TIME << " FAILURED"
-                                << ")blck[" << solution->blck
-                                << "]diff[" << solution->diff
-                                << "]hash[" << solution->hash
-                                << "]base[" << solution->base << "Will retry submitting!" << std::endl;
-                        }
-                    } // END if ( solution->m_diff < mn_diff ) {
-                } // END if ( solution != nullptr ) {
-            } // END if ( NOSO_BLOCK_AGE >= 10 ) {
+                std::shared_ptr<CSolution> solution = this->GetSolution();
+                if ( solution != nullptr && solution->diff < target->mn_diff )
+                    this->SubmitSolution( solution, target );
+            }
             std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
             if ( elapsed_submit.count() < INET_CIRCLE_SECONDS ) {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
             }
         } // END while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
         std::chrono::duration<double> elapsed_blck = std::chrono::steady_clock::now() - begin_blck;
-        this->_PrintBlockSummary( nodedata->blck_no, elapsed_blck );
+        while ( g_still_running && NOSO_BLOCK_AGE < 586 ) {
+            std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
+        }
+        this->_PrintBlockSummary( target->blck_no, elapsed_blck );
         this->_ResetMiningBlock();
     } // END while ( g_still_running ) {
     for ( auto &thr : g_mine_threads ) thr.join();
+}
+
+std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr ) {
+    std::cout << poolstr << std::endl;
+    const std::regex re_pool1 { ";" };
+    const std::regex re_pool2 {
+        "("
+            "[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9]"
+        ")"
+        "(\\:"
+            "("
+                // "("
+                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])"
+                // ")"
+                // "|"
+                // "("
+                //     "(([a-zA-Z0-9]+[a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*"
+                //      "([a-zA-Z0-9]+[a-zA-Z0-9\\-]*[a-zA-Z0-9])"
+                // ")"
+            ")"
+            "(\\:"
+                "("
+                    "6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-5]{0,5}|[0-9]{1,4}"
+                ")$"
+            ")?"
+        ")?"
+    };
+    std::vector<std::tuple<std::string, std::string, std::string>> mining_pools;
+    std::for_each(
+            std::sregex_token_iterator { poolstr.begin(), poolstr.end(), re_pool1 , -1 },
+            std::sregex_token_iterator {}, [&]( const auto &tok ) {
+                std::string pls { tok.str() };
+                std::for_each(
+                        std::sregex_iterator { pls.begin(), pls.end(), re_pool2 },
+                        std::sregex_iterator {}, [&]( const auto &sm0 ) {
+                            std::string name { sm0[1].str() };
+                            std::string host { sm0[3].str() };
+                            std::string port { sm0[14].str() };
+                            if ( host.length() <= 0 ) {
+                                const auto pool = std::find_if(
+                                        g_default_pools.begin(), g_default_pools.end(),
+                                        [&name]( const auto& val ) { return std::get<0>( val ) == name ? true : false; } );
+                                if ( pool != g_default_pools.end() ) {
+                                    host = std::get<1>( *pool );
+                                    port = std::get<2>( *pool );
+                                }
+                            }
+                            if ( host.length() <= 0 ) return;
+                            if ( port.length() <= 0 ) port = std::string { "8082" };
+                            mining_pools.push_back( { name, host, port } );
+                        }
+                    );
+            }
+        );
+    if  (mining_pools.size() <= 0 )
+        for( const auto& dp : g_default_pools )
+            mining_pools.push_back( { std::get<0>( dp ), std::get<1>( dp ), std::get<2>( dp ) } );
+    return mining_pools;
 }
 
 int inet_socket( struct addrinfo *serv_info, int timeosec ) {
