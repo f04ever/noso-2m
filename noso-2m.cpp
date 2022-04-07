@@ -33,7 +33,7 @@
 
 #define NOSO_2M_VERSION_MAJOR 0
 #define NOSO_2M_VERSION_MINOR 1
-#define NOSO_2M_VERSION_PATCH 2
+#define NOSO_2M_VERSION_PATCH 3
 
 #define DEFAULT_MINER_ADDRESS "N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS"
 #define DEFAULT_MINER_ID 0
@@ -51,14 +51,14 @@
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
 
 const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
-        { "23.94.21.83",        "8080" },
-        { "45.146.252.103",     "8080" },
-        { "107.172.5.8",        "8080" },
-        { "109.230.238.240",    "8080" },
-        { "172.245.52.208",     "8080" },
-        { "192.210.226.118",    "8080" },
-        { "194.156.88.117",     "8080" },
-        { "107.175.59.177",     "8080" },
+        { "45.146.252.103"  ,   "8080" },
+        { "109.230.238.240" ,   "8080" },
+        { "194.156.88.117"  ,   "8080" },
+        { "23.94.21.83"     ,   "8080" },
+        { "107.175.59.177"  ,   "8080" },
+        { "107.172.193.176" ,   "8080" },
+        { "107.175.194.151" ,   "8080" },
+        { "192.3.173.184"   ,   "8080" },
     }; // seed nodes
 
 const std::vector<std::tuple<std::string, std::string, std::string>> g_default_pools {
@@ -790,12 +790,17 @@ int main( int argc, char *argv[] ) {
         ( "t,threads",  "Number of threads use for mining",     cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
         ( "p,pools",    "List of pools in pool mining mode",    cxxopts::value<std::string>()->default_value( "f04ever;devnoso;" ) )
         ( "s,solo",     "Mining mode solo? Default pool mining" )
+        ( "v,version",  "Print current version" )
         ( "h,help",     "Print this usage" )
         ;
     auto result = options.parse( argc, argv );
     if ( result.count( "help" ) ) {
         std::cout << options.help() << std::endl;
         std::exit( 0 );
+    }
+    if ( result.count( "version" ) ) {
+        std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
+        exit( 0 );
     }
     std::string miner_address = result["address"].as<std::string>();
     std::strcpy( g_miner_address, miner_address.c_str() );
