@@ -35,6 +35,7 @@
 #define NOSO_2M_VERSION_MINOR 1
 #define NOSO_2M_VERSION_PATCH 3
 
+#define DEFAULT_POOL_URL_LIST "f04ever;devnoso"
 #define DEFAULT_MINER_ADDRESS "N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS"
 #define DEFAULT_MINER_ID 0
 #define DEFAULT_THREADS_COUNT 2
@@ -423,6 +424,12 @@ struct CPoolStatus {
     std::string prefix;
     std::string address;
     std::uint32_t balance;
+    std::uint32_t till_payment;
+    std::uint32_t pool_hashrate;
+    std::uint32_t mainnet_hashrate;
+    std::uint32_t payment_block;
+    std::uint32_t payment_amount;
+    std::string payment_order_id;
     CPoolStatus( const char *ps_line ) {
         assert( ps_line != nullptr && std::strlen( ps_line ) > 1 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
@@ -435,7 +442,8 @@ struct CPoolStatus {
         std::string status { ps_line };
         status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
         size_t p_pos = -1, c_pos = -1;
-        // {0}OK 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber} 6{MinerBalance}
+        // {0}OK 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber}
+        // 6{MinerBalance} 7{BlocksTillPayment} 8{LastPayInfo} 9{LastBlockPoolHashrate}
         // 0{OK}
         next_status_token( ' ', p_pos, c_pos, status );
         // std::string status = extract_status_token( p_pos, c_pos, status );
@@ -461,6 +469,28 @@ struct CPoolStatus {
         // 6{balance}
         next_status_token( ' ', p_pos, c_pos, status );
         this->balance = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // 7{till_payment}
+        next_status_token( ' ', p_pos, c_pos, status );
+        this->till_payment = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // 8{payment_info}
+        next_status_token( ' ', p_pos, c_pos, status );
+        std::string payment_info = extract_status_token( p_pos, c_pos, status );
+        // 9{pool_hashrate}
+        next_status_token( ' ', p_pos, c_pos, status );
+        this->pool_hashrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        if ( payment_info.length() > 0 ) {
+            // 8{LastPayInfo} = Block:ammount:orderID
+            size_t p_pos = -1, c_pos = -1;
+            // 0{payment_block}
+            next_status_token( ':', p_pos, c_pos, payment_info );
+            this->payment_block = std::stoul( extract_status_token( p_pos, c_pos, payment_info ) );
+            // 0{payment_amount}
+            next_status_token( ':', p_pos, c_pos, payment_info );
+            this->payment_amount = std::stoul( extract_status_token( p_pos, c_pos, payment_info ) );
+            // 0{payment_order_id}
+            next_status_token( ':', p_pos, c_pos, payment_info );
+            this->payment_order_id = extract_status_token( p_pos, c_pos, payment_info );
+        }
     }
 };
 
@@ -489,9 +519,18 @@ struct CNodeTarget : public CTarget {
 
 struct CPoolTarget : public CTarget {
     std::uint32_t balance;
+    std::uint32_t till_payment;
+    std::uint32_t pool_hashrate;
+    std::uint32_t payment_block;
+    std::uint32_t payment_amount;
+    std::string payment_order_id;
     CPoolTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
-              std::string &prefix, const std::string &address, std::uint32_t balance )
-        : CTarget( blck_no, lb_hash, mn_diff ), balance { balance } {
+                std::string &prefix, const std::string &address, std::uint32_t balance,
+                std::uint32_t till_payment, std::uint32_t pool_hashrate, std::uint32_t payment_block,
+                std::uint32_t payment_amount, std::string & payment_order_id )
+        :   CTarget( blck_no, lb_hash, mn_diff ), balance { balance }, till_payment { till_payment },
+            pool_hashrate { pool_hashrate }, payment_block { payment_block }, payment_amount { payment_amount },
+            payment_order_id { payment_order_id } {
         this->prefix = prefix;
         this->address = address;
     }
@@ -728,7 +767,13 @@ public:
                 ps.mn_diff,
                 ps.prefix,
                 ps.address,
-                ps.balance );
+                ps.balance,
+                ps.till_payment,
+                ps.pool_hashrate,
+                ps.payment_block,
+                ps.payment_amount,
+                ps.payment_order_id
+            );
         }
         catch ( const std::exception &e ) {
             std::cout << e.what();
@@ -790,10 +835,10 @@ int main( int argc, char *argv[] ) {
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "i,minerid",  "Miner ID - a number between 0-8100",   cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_MINER_ID ) ) )
         ( "t,threads",  "Number of threads use for mining",     cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
-        ( "p,pools",    "List of pools in pool mining mode",    cxxopts::value<std::string>()->default_value( "f04ever;devnoso" ) )
-        ( "s,solo",     "Mining mode solo? Default pool mining" )
-        ( "v,version",  "Print current version" )
-        ( "h,help",     "Print this usage" )
+        (   "pools",    "Pool list",                            cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
+        (   "solo",     "Solo mode" )
+        ( "v,version",  "Print version" )
+        ( "h,help",     "Print usage" )
         ;
     auto result = options.parse( argc, argv );
     if ( result.count( "help" ) ) {
@@ -858,7 +903,9 @@ void CMineThread::Mine() {
             std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
         }
         if ( g_still_running && m_blck_no > 0 ) {
-            assert( std::strlen( m_lb_hash ) == 32 );
+            assert( ( std::strlen( m_address ) == 30 || std::strlen( m_address ) == 31 )
+                   && std::strlen( m_lb_hash ) == 32
+                   && std::strlen( m_mn_diff ) == 32 );
             char best_diff[33];
             std::strcpy( best_diff, m_mn_diff );
             std::uint32_t noso_hash_counter { 0 };
@@ -868,7 +915,9 @@ void CMineThread::Mine() {
                 const char *base { noso_hasher.GetBase( noso_hash_counter++ ) };
                 const char *hash { noso_hasher.GetHash() };
                 const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
-                assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 && std::strlen( diff ) == 32 );
+                assert( std::strlen( base ) == 18
+                       && std::strlen( hash ) == 32
+                       && std::strlen( diff ) == 32 );
                 if ( std::strcmp( diff, best_diff ) < 0 ) {
                     CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
                     if ( g_solo_mining ) std::strcpy( best_diff, diff );
@@ -1015,9 +1064,20 @@ std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
             << m_pool_inets[m_pool_inet_id]->m_name << " ("
             << m_pool_inets[m_pool_inet_id]->m_host << ":"
             << m_pool_inets[m_pool_inet_id]->m_port << ")"
-            << " WITH BALANCE "
+            << ", POOL HASHRATE "
+            << std::fixed << std::setprecision( 3 )
+            << pool_target->pool_hashrate / 1'000'000.0 << "Mh/s"
+            << ", NEXT PAYMENT " << pool_target->till_payment << " BLOCKS"
+            << ", YOUR BALANCE "
             << std::fixed << std::setprecision( 8 )
-            << pool_target->balance / 10'000'000.0 << std::endl;
+            << pool_target->balance / 100'000'000.0 << std::endl;
+        if ( pool_target->payment_block == pool_target->blck_no ) {
+            COUT_NOSO_TIME << "YOU HAVE A POOL PAYMENT"
+                << std::fixed << std::setprecision( 8 )
+                << " AMOUNT " << pool_target->payment_amount / 100'000'000.0
+                << " BY ORDER ID " << pool_target->payment_order_id
+                << std::endl;
+        }
         target = pool_target;
     }
     return target;
@@ -1072,7 +1132,7 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
 }
 
 void CCommThread::Communicate() {
-    const long NOSO_BLOCK_AGE_TARGET_SAFE { g_solo_mining ? 10 : 10 };
+    const long NOSO_BLOCK_AGE_TARGET_SAFE { g_solo_mining ? 1 : 6 };
     char prev_lb_hash[33] { NOSO_NUL_HASH };
     auto begin_blck = std::chrono::steady_clock::now();
     while ( g_still_running ) {
