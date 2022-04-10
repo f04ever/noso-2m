@@ -42,10 +42,11 @@
 #define DEFAULT_POOL_INET_TIMEOSEC 30
 
 #define CONSENSUS_NODES_COUNT 3
-#define INET_CIRCLE_SECONDS 0.01
+#define INET_CIRCLE_SECONDS 0.1
 #define INET_BUFFER_SIZE 1024
 
 #define NOSOHASH_COUNTER_MIN 100'000'000
+#define NOSO_NUL_HASH "00000000000000000000000000000000"
 #define NOSO_MAX_DIFF "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 #define NOSO_TIMESTAMP long( std::time( 0 ) )
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
@@ -600,6 +601,7 @@ private:
         }
         return vec;
     }
+    std::shared_ptr<CPoolTarget> GetPoolTargetFailover();
     void _ResetMiningBlock();
     void _PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck );
     void _ReportErrorSubmitting( int code, const std::shared_ptr<CSolution> &solution );
@@ -733,7 +735,7 @@ public:
             return nullptr;
         }
     }
-    std::shared_ptr<CTarget> GetTarget();
+    std::shared_ptr<CTarget> GetTarget( const char prev_lb_hash[32] );
     int SendSolution( const char base[19], const char address[32] ) {
         assert( std::strlen( base ) == 18
                && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
@@ -742,15 +744,15 @@ public:
                     std::cerr << "poor pool network! retrying " << i + 1 << std::endl;
                     continue;
             } else {
-                assert( std::strlen( m_submit_buffer ) >= 4 + 2 ); //len=(4+2)~[True\r\n] OR len=(5+2)~[False\r\n]
+                assert( std::strlen( m_submit_buffer ) >= 4 + 2 ); //len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
                 if ( std::strncmp( m_submit_buffer, "True", 4 ) == 0 ) {
                     assert( std::strlen( m_submit_buffer ) == 4 + 2 ); //len=(4+2)~[True"\r\n]"
                     return 0;
                 }
                 else {
                     assert( std::strncmp( m_submit_buffer, "False", 5 ) == 0
-                           && std::strlen( m_submit_buffer ) == 5 + 2 ); //len=(5+2)~[False\r\n]
-                    return 5;
+                           && std::strlen( m_submit_buffer ) == 7 + 2 ); //len=(5+2)~[False Code#(1)\r\n]
+                    return m_submit_buffer[6] - '0';
                 }
             }
         }
@@ -900,8 +902,8 @@ void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::
         << " accepted " << m_accepted_solutions_count
         << " rejected " << m_rejected_solutions_count
         << " failured " << m_failured_solutions_count
-        << " solution(s)" << std::endl;
-    std::cout << "TOTAL MINED " << g_mined_block_count << " BLOCKS" << std::endl;
+        << ( g_solo_mining ? " solution(s)" : " share(s)" ) << std::endl;
+    if ( g_solo_mining ) std::cout << "TOTAL MINED " << g_mined_block_count << " BLOCKS" << std::endl;
 };
 
 void CCommThread::_ResetMiningBlock() {
@@ -945,46 +947,80 @@ void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolut
     }
 }
 
-std::shared_ptr<CTarget> CCommThread::GetTarget() {
-    std::shared_ptr<CTarget> target = nullptr;
-    if ( g_solo_mining ) {
-        std::shared_ptr<CNodeTarget> nodedata = this->MakeConsensus();
-        while ( g_still_running && nodedata == nullptr ) {
-            COUT_NOSO_TIME << "WAITING CONSENSUS..." << std::endl;
-            nodedata = this->MakeConsensus();
-        }
-        nodedata->prefix = ""; //TODO
-        nodedata->address = g_miner_address;
-        if ( nodedata->lb_addr == g_miner_address ) {
-            g_mined_block_count++;
-            COUT_NOSO_TIME << "YAY! YOU HAVE MINED BLOCK#" << nodedata->blck_no << std::endl;
-        }
-        return nodedata;
-    } else {
-        std::shared_ptr<CPoolTarget> pooldata = this->ReceivePoolData( g_miner_address );
-        int trying_count = 1;
-        while ( g_still_running && pooldata == nullptr ) {
-            if ( trying_count > 5 ) {
-                trying_count = 0;
-                ++m_pool_inet_id;
-                if ( m_pool_inet_id >= m_pool_inets.size() ) m_pool_inet_id = 0;
-                if ( m_pool_inets.size() > 1 )
-                    COUT_NOSO_TIME << "FAILOVER TO POOL "
-                        << m_pool_inets[m_pool_inet_id]->m_name << " ("
-                        << m_pool_inets[m_pool_inet_id]->m_host << ":"
-                        << m_pool_inets[m_pool_inet_id]->m_port << ")" << std::endl;
+std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetFailover() {
+    static const int max_trying_count { 5 };
+    bool first_failover { true };
+    int trying_count { 1 };
+    std::shared_ptr<CPoolTarget> pool_target = this->ReceivePoolData( g_miner_address );
+    while ( g_still_running && pool_target == nullptr ) {
+        COUT_NOSO_TIME << "WAITING TARGET FROM POOL " << m_pool_inets[m_pool_inet_id]->m_name
+            << " (Retry " << trying_count << "/" << max_trying_count << ")" << std::endl;
+        if ( trying_count >= max_trying_count ) {
+            trying_count = 0;
+            if ( m_pool_inets.size() > 1 ) {
+                std::uint32_t save_pool_inet_id { m_pool_inet_id };
+                if ( first_failover ) {
+                    m_pool_inet_id = 0;
+                    if ( m_pool_inet_id == save_pool_inet_id ) ++m_pool_inet_id;
+                    first_failover = false;
+                } else {
+                    ++m_pool_inet_id;
+                    if ( m_pool_inet_id >= m_pool_inets.size() ) m_pool_inet_id = 0;
+                }
+                COUT_NOSO_TIME << "POOL FAILOVER FROM "
+                    << m_pool_inets[save_pool_inet_id]->m_name << " ("
+                    << m_pool_inets[save_pool_inet_id]->m_host << ":"
+                    << m_pool_inets[save_pool_inet_id]->m_port << ")"
+                    << " TO "
+                    << m_pool_inets[m_pool_inet_id]->m_name << " ("
+                    << m_pool_inets[m_pool_inet_id]->m_host << ":"
+                    << m_pool_inets[m_pool_inet_id]->m_port << ")" << std::endl;
+            } else {
+                COUT_NOSO_TIME << "NO REDUNDANT POOL FOR FAILOVER. MAKE ANOTHER ATTEMPT!" << std::endl;
             }
-            COUT_NOSO_TIME << "WAITING POOL DATA... " << trying_count << std::endl;
-            pooldata = this->ReceivePoolData( g_miner_address );
-            ++trying_count;
+        }
+        pool_target = this->ReceivePoolData( g_miner_address );
+        ++trying_count;
+    }
+    return pool_target;
+}
+
+std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
+    assert( std::strlen( prev_lb_hash ) == 32 );
+    std::shared_ptr<CTarget> target { nullptr };
+    if ( g_solo_mining ) {
+        std::shared_ptr<CNodeTarget> node_target = this->MakeConsensus();
+        while ( g_still_running && node_target == nullptr ) {
+            COUT_NOSO_TIME << "WAITING CONSENSUS..." << std::endl;
+            node_target = this->MakeConsensus();
+        }
+        node_target->prefix = "";
+        node_target->address = g_miner_address;
+        if ( node_target->lb_addr == g_miner_address ) {
+            g_mined_block_count++;
+            COUT_NOSO_TIME << "YAY! YOU HAVE MINED BLOCK#" << node_target->blck_no << std::endl;
+        }
+        target = node_target;
+    } else {
+        std::shared_ptr<CPoolTarget> pool_target = this->GetPoolTargetFailover();
+        // NOTE: GetPoolTargetFailover() return nullptr when g_still_running is false
+        if ( g_still_running && pool_target->lb_hash == prev_lb_hash ) {
+            do {
+                // COUT_NOSO_TIME << "WAITBLOCK...CONTINUE..." << std::endl;
+                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
+                pool_target = this->GetPoolTargetFailover();
+            } while ( g_still_running && pool_target->lb_hash == prev_lb_hash );
         }
         COUT_NOSO_TIME << "MINING ON POOL "
             << m_pool_inets[m_pool_inet_id]->m_name << " ("
             << m_pool_inets[m_pool_inet_id]->m_host << ":"
             << m_pool_inets[m_pool_inet_id]->m_port << ")"
-            << " YOUR BALANCE " << pooldata->balance << std::endl;
-        return pooldata;
+            << " WITH BALANCE "
+            << std::fixed << std::setprecision( 8 )
+            << pool_target->balance / 10'000'000.0 << std::endl;
+        target = pool_target;
     }
+    return target;
 }
 
 std::shared_ptr<CSolution> CCommThread::GetSolution() {
@@ -1006,10 +1042,10 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
                 << "]hash[" << solution->hash
                 << "]base[" << solution->base << "]Network building block!" << std::endl;
         }
-        if ( code > 0 ) this->_ReportErrorSubmitting( code, solution ); // rest other error codes 1, 2, 3, 4, 7
     } else {
         code = this->SendSolution( solution->base.c_str(), g_miner_address );
     }
+    if ( code > 0 ) this->_ReportErrorSubmitting( code, solution ); // rest other error codes 1, 2, 3, 4, 7
     if ( code == 0 ) {
         m_accepted_solutions_count ++;
         COUT_NOSO_TIME << " ACCEPTED"
@@ -1036,17 +1072,20 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
 }
 
 void CCommThread::Communicate() {
+    const long NOSO_BLOCK_AGE_TARGET_SAFE { g_solo_mining ? 10 : 10 };
+    char prev_lb_hash[33] { NOSO_NUL_HASH };
     auto begin_blck = std::chrono::steady_clock::now();
     while ( g_still_running ) {
-        if ( NOSO_BLOCK_AGE < 1 || 585 < NOSO_BLOCK_AGE ) {
+        if ( NOSO_BLOCK_AGE < NOSO_BLOCK_AGE_TARGET_SAFE || 585 < NOSO_BLOCK_AGE ) {
             COUT_NOSO_TIME << "WAITBLOCK..." << std::flush;
             do {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
-            } while ( g_still_running && ( NOSO_BLOCK_AGE < 1 || 585 < NOSO_BLOCK_AGE ) );
+            } while ( g_still_running && ( NOSO_BLOCK_AGE < NOSO_BLOCK_AGE_TARGET_SAFE || 585 < NOSO_BLOCK_AGE ) );
             std::cout << std::endl;
             if ( !g_still_running ) break;
         }
-        std::shared_ptr<CTarget> target = this->GetTarget();
+        std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
+        std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
         if ( !g_still_running ) break;
         std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
         COUT_NOSO_TIME << "NEWTARGET"
