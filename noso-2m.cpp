@@ -356,9 +356,9 @@ struct CNodeStatus {
     std::string lb_addr;
     CNodeStatus( const char *ns_line ) {
         assert( ns_line != nullptr && std::strlen( ns_line ) > 1 );
-        auto next_status_token = []( size_t &p_pos, size_t &c_pos, const std::string &status ) {
+        auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
             p_pos = c_pos;
-            c_pos = status.find( ' ', c_pos + 1 );
+            c_pos = status.find( sep, c_pos + 1 );
         };
         auto extract_status_token = []( size_t p_pos, size_t c_pos, const std::string& status ) {
             return status.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : ( c_pos - p_pos - 1 ) );
@@ -369,48 +369,48 @@ struct CNodeStatus {
         //NODESTATUS 1{Peers} 2{LastBlock} 3{Pendings} 4{Delta} 5{headers} 6{version} 7{UTCTime} 8{MNsHash} 9{MNscount}
         //           10{LastBlockHash} 11{BestHashDiff} 12{LastBlockTimeEnd} 13{LBMiner}
         // 0{NODESTATUS}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // std::string nodestatus = extract_status_token( p_pos, c_pos, status );
         // 1{peer}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // this->peer = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 2{blck}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 3{pending}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // this->pending = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 4{delta}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // this->delta = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 5{header/branch}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // this->branch = extract_status_token( p_pos, c_pos, status );
         // 6{version}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // this->version = extract_status_token( p_pos, c_pos, status );
         // 7{utctime}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 8{mn_hash}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // this->mn_hash = extract_status_token( p_pos, c_pos, status );
         // 9{mn_count}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // this->mn_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 10{lb_hash}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->lb_hash = extract_status_token( p_pos, c_pos, status );
         assert( this->lb_hash.length() == 32 );
         // 11{bh_diff/mn_diff}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->mn_diff = extract_status_token( p_pos, c_pos, status );
         assert( this->mn_diff.length() == 32 );
         // 12{lb_time}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->lb_time = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 13{lb_addr}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->lb_addr = extract_status_token( p_pos, c_pos, status );
         assert( this->lb_addr.length() == 30 || this->lb_addr.length() == 31 );
     }
@@ -425,41 +425,41 @@ struct CPoolStatus {
     std::uint32_t balance;
     CPoolStatus( const char *ps_line ) {
         assert( ps_line != nullptr && std::strlen( ps_line ) > 1 );
-        auto next_status_token = []( size_t &p_pos, size_t &c_pos, const std::string &status ) {
+        auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
             p_pos = c_pos;
-            c_pos = status.find(' ', c_pos + 1);
+            c_pos = status.find( sep, c_pos + 1 );
         };
         auto extract_status_token = []( size_t p_pos, size_t c_pos, const std::string& status ) {
-            return status.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : (c_pos - p_pos - 1) );
+            return status.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : ( c_pos - p_pos - 1 ) );
         };
         std::string status { ps_line };
         status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
         size_t p_pos = -1, c_pos = -1;
         // {0}OK 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber} 6{MinerBalance}
         // 0{OK}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         // std::string status = extract_status_token( p_pos, c_pos, status );
         // 1{prefix}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->prefix = extract_status_token( p_pos, c_pos, status );
         assert( this->prefix.length() == 3 );
         // 2{address}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->address = extract_status_token( p_pos, c_pos, status );
         assert( this->address.length() == 30 || this->address.length() == 31 );
         // 3{mn_diff}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->mn_diff = extract_status_token( p_pos, c_pos, status );
         assert( this->mn_diff.length() == 32 );
         // 4{lb_hash}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->lb_hash = extract_status_token( p_pos, c_pos, status );
         assert(this->lb_hash.length() == 32 );
         // 5{blck_no}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 6{balance}
-        next_status_token( p_pos, c_pos, status );
+        next_status_token( ' ', p_pos, c_pos, status );
         this->balance = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     }
 };
