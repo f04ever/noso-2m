@@ -26,7 +26,6 @@ jobs:
           strip -x noso-2m
           ./noso-2m --version
         elif [ "$RUNNER_OS" == "Windows" ]; then
-          #clang-cl helloworld.cpp /o helloworld /std:c++20 /O2
           clang++ noso-2m.cpp md5-c.cpp -o noso-2m.exe -std=c++20 -Ofast -lWs2_32.lib
           .\\noso-2m.exe --version
         else
@@ -68,7 +67,7 @@ jobs:
             cp macos-latest/noso-2m .
             cp macos-latest/README.md .
             cp macos-latest/CHANGELOG.md .
-            chmod +x helloworld
+            chmod +x noso-2m
             tar -zcvf noso-2m-${tag}-darwin-amd64.tar.gz noso-2m README.md CHANGELOG.md
           elif [ "$RUNNER_OS" == "Windows" ]; then
             cp windows-latest/noso-2m.exe .
