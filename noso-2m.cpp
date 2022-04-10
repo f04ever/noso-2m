@@ -774,7 +774,7 @@ bool g_solo_mining { false };
 int main( int argc, char *argv[] ) {
     signal( SIGINT, []( int /* signum */ ) {
         if ( !g_still_running ) return;
-        std::cout << "\nCtrl+C pressed! Wait for finishing all mining threads..." << std::endl;
+        std::cout << "\nCtrl+C pressed! Wait for finishing all threads..." << std::endl;
         g_still_running = false; });
     #ifdef _WIN32
     WSADATA wsaData;
@@ -788,7 +788,7 @@ int main( int argc, char *argv[] ) {
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "i,minerid",  "Miner ID - a number between 0-8100",   cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_MINER_ID ) ) )
         ( "t,threads",  "Number of threads use for mining",     cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
-        ( "p,pools",    "List of pools in pool mining mode",    cxxopts::value<std::string>()->default_value( "f04ever;devnoso;" ) )
+        ( "p,pools",    "List of pools in pool mining mode",    cxxopts::value<std::string>()->default_value( "f04ever;devnoso" ) )
         ( "s,solo",     "Mining mode solo? Default pool mining" )
         ( "v,version",  "Print current version" )
         ( "h,help",     "Print this usage" )
@@ -812,6 +812,11 @@ int main( int argc, char *argv[] ) {
     g_threads_count = result["threads"].as<std::uint32_t>();
     g_mining_pools = parse_pools_argv( result["pools"].as<std::string>() );
     g_solo_mining = result.count( "solo" ) ? true : false;
+    auto left_pad = []<typename T>( const std::basic_string<T>& s, typename std::basic_string<T>::size_type n, T c ){
+        std::basic_string<T> r { s };
+        if ( n > r.length() ) r.append( n - r.length(), c );
+        return r;
+    };
     auto next_pool = g_mining_pools.cbegin();
     auto last_pool = g_mining_pools.cend();
     std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2\n";
@@ -821,12 +826,12 @@ int main( int argc, char *argv[] ) {
     std::cout << "- Wallet address: " << g_miner_address << std::endl;
     std::cout << "-       Miner ID: " << g_miner_id << std::endl;
     std::cout << "-  Threads count: " << g_threads_count << std::endl;
-    std::cout << "-    Mining mode: " << ( g_solo_mining ? "solo" : "pool " + std::get<0>( *next_pool )
-        + " \t(" + std::get<1>( *next_pool ) + ":" + std::get<2>( *next_pool ) + ")" ) << std::endl;
+    std::cout << "-    Mining mode: " << ( g_solo_mining ? "solo" : "pool + " + left_pad( std::get<0>( *next_pool ), 12, ' ' )
+        + " (" + std::get<1>( *next_pool ) + ":" + std::get<2>( *next_pool ) + ")" ) << std::endl;
     if ( !g_solo_mining ) {
         for( next_pool = std::next( next_pool ); next_pool != last_pool; ++next_pool ) {
-            std::cout << "                       " << ( std::get<0>( *next_pool )
-                + " \t(" + std::get<1>( *next_pool ) + ":" + std::get<2>( *next_pool ) + ")" ) << std::endl;
+            std::cout << "                       + " << ( left_pad( std::get<0>( *next_pool ), 12, ' ' )
+                + " (" + std::get<1>( *next_pool ) + ":" + std::get<2>( *next_pool ) + ")" ) << std::endl;
         }
     }
     std::cout << "\n";
@@ -1076,7 +1081,6 @@ void CCommThread::Communicate() {
 }
 
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr ) {
-    std::cout << poolstr << std::endl;
     const std::regex re_pool1 { ";" };
     const std::regex re_pool2 {
         "("
@@ -1113,14 +1117,20 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
                         std::sregex_iterator {}, [&]( const auto &sm0 ) {
                             std::string name { sm0[1].str() };
                             std::string host { sm0[3].str() };
-                            std::string port { sm0[14].str() };
+                            std::string port { sm0[9].str() };
+                            // std::string port { sm0[14].str() };
                             if ( host.length() <= 0 ) {
-                                const auto pool = std::find_if(
+                                const auto def_pool = std::find_if(
                                         g_default_pools.begin(), g_default_pools.end(),
-                                        [&name]( const auto& val ) { return std::get<0>( val ) == name ? true : false; } );
-                                if ( pool != g_default_pools.end() ) {
-                                    host = std::get<1>( *pool );
-                                    port = std::get<2>( *pool );
+                                        [&name]( const auto& val ) {
+                                            std::string def_name { std::get<0>( val ) };
+                                            bool iequal = std::equal(
+                                                    name.begin(), name.end(), def_name.begin(), def_name.end(),
+                                                    []( unsigned char a, unsigned char b ) { return tolower( a ) == tolower( b ); });
+                                            return iequal ? true : false; } );
+                                if ( def_pool != g_default_pools.end() ) {
+                                    host = std::get<1>( *def_pool );
+                                    if ( port.length() <= 0 ) port = std::get<2>( *def_pool );
                                 }
                             }
                             if ( host.length() <= 0 ) return;
