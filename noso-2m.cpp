@@ -814,8 +814,8 @@ int main( int argc, char *argv[] ) {
     g_threads_count = result["threads"].as<std::uint32_t>();
     g_mining_pools = parse_pools_argv( result["pools"].as<std::string>() );
     g_solo_mining = result.count( "solo" ) ? true : false;
-    auto left_pad = []<typename T>( const std::basic_string<T>& s, typename std::basic_string<T>::size_type n, T c ){
-        std::basic_string<T> r { s };
+    auto left_pad = []( const std::string& s, std::size_t n, char c ){
+        std::string r { s };
         if ( n > r.length() ) r.append( n - r.length(), c );
         return r;
     };
