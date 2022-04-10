@@ -63,6 +63,7 @@ const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
     }; // seed nodes
 
 const std::vector<std::tuple<std::string, std::string, std::string>> g_default_pools {
+        { "f04ever", "209.126.80.203", "8082" },
         { "devnoso", "45.146.252.103", "8082" },
     };
 
@@ -561,8 +562,7 @@ private:
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
-    char m_status_buffer[INET_BUFFER_SIZE];
-    char m_submit_buffer[INET_BUFFER_SIZE];
+    char m_inet_buffer[INET_BUFFER_SIZE];
     std::map<std::uint32_t, int> m_freq_blck_no;
     std::map<std::string  , int> m_freq_lb_hash;
     std::map<std::string  , int> m_freq_mn_diff;
@@ -582,7 +582,7 @@ private:
         std::size_t nodes_count { 0 };
         std::vector<std::shared_ptr<CNodeStatus>> vec;
         for ( auto it = m_node_inets_good.begin(); it != m_node_inets_good.end(); ) {
-            if ( (*it)->FetchNodestatus( m_status_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+            if ( (*it)->FetchNodestatus( m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
                 (*it)->CleanService();
                 m_node_inets_poor.push_back( *it );
                 it = m_node_inets_good.erase( it );
@@ -591,7 +591,7 @@ private:
             }
             ++it;
             try {
-                vec.push_back( std::make_shared<CNodeStatus>( m_status_buffer ) );
+                vec.push_back( std::make_shared<CNodeStatus>( m_inet_buffer ) );
                 nodes_count ++;
                 if ( nodes_count >= min_nodes_count ) break;
             }
@@ -660,7 +660,7 @@ public:
         }
         std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
         for ( auto it = m_node_inets_good.begin(); it != m_node_inets_good.end(); ) {
-            if ( (*it)->SubmitSolution( blck, base, address, m_submit_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+            if ( (*it)->SubmitSolution( blck, base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
                 (*it)->CleanService();
                 m_node_inets_poor.push_back( *it );
                 it = m_node_inets_good.erase( it );
@@ -668,22 +668,22 @@ public:
                 continue;
             }
             ++it;
-            assert( std::strlen( m_submit_buffer ) >= 40 + 2 ); // len=(70+2)~[True Diff(32) Hash(32)\r\n] OR len=(40+2)~[False Diff(32) Code#(1)\r\n]
-            if ( strncmp( m_submit_buffer, "True", 4 ) == 0 ) {
-                assert( std::strlen( m_submit_buffer ) == 70 + 2 ); // len=(70+2)~[True Diff(32) Hash(32)\r\n]
-                std::strncpy( new_mn_diff, m_submit_buffer + 5, 32 );
+            assert( std::strlen( m_inet_buffer ) >= 40 + 2 ); // len=(70+2)~[True Diff(32) Hash(32)\r\n] OR len=(40+2)~[False Diff(32) Code#(1)\r\n]
+            if ( strncmp( m_inet_buffer, "True", 4 ) == 0 ) {
+                assert( std::strlen( m_inet_buffer ) == 70 + 2 ); // len=(70+2)~[True Diff(32) Hash(32)\r\n]
+                std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
                 new_mn_diff[32] = '\0';
                 assert( std::strlen( new_mn_diff ) == 32 );
                 return 0;
             }
             else {
-                assert( std::strncmp( m_submit_buffer, "False", 5 ) == 0
-                       && std::strlen( m_submit_buffer ) == 40 + 2 // len=(40+2)~[False Diff(32) Code#(1)\r\n]
-                       && '1' <= m_submit_buffer[39] && m_submit_buffer[39] <= '7' );
-                std::strncpy( new_mn_diff, m_submit_buffer + 6, 32 );
+                assert( std::strncmp( m_inet_buffer, "False", 5 ) == 0
+                       && std::strlen( m_inet_buffer ) == 40 + 2 // len=(40+2)~[False Diff(32) Code#(1)\r\n]
+                       && '1' <= m_inet_buffer[39] && m_inet_buffer[39] <= '7' );
+                std::strncpy( new_mn_diff, m_inet_buffer + 6, 32 );
                 new_mn_diff[32] = '\0';
                 assert( strlen( new_mn_diff ) == 32 );
-                return m_submit_buffer[39] - '0';
+                return m_inet_buffer[39] - '0';
             }
         }
         return -1;
@@ -718,10 +718,10 @@ public:
     }
     std::shared_ptr<CPoolTarget> ReceivePoolData( const char address[32] ) {
         assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
-        if ( m_pool_inets[m_pool_inet_id]->FetchSource( address, m_status_buffer, INET_BUFFER_SIZE ) <= 0 )
+        if ( m_pool_inets[m_pool_inet_id]->FetchSource( address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 )
             return nullptr;
         try {
-            CPoolStatus ps( m_status_buffer );
+            CPoolStatus ps( m_inet_buffer );
             return std::make_shared<CPoolTarget>(
                 ps.blck_no,
                 ps.lb_hash,
@@ -740,19 +740,19 @@ public:
         assert( std::strlen( base ) == 18
                && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
         for ( int i = 0; i < 5 ; ++i ) {
-            if ( m_pool_inets[m_pool_inet_id]->SubmitShare( base, address, m_submit_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+            if ( m_pool_inets[m_pool_inet_id]->SubmitShare( base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
                     std::cerr << "poor pool network! retrying " << i + 1 << std::endl;
                     continue;
             } else {
-                assert( std::strlen( m_submit_buffer ) >= 4 + 2 ); //len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
-                if ( std::strncmp( m_submit_buffer, "True", 4 ) == 0 ) {
-                    assert( std::strlen( m_submit_buffer ) == 4 + 2 ); //len=(4+2)~[True"\r\n]"
+                assert( std::strlen( m_inet_buffer ) >= 4 + 2 ); //len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
+                if ( std::strncmp( m_inet_buffer, "True", 4 ) == 0 ) {
+                    assert( std::strlen( m_inet_buffer ) == 4 + 2 ); //len=(4+2)~[True"\r\n]"
                     return 0;
                 }
                 else {
-                    assert( std::strncmp( m_submit_buffer, "False", 5 ) == 0
-                           && std::strlen( m_submit_buffer ) == 7 + 2 ); //len=(5+2)~[False Code#(1)\r\n]
-                    return m_submit_buffer[6] - '0';
+                    assert( std::strncmp( m_inet_buffer, "False", 5 ) == 0
+                           && std::strlen( m_inet_buffer ) == 7 + 2 ); //len=(5+2)~[False Code#(1)\r\n]
+                    return m_inet_buffer[6] - '0';
                 }
             }
         }
