@@ -292,7 +292,7 @@ public:
         hints.ai_socktype = SOCK_STREAM;
         int n = getaddrinfo( this->m_host.c_str(), this->m_port.c_str(), &hints, &serv_info );
         if ( n ) {
-            std::fprintf( stderr, "getaddrinfo: %s\n", gai_strerror(n) );
+            std::cerr << "getaddrinfo: " << gai_strerror( n ) << std::endl;
             m_serv_info = NULL;
         }
         m_serv_info = serv_info;
@@ -426,7 +426,6 @@ struct CPoolStatus {
     std::uint32_t balance;
     std::uint32_t till_payment;
     std::uint32_t pool_hashrate;
-    std::uint32_t mainnet_hashrate;
     std::uint32_t payment_block;
     std::uint32_t payment_amount;
     std::string payment_order_id;
@@ -567,8 +566,9 @@ protected:
     std::uint32_t m_computed_hashes_count { 0 };
 public:
     CMineThread( std::uint32_t miner_id, std::uint32_t thread_id )
-        : m_miner_id { miner_id }, m_thread_id { thread_id } {
+        :   m_miner_id { miner_id }, m_thread_id { thread_id } {
     }
+    virtual ~CMineThread() = default;
     void NewTarget( const std::shared_ptr<CTarget> &target ) {
         std::string thread_prefix = { target->prefix + nosohash_prefix( m_miner_id ) + nosohash_prefix( m_thread_id ) };
         thread_prefix.append( 9 - thread_prefix.size(), '!' );
@@ -585,7 +585,7 @@ public:
     std::uint32_t GetComputedHashesCount() {
         return m_computed_hashes_count;
     }
-    void Mine();
+    virtual void Mine();
 };
 
 class CCommThread { // A singleton pattern class
@@ -635,7 +635,7 @@ private:
                 if ( nodes_count >= min_nodes_count ) break;
             }
             catch ( const std::exception &e ) {
-                std::cout << e.what();
+                std::cerr << e.what() << std::endl;
             }
         }
         return vec;
@@ -776,7 +776,7 @@ public:
             );
         }
         catch ( const std::exception &e ) {
-            std::cout << e.what();
+            std::cerr << e.what() << std::endl;
             return nullptr;
         }
     }
@@ -826,7 +826,7 @@ int main( int argc, char *argv[] ) {
     #ifdef _WIN32
     WSADATA wsaData;
     if( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != NO_ERROR ) {
-        std::fprintf( stderr, "Error at WSAStartup\n" );
+        std::cerr << "Error at WSAStartup" << std::endl;
         std::exit( 1 );
     }
     #endif
@@ -892,7 +892,7 @@ int main( int argc, char *argv[] ) {
     #ifdef _WIN32
     WSACleanup();
     #endif
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 #define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
@@ -1127,7 +1127,7 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
             << ")blck[" << solution->blck
             << "]diff[" << solution->diff
             << "]hash[" << solution->hash
-            << "]base[" << solution->base << "Will retry submitting!" << std::endl;
+            << "]base[" << solution->base << "]Will retry submitting!" << std::endl;
     }
 }
 
