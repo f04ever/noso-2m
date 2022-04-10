@@ -1,0 +1,90 @@
+name: CI/CD build release
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - "*"
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: 'Build: ${{ matrix.os }}'
+    runs-on: '${{ matrix.os }}'
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v2
+    - name: Build source
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          clang++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -Ofast -lpthread
+          strip -s noso-2m
+          ./noso-2m --version
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          clang++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -Ofast -lpthread
+          strip -x noso-2m
+          ./noso-2m --version
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          #clang-cl helloworld.cpp /o helloworld /std:c++20 /O2
+          clang++ noso-2m.cpp md5-c.cpp -o noso-2m.exe -std=c++20 -Ofast -lWs2_32.lib
+          .\\noso-2m.exe --version
+        else
+          echo "$RUNNER_OS not supported build"
+          exit 1
+        fi
+      shell: bash
+    - name: Upload artifacs
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}
+        path: |
+          README.md
+          CHANGELOG.md
+          noso-2m 
+          noso-2m.exe
+  release:
+    if: contains(github.ref, '/tags/')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: 'Release: ${{ matrix.os }}'
+    runs-on: '${{ matrix.os }}'
+    needs: [build]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - name: Package artifacts
+        run: |
+          tag=${{ github.event.ref }}
+          tag=${tag#"refs/tags/"}
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            cp ubuntu-latest/noso-2m .
+            cp ubuntu-latest/README.md .
+            cp ubuntu-latest/CHANGELOG.md .
+            chmod +x noso-2m 
+            tar -zcvf noso-2m-${tag}-linux-amd64.tar.gz noso-2m README.md CHANGELOG.md
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            cp macos-latest/noso-2m .
+            cp macos-latest/README.md .
+            cp macos-latest/CHANGELOG.md .
+            chmod +x helloworld
+            tar -zcvf noso-2m-${tag}-darwin-amd64.tar.gz noso-2m README.md CHANGELOG.md
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            cp windows-latest/noso-2m.exe .
+            cp windows-latest/README.md .
+            cp windows-latest/CHANGELOG.md .
+            7z a -tzip noso-2m-${tag}-windows-amd64.zip noso-2m.exe README.md CHANGELOG.md
+          else
+            echo "$RUNNER_OS not supported release"
+            exit 1
+          fi
+        shell: bash
+      - name: Upload artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            noso-2m-*.zip
+            noso-2m-*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
