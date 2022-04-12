@@ -564,6 +564,8 @@ protected:
     char m_lb_hash[33];
     char m_mn_diff[33];
     std::uint32_t m_computed_hashes_count { 0 };
+    double m_block_mining_duration { 0. };
+    mutable std::mutex m_mutex_summary;
 public:
     CMineThread( std::uint32_t miner_id, std::uint32_t thread_id )
         :   m_miner_id { miner_id }, m_thread_id { thread_id } {
@@ -576,14 +578,21 @@ public:
         std::strcpy( m_address, target->address.c_str() );
         std::strcpy( m_lb_hash, target->lb_hash.c_str() );
         std::strcpy( m_mn_diff, target->mn_diff.c_str() );
-        m_computed_hashes_count = 0;
         m_blck_no = target->blck_no + 1;
     }
-    void UpdateComputedHashesCount( std::uint32_t more ) {
-        m_computed_hashes_count += more;
+    void UpdateBlockSummary( std::uint32_t hashes_count, double duration ) {
+        m_mutex_summary.lock();
+        m_computed_hashes_count += hashes_count;
+        m_block_mining_duration += duration;
+        m_mutex_summary.unlock();
     }
-    std::uint32_t GetComputedHashesCount() {
-        return m_computed_hashes_count;
+    std::tuple<std::uint32_t, double> GetBlockSummary() {
+        m_mutex_summary.lock();
+        auto summary = std::make_tuple( m_computed_hashes_count, m_block_mining_duration );
+        m_computed_hashes_count = 0;
+        m_block_mining_duration = 0;
+        m_mutex_summary.unlock();
+        return summary;
     }
     virtual void Mine();
 };
@@ -924,7 +933,7 @@ void CMineThread::Mine() {
                 }
             }
             std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
-            this->UpdateComputedHashesCount( noso_hash_counter );
+            this->UpdateBlockSummary( noso_hash_counter, elapsed_mining.count() );
             m_blck_no = 0;
         } // END if ( g_still_running && m_blck_no > 0 ) {
     } // END while ( g_still_running ) {
@@ -939,10 +948,13 @@ CCommThread::CCommThread() {
 }
 
 void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
-    std::uint32_t computed_hashes_count = std::accumulate(
-            g_mine_objects.begin(), g_mine_objects.end(), 0,
-            []( int a, const std::shared_ptr<CMineThread> &o ) {
-                return a + o->GetComputedHashesCount(); } );
+    std::uint32_t computed_hashes_count { 0 };
+    double block_mining_duration { 0. };
+    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&](const auto &object){
+                 auto summary = object->GetBlockSummary();
+                 computed_hashes_count += std::get<0>( summary );
+                 block_mining_duration += std::get<1>( summary ); } );
+    block_mining_duration /= g_mine_objects.size();
     std::cout << "SUMMARY BLOCK#" << blck_no << " : "
         << computed_hashes_count<< " hashes computed in "
         << std::fixed << std::setprecision(3)
