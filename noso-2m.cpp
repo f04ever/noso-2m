@@ -356,7 +356,7 @@ struct CNodeStatus {
     std::time_t lb_time;
     std::string lb_addr;
     CNodeStatus( const char *ns_line ) {
-        assert( ns_line != nullptr && std::strlen( ns_line ) > 1 );
+        assert( ns_line != nullptr && std::strlen( ns_line ) > 0 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
             p_pos = c_pos;
             c_pos = status.find( sep, c_pos + 1 );
@@ -430,7 +430,7 @@ struct CPoolStatus {
     std::uint32_t payment_amount;
     std::string payment_order_id;
     CPoolStatus( const char *ps_line ) {
-        assert( ps_line != nullptr && std::strlen( ps_line ) > 1 );
+        assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
             p_pos = c_pos;
             c_pos = status.find( sep, c_pos + 1 );
@@ -716,23 +716,26 @@ public:
                 continue;
             }
             ++it;
-            assert( std::strlen( m_inet_buffer ) >= 40 + 2 ); // len=(70+2)~[True Diff(32) Hash(32)\r\n] OR len=(40+2)~[False Diff(32) Code#(1)\r\n]
-            if ( strncmp( m_inet_buffer, "True", 4 ) == 0 ) {
-                assert( std::strlen( m_inet_buffer ) == 70 + 2 ); // len=(70+2)~[True Diff(32) Hash(32)\r\n]
-                std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
-                new_mn_diff[32] = '\0';
-                assert( std::strlen( new_mn_diff ) == 32 );
-                return 0;
-            }
-            else {
-                assert( std::strncmp( m_inet_buffer, "False", 5 ) == 0
-                       && std::strlen( m_inet_buffer ) == 40 + 2 // len=(40+2)~[False Diff(32) Code#(1)\r\n]
-                       && '1' <= m_inet_buffer[39] && m_inet_buffer[39] <= '7' );
+            // m_inet_buffer ~ len=(70+2)~[True Diff(32) Hash(32)\r\n] OR len=(40+2)~[False Diff(32) Code#(1)\r\n]
+            std::size_t recv_len { std::strlen( m_inet_buffer ) };
+            if ( recv_len >= 42
+                && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
+                && m_inet_buffer[37] == ' '
+                && '1' <= m_inet_buffer[39] && m_inet_buffer[39] <= '7' ) {
+                // len=(40+2)~[False Diff(32) Code#(1)\r\n]
                 std::strncpy( new_mn_diff, m_inet_buffer + 6, 32 );
                 new_mn_diff[32] = '\0';
-                assert( strlen( new_mn_diff ) == 32 );
                 return m_inet_buffer[39] - '0';
             }
+            else if ( recv_len >= 72
+                && std::strncmp( m_inet_buffer, "True ", 5 ) == 0
+                && m_inet_buffer[36] == ' ' ) {
+                // len=(70+2)~[True Diff(32) Hash(32)\r\n]
+                std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
+                new_mn_diff[32] = '\0';
+                return 0;
+            }
+            std::cerr << "Unexpected node response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying on another node" << std::endl;
         }
         return -1;
     }
@@ -797,18 +800,15 @@ public:
             if ( m_pool_inets[m_pool_inet_id]->SubmitShare( base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
                     std::cerr << "poor pool network! retrying " << i + 1 << std::endl;
                     continue;
-            } else {
-                assert( std::strlen( m_inet_buffer ) >= 4 + 2 ); //len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
-                if ( std::strncmp( m_inet_buffer, "True", 4 ) == 0 ) {
-                    assert( std::strlen( m_inet_buffer ) == 4 + 2 ); //len=(4+2)~[True"\r\n]"
-                    return 0;
-                }
-                else {
-                    assert( std::strncmp( m_inet_buffer, "False", 5 ) == 0
-                           && std::strlen( m_inet_buffer ) == 7 + 2 ); //len=(5+2)~[False Code#(1)\r\n]
-                    return m_inet_buffer[6] - '0';
-                }
             }
+            // m_inet_buffer ~ len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
+            std::size_t recv_len { std::strlen( m_inet_buffer ) };
+            if ( recv_len >= 6
+                && std::strncmp( m_inet_buffer, "True", 4 ) == 0 ) return 0;
+            else if ( recv_len >= 9
+                && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
+                && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) return m_inet_buffer[6] - '0';
+            std::cerr << "Unexpected pool response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying " << i + 1 << std::endl;
         }
         return -1;
     }
@@ -1375,32 +1375,17 @@ int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
     FD_SET( sockfd, &fds );
     int n = select( sockfd + 1, NULL, &fds, NULL, &timeout );
     if ( n == 0 ) {
-        #ifdef _WIN32
-        closesocket( sockfd );
-        #else
-        close( sockfd );
-        #endif
         std::perror( "select/send timeout" );
-        return -2; // timeout!
+        return n; // timeout!
     }
     if ( n == -1 ) {
-        #ifdef _WIN32
-        closesocket( sockfd );
-        #else
-        close( sockfd );
-        #endif
         std::perror( "select/send failed" );
-        return -1; // error
+        return n; // error
     }
     int slen = send( sockfd, message, size, 0 );
-    if ( slen < 1 ) {
-        #ifdef _WIN32
-        closesocket( sockfd );
-        #else
-        close( sockfd );
-        #endif
+    if ( slen <= 0 ) {
         std::perror( "send failed" );
-        return -1;
+        return slen;
     }
     return slen;
 }
@@ -1415,34 +1400,18 @@ int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
     FD_SET( sockfd, &fds );
     int n = select( sockfd + 1, &fds, NULL, NULL, &timeout );
     if ( n == 0 ) {
-        #ifdef _WIN32
-        closesocket( sockfd );
-        #else
-        close( sockfd );
-        #endif
         std::perror( "select/recv timeout" );
-        return -2; // timeout!
+        return 0; // timeout!
     }
     if ( n == -1 ) {
-        #ifdef _WIN32
-        closesocket( sockfd );
-        #else
-        close( sockfd );
-        #endif
         std::perror( "select/recv failed" );
-        return -1; // error
+        return n; // error
     }
     int rlen = recv( sockfd, buffer, buffsize - 1, 0 );
-    // if (rlen < 0) { //TODO rlen == 1
-    if ( rlen < 1 ) {
-        #ifdef _WIN32
-        closesocket( sockfd );
-        #else
-        close( sockfd );
-        #endif
+    if ( rlen <= 0 ) {
         if ( rlen == 0 ) std::perror( "recv timeout" );
         else  std::perror( "recv failed" );
-        return -1;
+        return rlen;
     }
     buffer[ rlen ] = '\0';
     return rlen;
@@ -1450,15 +1419,15 @@ int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
 
 int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize ) {
     int sockfd = inet_socket( serv_info, timeosec );
-    if (sockfd < 0) return -1;
+    if ( sockfd < 0 ) return sockfd;
+    int rlen = 0;
     int slen = inet_send( sockfd, timeosec, buffer, std::strlen( buffer ) );
-    if ( slen < 0 ) return slen;
-    int rlen = inet_recv( sockfd, timeosec, buffer, buffsize );
-    if ( rlen < 0 ) return rlen;
+    if ( slen > 0 ) rlen = inet_recv( sockfd, timeosec, buffer, buffsize );
     #ifdef _WIN32
     closesocket( sockfd );
     #else
     close( sockfd );
     #endif
+    if ( slen <= 0 ) return slen;
     return rlen;
 }
