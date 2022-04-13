@@ -617,38 +617,7 @@ private:
     std::map<std::time_t  , int> m_freq_lb_time;
     std::map<std::string  , int> m_freq_lb_addr;
     CCommThread();
-    std::vector<std::shared_ptr<CNodeStatus>> SyncSources( std::size_t min_nodes_count ) {
-        if ( m_node_inets_good.size() < min_nodes_count ) {
-            for ( auto ni : m_node_inets_poor ) {
-                ni->InitService();
-                m_node_inets_good.push_back( ni );
-            }
-            m_node_inets_poor.clear();
-            std::cerr << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
-        }
-        std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
-        std::size_t nodes_count { 0 };
-        std::vector<std::shared_ptr<CNodeStatus>> vec;
-        for ( auto it = m_node_inets_good.begin(); it != m_node_inets_good.end(); ) {
-            if ( (*it)->FetchNodestatus( m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
-                (*it)->CleanService();
-                m_node_inets_poor.push_back( *it );
-                it = m_node_inets_good.erase( it );
-                std::cerr << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
-                continue;
-            }
-            ++it;
-            try {
-                vec.push_back( std::make_shared<CNodeStatus>( m_inet_buffer ) );
-                nodes_count ++;
-                if ( nodes_count >= min_nodes_count ) break;
-            }
-            catch ( const std::exception &e ) {
-                std::cerr << e.what() << std::endl;
-            }
-        }
-        return vec;
-    }
+    std::vector<std::shared_ptr<CNodeStatus>> SyncSources( std::size_t min_nodes_count );
     std::shared_ptr<CPoolTarget> GetPoolTargetFailover();
     void _ResetMiningBlock();
     void _PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck );
@@ -695,50 +664,7 @@ public:
         return good_solution;
     }
     std::shared_ptr<CSolution> GetSolution();
-    int PushSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] ) {
-        assert( std::strlen( base ) == 18
-               && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
-        if ( m_node_inets_good.size() < 1 ) {
-            for ( auto ni : m_node_inets_poor ) {
-                ni->InitService();
-                m_node_inets_good.push_back( ni );
-            }
-            m_node_inets_poor.clear();
-            std::cerr << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
-        }
-        std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
-        for ( auto it = m_node_inets_good.begin(); it != m_node_inets_good.end(); ) {
-            if ( (*it)->SubmitSolution( blck, base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
-                (*it)->CleanService();
-                m_node_inets_poor.push_back( *it );
-                it = m_node_inets_good.erase( it );
-                std::cerr << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
-                continue;
-            }
-            ++it;
-            // m_inet_buffer ~ len=(70+2)~[True Diff(32) Hash(32)\r\n] OR len=(40+2)~[False Diff(32) Code#(1)\r\n]
-            std::size_t recv_len { std::strlen( m_inet_buffer ) };
-            if ( recv_len >= 42
-                && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
-                && m_inet_buffer[38] == ' '
-                && '1' <= m_inet_buffer[39] && m_inet_buffer[39] <= '7' ) {
-                // len=(40+2)~[False Diff(32) Code#(1)\r\n]
-                std::strncpy( new_mn_diff, m_inet_buffer + 6, 32 );
-                new_mn_diff[32] = '\0';
-                return m_inet_buffer[39] - '0';
-            }
-            else if ( recv_len >= 72
-                && std::strncmp( m_inet_buffer, "True ", 5 ) == 0
-                && m_inet_buffer[37] == ' ' ) {
-                // len=(70+2)~[True Diff(32) Hash(32)\r\n]
-                std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
-                new_mn_diff[32] = '\0';
-                return 0;
-            }
-            std::cerr << "Unrecognised node response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying on another node" << std::endl;
-        }
-        return -1;
-    }
+    int PushSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] );
     std::shared_ptr<CNodeTarget> MakeConsensus() {
         std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->SyncSources( CONSENSUS_NODES_COUNT );
         if ( status_of_nodes.size() < CONSENSUS_NODES_COUNT ) return nullptr;
@@ -793,25 +719,7 @@ public:
         }
     }
     std::shared_ptr<CTarget> GetTarget( const char prev_lb_hash[32] );
-    int SendSolution( const char base[19], const char address[32] ) {
-        assert( std::strlen( base ) == 18
-               && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
-        for ( int i = 0; i < 5 ; ++i ) {
-            if ( m_pool_inets[m_pool_inet_id]->SubmitShare( base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
-                    std::cerr << "poor pool network! retrying " << i + 1 << std::endl;
-                    continue;
-            }
-            // m_inet_buffer ~ len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
-            std::size_t recv_len { std::strlen( m_inet_buffer ) };
-            if ( recv_len >= 6
-                && std::strncmp( m_inet_buffer, "True", 4 ) == 0 ) return 0;
-            else if ( recv_len >= 9
-                && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
-                && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) return m_inet_buffer[6] - '0';
-            std::cerr << "Unrecognised pool response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying " << i + 1 << std::endl;
-        }
-        return -1;
-    }
+    int SendSolution( const char base[19], const char address[32] );
     void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };
@@ -1008,6 +916,39 @@ void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolut
     }
 }
 
+std::vector<std::shared_ptr<CNodeStatus>> CCommThread::SyncSources( std::size_t min_nodes_count ) {
+    if ( m_node_inets_good.size() < min_nodes_count ) {
+        for ( auto ni : m_node_inets_poor ) {
+            ni->InitService();
+            m_node_inets_good.push_back( ni );
+        }
+        m_node_inets_poor.clear();
+        std::cerr << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+    }
+    std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
+    std::size_t nodes_count { 0 };
+    std::vector<std::shared_ptr<CNodeStatus>> vec;
+    for ( auto it = m_node_inets_good.begin(); g_still_running && it != m_node_inets_good.end(); ) {
+        if ( (*it)->FetchNodestatus( m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+            (*it)->CleanService();
+            m_node_inets_poor.push_back( *it );
+            it = m_node_inets_good.erase( it );
+            std::cerr << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+            continue;
+        }
+        ++it;
+        try {
+            vec.push_back( std::make_shared<CNodeStatus>( m_inet_buffer ) );
+            nodes_count ++;
+            if ( nodes_count >= min_nodes_count ) break;
+        }
+        catch ( const std::exception &e ) {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+    return vec;
+}
+
 std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetFailover() {
     static const int max_trying_count { 5 };
     bool first_failover { true };
@@ -1097,6 +1038,71 @@ std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
 
 std::shared_ptr<CSolution> CCommThread::GetSolution() {
     return g_solo_mining ? this->BestSolution() : this->GoodSolution();
+}
+
+int CCommThread::SendSolution( const char base[19], const char address[32] ) {
+    assert( std::strlen( base ) == 18
+            && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
+    for ( int i = 0; g_still_running && i < 5 ; ++i ) {
+        if ( m_pool_inets[m_pool_inet_id]->SubmitShare( base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+                std::cerr << "poor pool network! retrying " << i + 1 << std::endl;
+                continue;
+        }
+        // m_inet_buffer ~ len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
+        std::size_t recv_len { std::strlen( m_inet_buffer ) };
+        if ( recv_len >= 6
+            && std::strncmp( m_inet_buffer, "True", 4 ) == 0 ) return 0;
+        else if ( recv_len >= 9
+            && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
+            && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) return m_inet_buffer[6] - '0';
+        std::cerr << "Unrecognised pool response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying " << i + 1 << std::endl;
+    }
+    return -1;
+}
+
+int CCommThread::PushSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] ) {
+    assert( std::strlen( base ) == 18
+            && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
+    if ( m_node_inets_good.size() < 1 ) {
+        for ( auto ni : m_node_inets_poor ) {
+            ni->InitService();
+            m_node_inets_good.push_back( ni );
+        }
+        m_node_inets_poor.clear();
+        std::cerr << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+    }
+    std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
+    for ( auto it = m_node_inets_good.begin(); g_still_running && it != m_node_inets_good.end(); ) {
+        if ( (*it)->SubmitSolution( blck, base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+            (*it)->CleanService();
+            m_node_inets_poor.push_back( *it );
+            it = m_node_inets_good.erase( it );
+            std::cerr << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+            continue;
+        }
+        ++it;
+        // m_inet_buffer ~ len=(70+2)~[True Diff(32) Hash(32)\r\n] OR len=(40+2)~[False Diff(32) Code#(1)\r\n]
+        std::size_t recv_len { std::strlen( m_inet_buffer ) };
+        if ( recv_len >= 42
+            && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
+            && m_inet_buffer[38] == ' '
+            && '1' <= m_inet_buffer[39] && m_inet_buffer[39] <= '7' ) {
+            // len=(40+2)~[False Diff(32) Code#(1)\r\n]
+            std::strncpy( new_mn_diff, m_inet_buffer + 6, 32 );
+            new_mn_diff[32] = '\0';
+            return m_inet_buffer[39] - '0';
+        }
+        else if ( recv_len >= 72
+            && std::strncmp( m_inet_buffer, "True ", 5 ) == 0
+            && m_inet_buffer[37] == ' ' ) {
+            // len=(70+2)~[True Diff(32) Hash(32)\r\n]
+            std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
+            new_mn_diff[32] = '\0';
+            return 0;
+        }
+        std::cerr << "Unrecognised node response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying on another node" << std::endl;
+    }
+    return -1;
 }
 
 void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target ) {
