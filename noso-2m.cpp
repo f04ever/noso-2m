@@ -60,7 +60,7 @@ const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
         { "107.175.59.177"  ,   "8080" },
         { "107.172.193.176" ,   "8080" },
         { "107.175.194.151" ,   "8080" },
-        { "192.3.173.184"   ,   "8080" },
+        { "192.3.73.184"   ,   "8080" },
     }; // seed nodes
 
 const std::vector<std::tuple<std::string, std::string, std::string>> g_default_pools {
@@ -720,7 +720,7 @@ public:
             std::size_t recv_len { std::strlen( m_inet_buffer ) };
             if ( recv_len >= 42
                 && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
-                && m_inet_buffer[37] == ' '
+                && m_inet_buffer[38] == ' '
                 && '1' <= m_inet_buffer[39] && m_inet_buffer[39] <= '7' ) {
                 // len=(40+2)~[False Diff(32) Code#(1)\r\n]
                 std::strncpy( new_mn_diff, m_inet_buffer + 6, 32 );
@@ -729,13 +729,13 @@ public:
             }
             else if ( recv_len >= 72
                 && std::strncmp( m_inet_buffer, "True ", 5 ) == 0
-                && m_inet_buffer[36] == ' ' ) {
+                && m_inet_buffer[37] == ' ' ) {
                 // len=(70+2)~[True Diff(32) Hash(32)\r\n]
                 std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
                 new_mn_diff[32] = '\0';
                 return 0;
             }
-            std::cerr << "Unexpected node response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying on another node" << std::endl;
+            std::cerr << "Unrecognised node response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying on another node" << std::endl;
         }
         return -1;
     }
@@ -808,7 +808,7 @@ public:
             else if ( recv_len >= 9
                 && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
                 && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) return m_inet_buffer[6] - '0';
-            std::cerr << "Unexpected pool response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying " << i + 1 << std::endl;
+            std::cerr << "Unrecognised pool response (size=" << recv_len << ")[" << m_inet_buffer << "]! retrying " << i + 1 << std::endl;
         }
         return -1;
     }
@@ -1144,7 +1144,7 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
 }
 
 void CCommThread::Communicate() {
-    const long NOSO_BLOCK_AGE_TARGET_SAFE { g_solo_mining ? 1 : 6 };
+    long NOSO_BLOCK_AGE_TARGET_SAFE { 10 };
     char prev_lb_hash[33] { NOSO_NUL_HASH };
     auto begin_blck = std::chrono::steady_clock::now();
     while ( g_still_running ) {
@@ -1156,10 +1156,11 @@ void CCommThread::Communicate() {
             std::cout << std::endl;
             if ( !g_still_running ) break;
         }
+        NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 1 : 6;
+        std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
         if ( !g_still_running ) break;
-        std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
         COUT_NOSO_TIME << "NEWTARGET"
             << ")blck[" << target->blck_no + 1
             << "]hash[" << target->lb_hash
