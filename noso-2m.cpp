@@ -355,6 +355,9 @@ struct CNodeStatus {
     std::string mn_diff;
     std::time_t lb_time;
     std::string lb_addr;
+    // std::uint32_t check_count;
+    // std::uint32_t lb_pows;
+    // std::string lb_diff;
     CNodeStatus( const char *ns_line ) {
         assert( ns_line != nullptr && std::strlen( ns_line ) > 0 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
@@ -368,7 +371,8 @@ struct CNodeStatus {
         status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
         size_t p_pos = -1, c_pos = -1;
         //NODESTATUS 1{Peers} 2{LastBlock} 3{Pendings} 4{Delta} 5{headers} 6{version} 7{UTCTime} 8{MNsHash} 9{MNscount}
-        //           10{LastBlockHash} 11{BestHashDiff} 12{LastBlockTimeEnd} 13{LBMiner}
+        //           10{LasBlockHash} 11{BestHashDiff} 12{LastBlockTimeEnd} 13{LBMiner} 14{ChecksCount} 15{LastBlockPoW}
+        //           16{LastBlockDiff}
         // 0{NODESTATUS}
         next_status_token( ' ', p_pos, c_pos, status );
         // std::string nodestatus = extract_status_token( p_pos, c_pos, status );
@@ -414,6 +418,16 @@ struct CNodeStatus {
         next_status_token( ' ', p_pos, c_pos, status );
         this->lb_addr = extract_status_token( p_pos, c_pos, status );
         assert( this->lb_addr.length() == 30 || this->lb_addr.length() == 31 );
+        // 14{check_count}
+        // next_status_token( ' ', p_pos, c_pos, status );
+        // this->check_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // 15{lb_pows}
+        // next_status_token( ' ', p_pos, c_pos, status );
+        // this->lb_pows = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // 16{lb_diff}
+        // next_status_token( ' ', p_pos, c_pos, status );
+        // this->lb_diff = extract_status_token( p_pos, c_pos, status );
+        // assert( this->lb_diff.length() == 32 );
     }
 };
 
@@ -429,6 +443,7 @@ struct CPoolStatus {
     std::uint32_t payment_block;
     std::uint32_t payment_amount;
     std::string payment_order_id;
+    std::uint32_t netrate;
     CPoolStatus( const char *ps_line ) {
         assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
@@ -443,6 +458,7 @@ struct CPoolStatus {
         size_t p_pos = -1, c_pos = -1;
         // {0}OK 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber}
         // 6{MinerBalance} 7{BlocksTillPayment} 8{LastPayInfo} 9{LastBlockPoolHashrate}
+        // 10{MainNetHashrate}
         // 0{OK}
         next_status_token( ' ', p_pos, c_pos, status );
         // std::string status = extract_status_token( p_pos, c_pos, status );
@@ -477,6 +493,9 @@ struct CPoolStatus {
         // 9{pool_hashrate}
         next_status_token( ' ', p_pos, c_pos, status );
         this->pool_hashrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // 10{netrate}
+        next_status_token( ' ', p_pos, c_pos, status );
+        this->netrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         if ( payment_info.length() > 0 ) {
             // 8{LastPayInfo} = Block:ammount:orderID
             size_t p_pos = -1, c_pos = -1;
@@ -523,13 +542,14 @@ struct CPoolTarget : public CTarget {
     std::uint32_t payment_block;
     std::uint32_t payment_amount;
     std::string payment_order_id;
+    std::uint32_t netrate;
     CPoolTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
                 std::string &prefix, const std::string &address, std::uint32_t balance,
                 std::uint32_t till_payment, std::uint32_t pool_hashrate, std::uint32_t payment_block,
-                std::uint32_t payment_amount, std::string & payment_order_id )
+                std::uint32_t payment_amount, std::string &payment_order_id, std::uint32_t netrate )
         :   CTarget( blck_no, lb_hash, mn_diff ), balance { balance }, till_payment { till_payment },
             pool_hashrate { pool_hashrate }, payment_block { payment_block }, payment_amount { payment_amount },
-            payment_order_id { payment_order_id } {
+            payment_order_id { payment_order_id }, netrate { netrate } {
         this->prefix = prefix;
         this->address = address;
     }
@@ -710,7 +730,8 @@ public:
                 ps.pool_hashrate,
                 ps.payment_block,
                 ps.payment_amount,
-                ps.payment_order_id
+                ps.payment_order_id,
+                ps.netrate
             );
         }
         catch ( const std::exception &e ) {
@@ -868,7 +889,7 @@ void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::
         << std::fixed << std::setprecision(3)
         << elapsed_blck.count() / 60 << " minutes, hashrate approx. "
         << computed_hashes_count / elapsed_blck.count() / 1000 << " Kh/s\n\t"
-        << " accepted " << m_accepted_solutions_count
+        << "accepted "  << m_accepted_solutions_count
         << " rejected " << m_rejected_solutions_count
         << " failured " << m_failured_solutions_count
         << ( g_solo_mining ? " solution(s)" : " share(s)" ) << std::endl;
@@ -1016,20 +1037,17 @@ std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
         COUT_NOSO_TIME << "MINING ON POOL "
             << m_pool_inets[m_pool_inet_id]->m_name << " ("
             << m_pool_inets[m_pool_inet_id]->m_host << ":"
-            << m_pool_inets[m_pool_inet_id]->m_port << ")"
-            << ", POOL HASHRATE "
-            << std::fixed << std::setprecision( 3 )
-            << pool_target->pool_hashrate / 1'000'000.0 << "Mh/s"
-            << ", NEXT PAYMENT " << pool_target->till_payment << " BLOCKS"
-            << ", YOUR BALANCE "
-            << std::fixed << std::setprecision( 8 )
+            << m_pool_inets[m_pool_inet_id]->m_port << ");"
+            << " POOL/MAINNET HASHRATE(Mh/s) " << std::fixed << std::setprecision( 3 )
+            << pool_target->pool_hashrate / 1'000'000.0 << " / " << pool_target->netrate / 1'000'000.0 << ";"
+            << " NEXT PAYMENT " << pool_target->till_payment << " BLOCKS;"
+            << " YOUR BALANCE " << std::fixed << std::setprecision( 8 )
             << pool_target->balance / 100'000'000.0 << std::endl;
         if ( pool_target->payment_block == pool_target->blck_no ) {
             COUT_NOSO_TIME << "YOU HAVE A POOL PAYMENT"
                 << std::fixed << std::setprecision( 8 )
                 << " AMOUNT " << pool_target->payment_amount / 100'000'000.0
-                << " BY ORDER ID " << pool_target->payment_order_id
-                << std::endl;
+                << " BY ORDER ID " << pool_target->payment_order_id << std::endl;
         }
         target = pool_target;
     }
