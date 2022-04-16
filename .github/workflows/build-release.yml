@@ -18,19 +18,19 @@ jobs:
         sudo apt-get -y -q install g++-10-arm-linux-gnueabihf
         sudo apt-get -y -q install g++-10-aarch64-linux-gnu
         #
-        i686-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-i686 -std=c++20 -Ofast -lpthread -static
+        i686-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-i686 -std=c++20 -Ofast -lpthread
         i686-linux-gnu-strip -s noso-2m-i686
         file noso-2m-i686
         #
-        x86_64-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-x86_64 -std=c++20 -Ofast -lpthread -static
+        x86_64-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-x86_64 -std=c++20 -Ofast -lpthread
         x86_64-linux-gnu-strip -s noso-2m-x86_64
         file noso-2m-x86_64
         #
-        arm-linux-gnueabihf-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-arm -std=c++20 -Ofast -lpthread -static
+        arm-linux-gnueabihf-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-arm -std=c++20 -Ofast -lpthread
         arm-linux-gnueabihf-strip -s noso-2m-arm
         file noso-2m-arm
         #
-        aarch64-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-aarch64 -std=c++20 -Ofast -lpthread -static
+        aarch64-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-aarch64 -std=c++20 -Ofast -lpthread
         aarch64-linux-gnu-strip -s noso-2m-aarch64
         file noso-2m-aarch64
       shell: bash
@@ -52,8 +52,8 @@ jobs:
       uses: actions/checkout@v2
     - name: Build source
       run: |
-        clang++ noso-2m.cpp -o noso-2m-i686.exe -std=c++20 -Ofast -target i686-pc-win32 -Wl,-machine:x86 -static
-        clang++ noso-2m.cpp -o noso-2m-x86_64.exe -std=c++20 -Ofast -target x86_64-pc-win32 -Wl,-machine:x64 -lWs2_32.lib -static
+        clang++ noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe -std=c++20 -Ofast -target i686-pc-win32 -Wl,-machine:x86 -lWs2_32.lib -static
+        clang++ noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe -std=c++20 -Ofast -target x86_64-pc-win32 -Wl,-machine:x64 -lWs2_32.lib -static
       shell: bash
     - name: Upload artifacs
       uses: actions/upload-artifact@v2
@@ -71,7 +71,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Build source
       run: |
-        g++ noso-2m.cpp md5-c.cpp -o noso-2m-darwin -std=c++20 -Ofast -lpthread -static
+        g++ noso-2m.cpp md5-c.cpp -o noso-2m-darwin -std=c++20 -Ofast -lpthread
         strip -x noso-2m-darwin
         file noso-2m-darwin
       shell: bash
