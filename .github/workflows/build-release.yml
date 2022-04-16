@@ -76,8 +76,8 @@ jobs:
       uses: actions/checkout@v2
     - name: Build source
       run: |
-        clang-cl noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe -std=c++20 -Ofast -target i686-pc-win32 -Wl,-machine:x86 -lWs2_32.lib
-        clang-cl noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe -std=c++20 -Ofast -target x86_64-pc-win32 -Wl,-machine:x64 -lWs2_32.lib
+        clang++ noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe -std=c++20 -Ofast -target i686-pc-win32 -Wl,-machine:x86 -lWs2_32.lib -Wl,-s
+        clang++ noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe -std=c++20 -Ofast -target x86_64-pc-win32 -Wl,-machine:x64 -lWs2_32.lib -Wl,-s
       shell: bash
     - name: Upload artifacs
       uses: actions/upload-artifact@v2
