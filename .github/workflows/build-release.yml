@@ -31,13 +31,14 @@ jobs:
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 -std=c++20 -Ofast -lpthread -s
         file noso-2m-linux-x86_64
         #
-        # arm-linux-gnueabihf-g++-10 \
-        clang++ --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf \
+        # clang++ --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf \
+        arm-linux-gnueabihf-g++-10 \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-arm -std=c++20 -Ofast -lpthread -s
         file noso-2m-linux-arm
         #
         # aarch64-linux-gnu-g++-10 \
         clang++ --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu \
+          -I/usr/aarch64-linux-gnu/include/c++/10/aarch64-linux-gnu \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 -std=c++20 -Ofast -lpthread -s
         file noso-2m-linux-aarch64
         #
