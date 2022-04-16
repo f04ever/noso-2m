@@ -20,16 +20,24 @@ jobs:
         wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip
         unzip -qq android-ndk-r23b-linux.zip
         #
-        i686-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 -std=c++20 -Ofast -lpthread -s
+        # i686-linux-gnu-g++-10 \
+        clang++ --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 -std=c++20 -Ofast -lpthread -s
         file noso-2m-linux-i686
         #
-        x86_64-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 -std=c++20 -Ofast -lpthread -s
+        # x86_64-linux-gnu-g++-10 \
+        clang++ \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 -std=c++20 -Ofast -lpthread -s
         file noso-2m-linux-x86_64
         #
-        arm-linux-gnueabihf-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-linux-arm -std=c++20 -Ofast -lpthread -s
+        # arm-linux-gnueabihf-g++-10 \
+        clang++ --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-arm -std=c++20 -Ofast -lpthread -s
         file noso-2m-linux-arm
         #
-        aarch64-linux-gnu-g++-10 noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 -std=c++20 -Ofast -lpthread -s
+        # aarch64-linux-gnu-g++-10 \
+        clang++ --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 -std=c++20 -Ofast -lpthread -s
         file noso-2m-linux-aarch64
         #
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang++ noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a -std=c++20 -Ofast -static -s
