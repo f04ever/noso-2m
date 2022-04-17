@@ -31,7 +31,7 @@ jobs:
         #
         ls -l "$(pwd)/clang+llvm-12.0.1-i386-linux-gnu"
         ls -l "$(pwd)/clang+llvm-12.0.1-i386-linux-gnu/usr/lib"
-        clang++-12 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu -L$(pwd)/clang+llvm-12.0.1-i386-linux-gnu/usr/lib \
+        clang++-12 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu -L$(pwd)/clang+llvm-12.0.1-i386-linux-gnu/usr/llvm-12/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
           -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -s
         # i686-linux-gnu-g++-10 \
