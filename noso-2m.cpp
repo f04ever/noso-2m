@@ -1254,10 +1254,6 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
                             std::string name { sm0[1].str() };
                             std::string host { sm0[3].str() };
                             std::string port { sm0[9].str() };
-                            // std::string port { sm0[14].str() };
-                            // for ( size_t i = 0; i < 15; ++i ) {
-                            //     std::cout << "sm-" << i << " " << sm0[i].str() << std::endl;
-                            // }
                             if ( host.length() <= 0 ) {
                                 const auto def_pool = std::find_if(
                                         g_default_pools.begin(), g_default_pools.end(),
