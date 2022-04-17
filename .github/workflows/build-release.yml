@@ -36,7 +36,7 @@ jobs:
           -std=c++20 -O3 -lpthread -s
         file noso-2m-linux-i686
         #
-        clang++-12 --target=x86-64-linux-gnu \
+        clang++-12 --target=x86_64-linux-gnu \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
           -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -s
         # x86_64-linux-gnu-g++-10 \
