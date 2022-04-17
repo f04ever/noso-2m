@@ -13,47 +13,60 @@ jobs:
       uses: actions/checkout@v2
     - name: Build source
       run: |
-        sudo apt-get -y -qq update && sudo apt-get -y -q upgrade
-        sudo apt-get -y -qq install gcc-10-multilib g++-10-multilib
-        sudo apt-get -y -qq install g++-10-i686-linux-gnu gcc-10-multilib-i686-linux-gnu g++-10-multilib-i686-linux-gnu
-        sudo apt-get -y -qq install g++-10-arm-linux-gnueabihf gcc-10-multilib-arm-linux-gnueabihf g++-10-multilib-arm-linux-gnueabihf
-        sudo apt-get -y -qq install g++-10-aarch64-linux-gnu
-        wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip
-        unzip -qq android-ndk-r23b-linux.zip
+        sudo apt-get -y -qq update && sudo apt-get -y -q upgrade 2>&1 > /dev/null
+        # sudo apt-get -y -qq install gcc-10-multilib g++-10-multilib 2>&1 > /dev/null
+        sudo apt-get -y -qq install --in-install-recommends g++-10-i686-linux-gnu 2>&1 > /dev/null
+        # gcc-10-multilib-i686-linux-gnu g++-10-multilib-i686-linux-gnu 2>&1 > /dev/null
+        sudo apt-get -y -qq install --in-install-recommends g++-10-arm-linux-gnueabihf 2>&1 > /dev/null
+        # gcc-10-multilib-arm-linux-gnueabihf g++-10-multilib-arm-linux-gnueabihf 2>&1 > /dev/null
+        sudo apt-get -y -qq install --in-install-recommends g++-10-aarch64-linux-gnu 2>&1 > /dev/null
+        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz #2>&1 > /dev/null
+        tar xf clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz #2>&1 > /dev/null
+        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz  #2>&1 > /dev/null
+        tar xf clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz #2>&1 > /dev/null
+        wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip #2>&1 > /dev/null
+        unzip -qq android-ndk-r23b-linux.zip #2>&1 > /dev/null
         #
         # clang++ --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu \
         #   -I/usr/i686-linux-gnu/include/c++/10/i686-linux-gnu \
-        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 -std=c++20 -Ofast -lpthread -s
+        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
+        #   -std=c++20 -Ofast -lpthread -strip-all
         i686-linux-gnu-g++-10 \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 -std=c++20 -O3 -lpthread -s
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 -std=c++20 -O3 -lpthread -strip-all
         file noso-2m-linux-i686
         #
-        clang++ \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 -std=c++20 -Ofast -lpthread -s
+        clang++-12 --target=x86-64-linux-gnu \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -strip-all
         # x86_64-linux-gnu-g++-10 \
-        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 -std=c++20 -O3 -lpthread -s
+        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
+        #   -std=c++20 -O3 -lpthread -strip-all
         file noso-2m-linux-x86_64
         #
-        # clang++ --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf \
-        #   -I/usr/arm-linux-gnueabihf/include/c++/10/i686-linux-gnu \
-        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-arm -std=c++20 -Ofast -lpthread -s
-        arm-linux-gnueabihf-g++-10 \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-arm -std=c++20 -O3 -lpthread -s
-        file noso-2m-linux-arm
+        clang++-12 --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf -L$(pwd)/clang+llvm-12.0.1-armv7a-linux-gnueabihf/lib \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -strip-all
+        # arm-linux-gnueabihf-g++-10 \
+        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
+        #   -std=c++20 -O3 -lpthread -strip-all
+        file noso-2m-linux-armv7a
         #
-        # clang++ --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu \
-        #   -I/usr/aarch64-linux-gnu/include/c++/10/aarch64-linux-gnu \
-        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 -std=c++20 -Ofast -lpthread -s
-        aarch64-linux-gnu-g++-10 \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 -std=c++20 -O3 -lpthread -s
+        clang++-12 --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu -L$(pwd)/clang+llvm-12.0.1-aarch64-linux-gnu/lib \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -strip-all
+        # aarch64-linux-gnu-g++-10 \
+        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
+        #   -std=c++20 -O3 -lpthread -strip-all
         file noso-2m-linux-aarch64
         #
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang++ \
-          noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a -std=c++20 -Ofast -static -s
+          noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a \
+          -std=c++20 -Ofast -static -strip-all
         file noso-2m-android-armv7a
         #
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang++ \
-          noso-2m.cpp md5-c.cpp -o noso-2m-android-aarch64 -std=c++20 -Ofast -static -s
+          noso-2m.cpp md5-c.cpp -o noso-2m-android-aarch64 \
+          -std=c++20 -Ofast -static -strip-all
         file noso-2m-android-aarch64
       shell: bash
     - name: Upload artifacs
@@ -76,8 +89,8 @@ jobs:
       uses: actions/checkout@v2
     - name: Build source
       run: |
-        clang++ noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe -std=c++20 -Ofast -target i686-pc-win32 -Wl,-machine:x86 -lWs2_32.lib -Wl,-s
-        clang++ noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe -std=c++20 -Ofast -target x86_64-pc-win32 -Wl,-machine:x64 -lWs2_32.lib -Wl,-s
+        clang++ noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe -std=c++20 -Ofast -target i686-pc-win32 -Wl,-machine:x86 -lWs2_32.lib
+        clang++ noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe -std=c++20 -Ofast -target x86_64-pc-win32 -Wl,-machine:x64 -lWs2_32.lib
       shell: bash
     - name: Upload artifacs
       uses: actions/upload-artifact@v2
