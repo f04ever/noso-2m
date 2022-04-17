@@ -31,7 +31,7 @@ jobs:
         #
         clang++-12 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu -L$(pwd)/clang+llvm-12.0.1-i386-linux-gnu/usr/lib/llvm-12/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -s
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -s
         # i686-linux-gnu-g++-10 \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
         #   -std=c++20 -O3 -lpthread -s
@@ -39,7 +39,7 @@ jobs:
         #
         clang++-12 \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -s
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -s
         # x86_64-linux-gnu-g++-10 \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
         #   -std=c++20 -O3 -lpthread -s
@@ -47,7 +47,7 @@ jobs:
         #
         clang++-12 --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf -L$(pwd)/clang+llvm-12.0.1-armv7a-linux-gnueabihf/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -s
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -s
         # arm-linux-gnueabihf-g++-10 \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
         #   -std=c++20 -O3 -lpthread -s
@@ -55,7 +55,7 @@ jobs:
         #
         clang++-12 --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu -L$(pwd)/clang+llvm-12.0.1-aarch64-linux-gnu/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -s
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -s
         # aarch64-linux-gnu-g++-10 \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
         #   -std=c++20 -O3 -lpthread -s
