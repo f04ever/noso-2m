@@ -14,6 +14,7 @@ jobs:
     - name: Build source
       run: |
         sudo apt-get -y -qq update && sudo apt-get -y -q upgrade 2>&1 > /dev/null
+        sudo apt-get -y -qq install --no-install-recommends libc++-dev libc++abi-dev lld 2>&1 > /dev/null
         # sudo apt-get -y -qq install gcc-10-multilib g++-10-multilib 2>&1 > /dev/null
         sudo apt-get -y -qq install --no-install-recommends g++-10-i686-linux-gnu 2>&1 > /dev/null
         # gcc-10-multilib-i686-linux-gnu g++-10-multilib-i686-linux-gnu 2>&1 > /dev/null
