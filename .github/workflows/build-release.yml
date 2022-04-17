@@ -25,16 +25,14 @@ jobs:
         wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip 2>&1 > /dev/null
         unzip -qq android-ndk-r23b-linux.zip 2>&1 > /dev/null
         #
-        # clang++ --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu \
-        #   -I/usr/i686-linux-gnu/include/c++/10/i686-linux-gnu \
+        # clang++-12 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
-        #   -std=c++20 -Ofast -lpthread -s
+        #   -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -s
         i686-linux-gnu-g++-10 \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
           -std=c++20 -O3 -lpthread -s
         file noso-2m-linux-i686
         #
-        ls -l /usr/lib/
         clang++-12 \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
           -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -s
@@ -77,7 +75,7 @@ jobs:
           README.md
           noso-2m-linux-i686
           noso-2m-linux-x86_64
-          noso-2m-linux-arm
+          noso-2m-linux-armv7a
           noso-2m-linux-aarch64
           noso-2m-android-armv7a
           noso-2m-android-aarch64
@@ -147,9 +145,9 @@ jobs:
           chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-x86_64.tar.gz noso-2m README.md
           #
-          cp ubuntu-latest/noso-2m-linux-arm noso-2m
+          cp ubuntu-latest/noso-2m-linux-armv7a noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-arm.tar.gz noso-2m README.md
+          tar -zcvf noso-2m-${tag}-linux-armv7a.tar.gz noso-2m README.md
           #
           cp ubuntu-latest/noso-2m-linux-aarch64 noso-2m
           chmod +x noso-2m
