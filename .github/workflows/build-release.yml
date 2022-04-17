@@ -20,9 +20,9 @@ jobs:
         sudo apt-get -y -qq install --no-install-recommends g++-10-arm-linux-gnueabihf 2>&1 > /dev/null
         # gcc-10-multilib-arm-linux-gnueabihf g++-10-multilib-arm-linux-gnueabihf 2>&1 > /dev/null
         sudo apt-get -y -qq install --no-install-recommends g++-10-aarch64-linux-gnu 2>&1 > /dev/null
-        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz 2>&1 > /dev/null
+        wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz 2>&1 > /dev/null
         tar xf clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz 2>&1 > /dev/null
-        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz  2>&1 > /dev/null
+        wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz  2>&1 > /dev/null
         tar xf clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz 2>&1 > /dev/null
         wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip 2>&1 > /dev/null
         unzip -qq android-ndk-r23b-linux.zip 2>&1 > /dev/null
@@ -30,43 +30,44 @@ jobs:
         # clang++ --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu \
         #   -I/usr/i686-linux-gnu/include/c++/10/i686-linux-gnu \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
-        #   -std=c++20 -Ofast -lpthread -strip-all
+        #   -std=c++20 -Ofast -lpthread -s
         i686-linux-gnu-g++-10 \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 -std=c++20 -O3 -lpthread --strip-all
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
+          -std=c++20 -O3 -lpthread -s
         file noso-2m-linux-i686
         #
         clang++-12 --target=x86-64-linux-gnu \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -strip-all
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -s
         # x86_64-linux-gnu-g++-10 \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
-        #   -std=c++20 -O3 -lpthread --strip-all
+        #   -std=c++20 -O3 -lpthread -s
         file noso-2m-linux-x86_64
         #
         clang++-12 --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf -L$(pwd)/clang+llvm-12.0.1-armv7a-linux-gnueabihf/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -strip-all
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -s
         # arm-linux-gnueabihf-g++-10 \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
-        #   -std=c++20 -O3 -lpthread --strip-all
+        #   -std=c++20 -O3 -lpthread -s
         file noso-2m-linux-armv7a
         #
         clang++-12 --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu -L$(pwd)/clang+llvm-12.0.1-aarch64-linux-gnu/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -strip-all
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++abi -s
         # aarch64-linux-gnu-g++-10 \
         #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
-        #   -std=c++20 -O3 -lpthread --strip-all
+        #   -std=c++20 -O3 -lpthread -s
         file noso-2m-linux-aarch64
         #
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang++ \
           noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a \
-          -std=c++20 -Ofast -static -strip-all
+          -std=c++20 -Ofast -static -s
         file noso-2m-android-armv7a
         #
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang++ \
           noso-2m.cpp md5-c.cpp -o noso-2m-android-aarch64 \
-          -std=c++20 -Ofast -static -strip-all
+          -std=c++20 -Ofast -static -s
         file noso-2m-android-aarch64
       shell: bash
     - name: Upload artifacs
