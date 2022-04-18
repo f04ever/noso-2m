@@ -14,7 +14,7 @@ A miner for Nosocryptocurrency Protocol 2.
 
 ## Run `noso-2m` miner
 
-`noso-2m` currently provides executable 64-bits and 32-bits versions for Linux (includes Android/Termux), macOS, and Windows pre-built on architectures amd64/x86\_64, aarch64/arm64, i686, and arm. Just download the appropriate version, uncompress the archive and run it from command shell as bellow:
+`noso-2m` currently provides executable 64-bits and 32-bits versions for Linux, Android(Termux), macOS, and Windows pre-built on architectures amd64/x86\_64, aarch64/arm64, i686, and arm. Just download the appropriate version, uncompress the archive and run it from command shell as bellow:
 
 ### On Linux, MacOS, or Android (Termux)
 

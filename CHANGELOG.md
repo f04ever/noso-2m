@@ -1,8 +1,8 @@
 Version 0.2.0
 
 - Support pool mining mode, plus pools failover
-- Hashing improvements
-- Support CI/CD build for Linux, macOS and Windows (amd64 only)
+- Hashrate improvements
+- Support CI/CD build for Linux, Android(Termux), macOS and Windows on amd64/x86-64, i686, arm64/aarch64, arm(v7a) 64-bits and 32-bits versions
 - Eliminate redundant information in the summary report (will be improved more next versions)
 - Bugfixes and several improvements
 - Pump version series to v0.2.x
