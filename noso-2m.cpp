@@ -330,13 +330,17 @@ public:
     }
     int FetchSource( const char address[32], char *buffer, std::size_t buffsize ) {
         assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
-        std::snprintf( buffer, buffsize, "SOURCE %s\n", address );
+        // SOURCE {address} {MinerName}
+        std::snprintf( buffer, buffsize, "SOURCE %s noso-2m-v%d.%d.%d\n", address,
+                      NOSO_2M_VERSION_MAJOR, NOSO_2M_VERSION_MINOR, NOSO_2M_VERSION_PATCH );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
     int SubmitShare( const char base[19], const char address[32], char *buffer, std::size_t buffsize ) {
         assert( std::strlen( base ) == 18
                && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
-        std::snprintf( buffer, buffsize, "SHARE %s %s\n", address, base );
+        // SHARE {Address} {Hash} {MinerName}
+        std::snprintf( buffer, buffsize, "SHARE %s %s noso-2m-v%d.%d.%d\n", address, base,
+                      NOSO_2M_VERSION_MAJOR, NOSO_2M_VERSION_MINOR, NOSO_2M_VERSION_PATCH );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
 };
