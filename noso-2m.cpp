@@ -1,3 +1,4 @@
+#include <cstdlib>
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -308,6 +309,10 @@ class CNodeInet : public CInet {
 public:
     CNodeInet( const std::string &host, const std::string &port , int timeosec )
         :   CInet( host, port, timeosec ) {
+    }
+    int GetNodeTimestamp( char *buffer, std::size_t buffsize ) {
+        std::strcpy( buffer, "NSLTIME\n" );
+        return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
     int FetchNodestatus( char *buffer, std::size_t buffsize ) {
         std::strcpy( buffer, "NODESTATUS\n" );
@@ -655,6 +660,7 @@ public:
         static std::shared_ptr<CCommThread> singleton { new CCommThread() };
         return singleton;
     }
+    std::time_t GetMainnetTimestamp( std::size_t min_nodes_count );
     void AddSolution( const std::shared_ptr<CSolution>& solution ) {
         m_mutex_solutions.lock();
         m_solutions.insert( solution );
@@ -825,6 +831,11 @@ int main( int argc, char *argv[] ) {
     }
     std::cout << "\n";
     std::cout << "Press Ctrl+C to stop" << std::endl;
+    std::time_t mainnet_timestamp { CCommThread::GetInstance()->GetMainnetTimestamp( 3 ) };
+    if ( NOSO_TIMESTAMP - mainnet_timestamp > 2 ) {
+        std::cout << "The time of your machine is different from the mainnet. Clock synchronization is required!" << std::endl;
+        std::exit( EXIT_FAILURE );
+    }
     for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
         g_mine_objects.push_back( std::make_shared<CMineThread>( g_miner_id, thread_id ) );
     std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );
@@ -878,6 +889,35 @@ CCommThread::CCommThread() {
     for( auto dp : g_mining_pools ) m_pool_inets.push_back(
         std::make_shared<CPoolInet>( std::get<0>( dp ), std::get<1>( dp ), std::get<2>( dp ), DEFAULT_POOL_INET_TIMEOSEC ) );
     m_pool_inet_id = 0;
+}
+
+std::time_t CCommThread::GetMainnetTimestamp( std::size_t min_nodes_count ) {
+    if ( m_node_inets_good.size() < min_nodes_count ) {
+        for ( auto ni : m_node_inets_poor ) {
+            ni->InitService();
+            m_node_inets_good.push_back( ni );
+        }
+        m_node_inets_poor.clear();
+        std::cerr << "poor network reset: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+    }
+    std::shuffle( m_node_inets_good.begin(), m_node_inets_good.end(), m_random_engine );
+    for ( auto it = m_node_inets_good.begin(); g_still_running && it != m_node_inets_good.end(); ) {
+        if ( (*it)->GetNodeTimestamp( m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+            (*it)->CleanService();
+            m_node_inets_poor.push_back( *it );
+            it = m_node_inets_good.erase( it );
+            std::cerr << "poor network found: " << m_node_inets_good.size() << "/" << m_node_inets_poor.size() << std::endl;
+            continue;
+        }
+        ++it;
+        try {
+            return std::time_t( std::atol( m_inet_buffer ) );
+        }
+        catch ( const std::exception &e ) {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+    return std::time_t( -1 );
 }
 
 void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
