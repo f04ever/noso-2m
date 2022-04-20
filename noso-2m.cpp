@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <cassert>
 #include <iostream>
+#include <condition_variable>
 
 #include <signal.h>
 #ifdef _WIN32
@@ -586,9 +587,10 @@ struct CSolsSetCompare {
 };
 
 class CMineThread {
-protected:
+public:
     std::uint32_t m_miner_id;
     std::uint32_t m_thread_id;
+protected:
     char m_address[32];
     char m_prefix[10];
     std::uint32_t m_blck_no { 0 };
@@ -597,6 +599,7 @@ protected:
     std::uint32_t m_computed_hashes_count { 0 };
     double m_block_mining_duration { 0. };
     mutable std::mutex m_mutex_summary;
+    mutable std::condition_variable m_condv_summary;
 public:
     CMineThread( std::uint32_t miner_id, std::uint32_t thread_id )
         :   m_miner_id { miner_id }, m_thread_id { thread_id } {
@@ -611,20 +614,8 @@ public:
         std::strcpy( m_mn_diff, target->mn_diff.c_str() );
         m_blck_no = target->blck_no + 1;
     }
-    void UpdateBlockSummary( std::uint32_t hashes_count, double duration ) {
-        m_mutex_summary.lock();
-        m_computed_hashes_count += hashes_count;
-        m_block_mining_duration += duration;
-        m_mutex_summary.unlock();
-    }
-    std::tuple<std::uint32_t, double> GetBlockSummary() {
-        m_mutex_summary.lock();
-        auto summary = std::make_tuple( m_computed_hashes_count, m_block_mining_duration );
-        m_computed_hashes_count = 0;
-        m_block_mining_duration = 0;
-        m_mutex_summary.unlock();
-        return summary;
-    }
+    void SetBlockSummary( std::uint32_t hashes_count, double duration );
+    std::tuple<std::uint32_t, double> GetBlockSummary();
     virtual void Mine();
 };
 
@@ -850,7 +841,22 @@ int main( int argc, char *argv[] ) {
     return EXIT_SUCCESS;
 }
 
-#define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
+void CMineThread::SetBlockSummary( std::uint32_t hashes_count, double duration ) {
+    m_mutex_summary.lock();
+    m_computed_hashes_count = hashes_count;
+    m_block_mining_duration = duration;
+    m_mutex_summary.unlock();
+    m_condv_summary.notify_one();
+}
+
+std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
+    std::unique_lock summary_lock( m_mutex_summary );
+    m_condv_summary.wait( summary_lock, [&]{ return !g_still_running || m_computed_hashes_count > 0; } );
+    auto summary = std::make_tuple( m_computed_hashes_count, m_block_mining_duration );
+    m_computed_hashes_count = 0;
+    m_block_mining_duration = 0.;
+    return summary;
+}
 
 void CMineThread::Mine() {
     while ( g_still_running ) {
@@ -879,11 +885,13 @@ void CMineThread::Mine() {
                 }
             }
             std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
-            this->UpdateBlockSummary( noso_hash_counter, elapsed_mining.count() );
+            this->SetBlockSummary( noso_hash_counter, elapsed_mining.count() );
             m_blck_no = 0;
         } // END if ( g_still_running && m_blck_no > 0 ) {
     } // END while ( g_still_running ) {
 }
+
+#define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
 
 CCommThread::CCommThread() {
     for( auto sn : g_default_nodes ) m_node_inets_good.push_back(
@@ -927,19 +935,24 @@ void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::
     double block_mining_duration { 0. };
     for_each( g_mine_objects.begin(), g_mine_objects.end(), [&](const auto &object){
                  auto summary = object->GetBlockSummary();
+                 // COUT_NOSO_TIME
+                 //     << "Thread " << object->m_thread_id << " has computed " << std::get<0>( summary )
+                 //     << " hashes in " << std::get<1>( summary ) << " seconds" << std::endl;
                  computed_hashes_count += std::get<0>( summary );
                  block_mining_duration += std::get<1>( summary ); } );
     block_mining_duration /= g_mine_objects.size();
-    std::cout << "SUMMARY BLOCK#" << blck_no << " : "
+    COUT_NOSO_TIME
+        << "SUMMARY BLOCK#" << blck_no << " : "
         << computed_hashes_count<< " hashes computed in "
         << std::fixed << std::setprecision(3)
         << elapsed_blck.count() / 60 << " minutes, hashrate approx. "
-        << computed_hashes_count / elapsed_blck.count() / 1000 << " Kh/s\n\t"
-        << "accepted "  << m_accepted_solutions_count
+        << computed_hashes_count / elapsed_blck.count() / 1000 << " Kh/s" << std::endl;
+    COUT_NOSO_TIME
+        << "\taccepted "  << m_accepted_solutions_count
         << " rejected " << m_rejected_solutions_count
         << " failured " << m_failured_solutions_count
         << ( g_solo_mining ? " solution(s)" : " share(s)" ) << std::endl;
-    if ( g_solo_mining ) std::cout << "TOTAL MINED " << g_mined_block_count << " BLOCKS" << std::endl;
+    if ( g_solo_mining ) COUT_NOSO_TIME << "TOTAL MINED " << g_mined_block_count << " BLOCKS" << std::endl;
 };
 
 void CCommThread::_ResetMiningBlock() {
@@ -1227,7 +1240,7 @@ void CCommThread::Communicate() {
             if ( !g_still_running ) break;
         }
         NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 1 : 6;
-        std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
+        COUT_NOSO_TIME << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
         if ( !g_still_running ) break;
