@@ -598,6 +598,8 @@ protected:
     char m_mn_diff[33];
     std::uint32_t m_computed_hashes_count { 0 };
     double m_block_mining_duration { 0. };
+    mutable std::mutex m_mutex_blck_no;
+    mutable std::condition_variable m_condv_blck_no;
     mutable std::mutex m_mutex_summary;
     mutable std::condition_variable m_condv_summary;
 public:
@@ -605,15 +607,12 @@ public:
         :   m_miner_id { miner_id }, m_thread_id { thread_id } {
     }
     virtual ~CMineThread() = default;
-    void NewTarget( const std::shared_ptr<CTarget> &target ) {
-        std::string thread_prefix = { target->prefix + nosohash_prefix( m_miner_id ) + nosohash_prefix( m_thread_id ) };
-        thread_prefix.append( 9 - thread_prefix.size(), '!' );
-        std::strcpy( m_prefix, thread_prefix.c_str() );
-        std::strcpy( m_address, target->address.c_str() );
-        std::strcpy( m_lb_hash, target->lb_hash.c_str() );
-        std::strcpy( m_mn_diff, target->mn_diff.c_str() );
-        m_blck_no = target->blck_no + 1;
+    void CleanupSyncState() {
+        m_condv_blck_no.notify_one();
+        m_condv_summary.notify_one();
     }
+    void WaitTarget();
+    void NewTarget( const std::shared_ptr<CTarget> &target );
     void SetBlockSummary( std::uint32_t hashes_count, double duration );
     std::tuple<std::uint32_t, double> GetBlockSummary();
     virtual void Mine();
@@ -852,42 +851,59 @@ void CMineThread::SetBlockSummary( std::uint32_t hashes_count, double duration )
 std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
     std::unique_lock summary_lock( m_mutex_summary );
     m_condv_summary.wait( summary_lock, [&]{ return !g_still_running || m_computed_hashes_count > 0; } );
+    summary_lock.unlock();
     auto summary = std::make_tuple( m_computed_hashes_count, m_block_mining_duration );
     m_computed_hashes_count = 0;
     m_block_mining_duration = 0.;
     return summary;
 }
 
+void CMineThread::WaitTarget() {
+    std::unique_lock blck_no_blck_no( m_mutex_blck_no );
+    m_condv_blck_no.wait( blck_no_blck_no, [&]{ return !g_still_running || m_blck_no > 0; } );
+    blck_no_blck_no.unlock();
+}
+
+void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
+    std::string thread_prefix = { target->prefix + nosohash_prefix( m_miner_id ) + nosohash_prefix( m_thread_id ) };
+    thread_prefix.append( 9 - thread_prefix.size(), '!' );
+    m_mutex_blck_no.lock();
+    std::strcpy( m_prefix, thread_prefix.c_str() );
+    std::strcpy( m_address, target->address.c_str() );
+    std::strcpy( m_lb_hash, target->lb_hash.c_str() );
+    std::strcpy( m_mn_diff, target->mn_diff.c_str() );
+    m_blck_no = target->blck_no + 1;
+    m_mutex_blck_no.unlock();
+    m_condv_blck_no.notify_one();
+}
+
 void CMineThread::Mine() {
     while ( g_still_running ) {
-        while ( g_still_running && m_blck_no <= 0 ) {
-            std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1000 * INET_CIRCLE_SECONDS ) ) );
-        }
-        if ( g_still_running && m_blck_no > 0 ) {
-            assert( ( std::strlen( m_address ) == 30 || std::strlen( m_address ) == 31 )
-                   && std::strlen( m_lb_hash ) == 32
-                   && std::strlen( m_mn_diff ) == 32 );
-            char best_diff[33];
-            std::strcpy( best_diff, m_mn_diff );
-            std::uint32_t noso_hash_counter { 0 };
-            CNosoHasher noso_hasher( m_prefix, m_address );
-            auto begin_mining { std::chrono::steady_clock::now() };
-            while ( g_still_running && 1 <= NOSO_BLOCK_AGE && NOSO_BLOCK_AGE <= 585 ) {
-                const char *base { noso_hasher.GetBase( noso_hash_counter++ ) };
-                const char *hash { noso_hasher.GetHash() };
-                const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
-                assert( std::strlen( base ) == 18
-                       && std::strlen( hash ) == 32
-                       && std::strlen( diff ) == 32 );
-                if ( std::strcmp( diff, best_diff ) < 0 ) {
-                    CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
-                    if ( g_solo_mining ) std::strcpy( best_diff, diff );
-                }
+        this->WaitTarget();
+        if ( !g_still_running ) break;
+        assert( ( std::strlen( m_address ) == 30 || std::strlen( m_address ) == 31 )
+                && std::strlen( m_lb_hash ) == 32
+                && std::strlen( m_mn_diff ) == 32 );
+        char best_diff[33];
+        std::strcpy( best_diff, m_mn_diff );
+        std::uint32_t noso_hash_counter { 0 };
+        CNosoHasher noso_hasher( m_prefix, m_address );
+        auto begin_mining { std::chrono::steady_clock::now() };
+        while ( g_still_running && 1 <= NOSO_BLOCK_AGE && NOSO_BLOCK_AGE <= 585 ) {
+            const char *base { noso_hasher.GetBase( noso_hash_counter++ ) };
+            const char *hash { noso_hasher.GetHash() };
+            const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
+            assert( std::strlen( base ) == 18
+                    && std::strlen( hash ) == 32
+                    && std::strlen( diff ) == 32 );
+            if ( std::strcmp( diff, best_diff ) < 0 ) {
+                CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
+                if ( g_solo_mining ) std::strcpy( best_diff, diff );
             }
-            std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
-            this->SetBlockSummary( noso_hash_counter, elapsed_mining.count() );
-            m_blck_no = 0;
-        } // END if ( g_still_running && m_blck_no > 0 ) {
+        }
+        std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
+        this->SetBlockSummary( noso_hash_counter, elapsed_mining.count() );
+        m_blck_no = 0;
     } // END while ( g_still_running ) {
 }
 
@@ -1272,6 +1288,7 @@ void CCommThread::Communicate() {
         this->_PrintBlockSummary( target->blck_no, elapsed_blck );
         this->_ResetMiningBlock();
     } // END while ( g_still_running ) {
+    for ( auto &obj : g_mine_objects ) obj->CleanupSyncState();
     for ( auto &thr : g_mine_threads ) thr.join();
 }
 
