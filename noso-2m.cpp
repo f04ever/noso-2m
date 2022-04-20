@@ -61,7 +61,9 @@ const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
         { "107.175.59.177"  ,   "8080" },
         { "107.172.193.176" ,   "8080" },
         { "107.175.194.151" ,   "8080" },
-        { "192.3.73.184"   ,   "8080" },
+        { "192.3.73.184"    ,   "8080" },
+        { "107.175.24.151"  ,   "8080" },
+        { "107.174.137.27"  ,   "8080" },
     }; // seed nodes
 
 const std::vector<std::tuple<std::string, std::string, std::string>> g_default_pools {
@@ -340,12 +342,12 @@ public:
                       NOSO_2M_VERSION_MAJOR, NOSO_2M_VERSION_MINOR, NOSO_2M_VERSION_PATCH );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
-    int SubmitShare( const char base[19], const char address[32], char *buffer, std::size_t buffsize ) {
+    int SubmitShare( std::uint32_t blck_no, const char base[19], const char address[32], char *buffer, std::size_t buffsize ) {
         assert( std::strlen( base ) == 18
                && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
         // SHARE {Address} {Hash} {MinerName}
-        std::snprintf( buffer, buffsize, "SHARE %s %s noso-2m-v%d.%d.%d\n", address, base,
-                      NOSO_2M_VERSION_MAJOR, NOSO_2M_VERSION_MINOR, NOSO_2M_VERSION_PATCH );
+        std::snprintf( buffer, buffsize, "SHARE %s %s noso-2m-v%d.%d.%d %d\n", address, base,
+                      NOSO_2M_VERSION_MAJOR, NOSO_2M_VERSION_MINOR, NOSO_2M_VERSION_PATCH, blck_no );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
 };
@@ -750,7 +752,7 @@ public:
         }
     }
     std::shared_ptr<CTarget> GetTarget( const char prev_lb_hash[32] );
-    int SendSolution( const char base[19], const char address[32] );
+    int SendSolution( std::uint32_t blck_no, const char base[19], const char address[32] );
     void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };
@@ -1102,11 +1104,11 @@ std::shared_ptr<CSolution> CCommThread::GetSolution() {
     return g_solo_mining ? this->BestSolution() : this->GoodSolution();
 }
 
-int CCommThread::SendSolution( const char base[19], const char address[32] ) {
+int CCommThread::SendSolution( std::uint32_t blck_no, const char base[19], const char address[32] ) {
     assert( std::strlen( base ) == 18
             && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
     for ( int i = 0; g_still_running && i < 5 ; ++i ) {
-        if ( m_pool_inets[m_pool_inet_id]->SubmitShare( base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
+        if ( m_pool_inets[m_pool_inet_id]->SubmitShare( blck_no, base, address, m_inet_buffer, INET_BUFFER_SIZE ) <= 0 ) {
                 std::cerr << "poor pool network! retrying " << i + 1 << std::endl;
                 continue;
         }
@@ -1183,7 +1185,7 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
                 << "]base[" << solution->base << "]Network building block!" << std::endl;
         }
     } else {
-        code = this->SendSolution( solution->base.c_str(), g_miner_address );
+        code = this->SendSolution( solution->blck, solution->base.c_str(), g_miner_address );
     }
     if ( code > 0 ) this->_ReportErrorSubmitting( code, solution ); // rest other error codes 1, 2, 3, 4, 7
     if ( code == 0 ) {
