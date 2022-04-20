@@ -34,7 +34,7 @@
 
 #define NOSO_2M_VERSION_MAJOR 0
 #define NOSO_2M_VERSION_MINOR 2
-#define NOSO_2M_VERSION_PATCH 1
+#define NOSO_2M_VERSION_PATCH 2
 
 #define DEFAULT_POOL_URL_LIST "f04ever;devnoso"
 #define DEFAULT_MINER_ADDRESS "NT3ZeUPHA6AJH7Cc7LLdsTNDZgRnBL"
@@ -946,7 +946,7 @@ std::time_t CCommThread::GetMainnetTimestamp( std::size_t min_nodes_count ) {
 }
 
 void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
-    std::uint32_t computed_hashes_count { 0 };
+    std::uint64_t computed_hashes_count { 0 };
     double block_mining_duration { 0. };
     for_each( g_mine_objects.begin(), g_mine_objects.end(), [&](const auto &object){
                  auto summary = object->GetBlockSummary();
