@@ -1,4 +1,3 @@
-#include <cstdlib>
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -947,7 +946,7 @@ std::time_t CCommThread::GetMainnetTimestamp( std::size_t min_nodes_count ) {
 }
 
 void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
-    std::uint32_t computed_hashes_count { 0 };
+    std::uint64_t computed_hashes_count { 0 };
     double block_mining_duration { 0. };
     for_each( g_mine_objects.begin(), g_mine_objects.end(), [&](const auto &object){
                  auto summary = object->GetBlockSummary();
