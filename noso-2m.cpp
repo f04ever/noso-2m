@@ -50,7 +50,7 @@
 #define NOSOHASH_COUNTER_MIN 100'000'000
 #define NOSO_NUL_HASH "00000000000000000000000000000000"
 #define NOSO_MAX_DIFF "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-#define NOSO_TIMESTAMP long( std::time( 0 ) )
+#define NOSO_TIMESTAMP ( (long long)( std::time( 0 ) ) )
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
 
 const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
@@ -324,7 +324,7 @@ public:
                        char *buffer, std::size_t buffsize ) {
         assert( std::strlen( base ) == 18
                && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
-        std::snprintf( buffer, buffsize, "BESTHASH 1 2 3 4 %s %s %d %ld\n", address, base, blck, NOSO_TIMESTAMP );
+        std::snprintf( buffer, buffsize, "BESTHASH 1 2 3 4 %s %s %d %lld\n", address, base, blck, NOSO_TIMESTAMP );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
 };
@@ -367,7 +367,7 @@ struct CNodeStatus {
     std::time_t lb_time;
     std::string lb_addr;
     // std::uint32_t check_count;
-    // std::uint32_t lb_pows;
+    // std::uint64_t lb_pows;
     // std::string lb_diff;
     CNodeStatus( const char *ns_line ) {
         assert( ns_line != nullptr && std::strlen( ns_line ) > 0 );
@@ -434,7 +434,7 @@ struct CNodeStatus {
         // this->check_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 15{lb_pows}
         // next_status_token( ' ', p_pos, c_pos, status );
-        // this->lb_pows = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // this->lb_pows = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         // 16{lb_diff}
         // next_status_token( ' ', p_pos, c_pos, status );
         // this->lb_diff = extract_status_token( p_pos, c_pos, status );
@@ -448,13 +448,13 @@ struct CPoolStatus {
     std::string mn_diff;
     std::string prefix;
     std::string address;
-    std::uint32_t balance;
+    std::uint64_t balance;
     std::uint32_t till_payment;
-    std::uint32_t pool_hashrate;
+    std::uint64_t pool_hashrate;
     std::uint32_t payment_block;
-    std::uint32_t payment_amount;
+    std::uint64_t payment_amount;
     std::string payment_order_id;
-    std::uint32_t netrate;
+    std::uint64_t netrate;
     CPoolStatus( const char *ps_line ) {
         assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
@@ -494,7 +494,7 @@ struct CPoolStatus {
         this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 6{balance}
         next_status_token( ' ', p_pos, c_pos, status );
-        this->balance = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        this->balance = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         // 7{till_payment}
         next_status_token( ' ', p_pos, c_pos, status );
         this->till_payment = std::stoul( extract_status_token( p_pos, c_pos, status ) );
@@ -503,10 +503,10 @@ struct CPoolStatus {
         std::string payment_info = extract_status_token( p_pos, c_pos, status );
         // 9{pool_hashrate}
         next_status_token( ' ', p_pos, c_pos, status );
-        this->pool_hashrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        this->pool_hashrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         // 10{netrate}
         next_status_token( ' ', p_pos, c_pos, status );
-        this->netrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        this->netrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         if ( payment_info.length() > 0 ) {
             // 8{LastPayInfo} = Block:ammount:orderID
             size_t p_pos = -1, c_pos = -1;
@@ -515,7 +515,7 @@ struct CPoolStatus {
             this->payment_block = std::stoul( extract_status_token( p_pos, c_pos, payment_info ) );
             // 0{payment_amount}
             next_status_token( ':', p_pos, c_pos, payment_info );
-            this->payment_amount = std::stoul( extract_status_token( p_pos, c_pos, payment_info ) );
+            this->payment_amount = std::stoull( extract_status_token( p_pos, c_pos, payment_info ) );
             // 0{payment_order_id}
             next_status_token( ':', p_pos, c_pos, payment_info );
             this->payment_order_id = extract_status_token( p_pos, c_pos, payment_info );
@@ -547,17 +547,17 @@ struct CNodeTarget : public CTarget {
 };
 
 struct CPoolTarget : public CTarget {
-    std::uint32_t balance;
+    std::uint64_t balance;
     std::uint32_t till_payment;
-    std::uint32_t pool_hashrate;
+    std::uint64_t pool_hashrate;
     std::uint32_t payment_block;
-    std::uint32_t payment_amount;
+    std::uint64_t payment_amount;
     std::string payment_order_id;
-    std::uint32_t netrate;
+    std::uint64_t netrate;
     CPoolTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
-                std::string &prefix, const std::string &address, std::uint32_t balance,
-                std::uint32_t till_payment, std::uint32_t pool_hashrate, std::uint32_t payment_block,
-                std::uint32_t payment_amount, std::string &payment_order_id, std::uint32_t netrate )
+                std::string &prefix, const std::string &address, std::uint64_t balance,
+                std::uint32_t till_payment, std::uint64_t pool_hashrate, std::uint32_t payment_block,
+                std::uint64_t payment_amount, std::string &payment_order_id, std::uint64_t netrate )
         :   CTarget( blck_no, lb_hash, mn_diff ), balance { balance }, till_payment { till_payment },
             pool_hashrate { pool_hashrate }, payment_block { payment_block }, payment_amount { payment_amount },
             payment_order_id { payment_order_id }, netrate { netrate } {
