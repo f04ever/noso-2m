@@ -906,7 +906,7 @@ void CMineThread::Mine() {
     } // END while ( g_still_running ) {
 }
 
-#define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
+#define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << "))"
 
 CCommThread::CCommThread() {
     for( auto sn : g_default_nodes ) m_node_inets_good.push_back(
@@ -948,22 +948,30 @@ std::time_t CCommThread::GetMainnetTimestamp( std::size_t min_nodes_count ) {
 void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
     std::uint64_t computed_hashes_count { 0 };
     double block_mining_duration { 0. };
+    COUT_NOSO_TIME << "SUMMARY BLOCK#" << blck_no << std::endl;
+    bool first { true };
     for_each( g_mine_objects.begin(), g_mine_objects.end(), [&](const auto &object){
                  auto summary = object->GetBlockSummary();
-                 // COUT_NOSO_TIME
-                 //     << "Thread " << object->m_thread_id << " has computed " << std::get<0>( summary )
-                 //     << " hashes in " << std::get<1>( summary ) << " seconds" << std::endl;
+                 if ( first ) {
+                     first = false;
+                     COUT_NOSO_TIME << "\tTHREADS :  ";
+                 }
+                 else COUT_NOSO_TIME << "\t           ";
+                 std::cout
+                     << "Thread-" << std::setfill( '0' ) << std::setw( 2 ) << object->m_thread_id
+                     << " has computed " << std::get<0>( summary ) << " hashes within "
+                     << std::fixed << std::setprecision(3) << std::get<1>( summary ) << " seconds, hashrate approx. "
+                     << std::get<0>( summary ) / std::get<1>( summary ) / 1000 << " Kh/s" << std::endl;
                  computed_hashes_count += std::get<0>( summary );
                  block_mining_duration += std::get<1>( summary ); } );
     block_mining_duration /= g_mine_objects.size();
     COUT_NOSO_TIME
-        << "SUMMARY BLOCK#" << blck_no << " : "
-        << computed_hashes_count<< " hashes computed in "
-        << std::fixed << std::setprecision(3)
-        << elapsed_blck.count() / 60 << " minutes, hashrate approx. "
+        << "\tIN TOTAL:  THE MINER"
+        << " HAS COMPUTED " << computed_hashes_count<< " HASHES WITHIN "
+        << std::fixed << std::setprecision(3) << elapsed_blck.count() / 60 << " MINUTES, HASHRATE APPROX. "
         << computed_hashes_count / elapsed_blck.count() / 1000 << " Kh/s" << std::endl;
     COUT_NOSO_TIME
-        << "\taccepted "  << m_accepted_solutions_count
+        << "\t           \taccepted "  << m_accepted_solutions_count
         << " rejected " << m_rejected_solutions_count
         << " failured " << m_failured_solutions_count
         << ( g_solo_mining ? " solution(s)" : " share(s)" ) << std::endl;
