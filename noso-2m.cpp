@@ -736,7 +736,7 @@ public:
             );
         }
         catch ( const std::exception &e ) {
-            std::cerr << e.what() << std::endl;
+            std::cerr << e.what() << "[" << m_inet_buffer << "]" << std::endl;
             return nullptr;
         }
     }
@@ -939,7 +939,7 @@ std::time_t CCommThread::GetMainnetTimestamp( std::size_t min_nodes_count ) {
             return std::time_t( std::atol( m_inet_buffer ) );
         }
         catch ( const std::exception &e ) {
-            std::cerr << e.what() << std::endl;
+            std::cerr << e.what() << "[" << m_inet_buffer << "]" << std::endl;
         }
     }
     return std::time_t( -1 );
@@ -1046,7 +1046,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::SyncSources( std::size_t 
             if ( nodes_count >= min_nodes_count ) break;
         }
         catch ( const std::exception &e ) {
-            std::cerr << e.what() << std::endl;
+            std::cerr << e.what() << "[" << m_inet_buffer << "]" << std::endl;
         }
     }
     return vec;
