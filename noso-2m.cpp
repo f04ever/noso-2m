@@ -14,6 +14,7 @@
 #include <random>
 #include <chrono>
 #include <numeric>
+#include <fstream>
 #include <iomanip>
 #include <cassert>
 #include <iostream>
@@ -36,6 +37,7 @@
 #define NOSO_2M_VERSION_MINOR 2
 #define NOSO_2M_VERSION_PATCH 2
 
+#define DEFAULT_CONFIG_FILENAME "noso-2m.cfg"
 #define DEFAULT_POOL_URL_LIST "f04ever;devnoso"
 #define DEFAULT_MINER_ADDRESS "NT3ZeUPHA6AJH7Cc7LLdsTNDZgRnBL"
 #define DEFAULT_MINER_ID 0
@@ -745,7 +747,9 @@ public:
     void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };
-
+bool is_valid_address( const std::string& address );
+bool is_valid_minerid( std::uint32_t minerid );
+bool is_valid_threads( std::uint32_t count );
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr );
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_miner_id { DEFAULT_MINER_ID };
@@ -771,9 +775,10 @@ int main( int argc, char *argv[] ) {
     #endif
     cxxopts::Options options( "noso-2m", "A miner for Nosocryptocurrency Protocol 2" );
     options.add_options()
+        ( "c,config",   "A configuration file",                 cxxopts::value<std::string>()->default_value( DEFAULT_CONFIG_FILENAME ) )
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "i,minerid",  "Miner ID - a number between 0-8100",   cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_MINER_ID ) ) )
-        ( "t,threads",  "Number of threads use for mining",     cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
+        ( "t,threads",  "Number of mining threads, 2 or more",  cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
         (   "pools",    "Pool list",                            cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
         (   "solo",     "Solo mode" )
         ( "v,version",  "Print version" )
@@ -788,16 +793,85 @@ int main( int argc, char *argv[] ) {
         std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
         exit( 0 );
     }
-    std::string miner_address = result["address"].as<std::string>();
-    std::strcpy( g_miner_address, miner_address.c_str() );
-    assert( std::strlen( g_miner_address ) == 30 || std::strlen( g_miner_address ) == 31 );
-    if ( std::strlen( g_miner_address ) < 30 || std::strlen( g_miner_address ) > 31 ) std::exit(0);
-    g_miner_id = result["minerid"].as<std::uint32_t>();
-    assert( 0 <= g_miner_id && g_miner_id <= 8100 );
-    if ( g_miner_id < 0 || g_miner_id > 8100 ) std::exit(0);
-    g_threads_count = result["threads"].as<std::uint32_t>();
-    g_mining_pools = parse_pools_argv( result["pools"].as<std::string>() );
-    g_solo_mining = result.count( "solo" ) ? true : false;
+    std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2" << std::endl;
+    std::cout << "by f04ever (c) 2022 @ https://github.com/f04ever/noso-2m" << std::endl;
+    std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
+    std::cout  << std::endl;
+    std::string cfg_fname = result["config"].as<std::string>();
+    std::string cfg_address;
+    std::string cfg_pools;
+    long cfg_minerid { -1 };
+    std::uint32_t cfg_threads { 2 };
+    bool cfg_solo { false };
+    std::ifstream cfg_istream( cfg_fname );
+    if( !cfg_istream.good() ) {
+        std::cout << "Config file '" << cfg_fname << "' not found! Use default options" << std::endl;
+        if ( cfg_fname != DEFAULT_CONFIG_FILENAME ) std::exit( EXIT_FAILURE );
+        std::cout  << std::endl;
+    } else {
+        std::cout << "Use config file '" << cfg_fname << "'" << std::endl;
+        std::cout  << std::endl;
+        int line_no { 0 };
+        std::string line_str;
+        try {
+            int found_cfg { 0 };
+            while ( std::getline( cfg_istream, line_str ) && found_cfg < 5) {
+                line_no++;
+                if        ( line_str.rfind( "address ", 0 ) == 0 ) {
+                    cfg_address = line_str.substr( 8 );
+                    if ( !is_valid_address( cfg_address ) )
+                        throw std::invalid_argument( "Invalid address config" );
+                    found_cfg++;
+                } else if ( line_str.rfind( "minerid ", 0 ) == 0 ) {
+                    cfg_minerid = std::stoi( line_str.substr( 8 ) );
+                    if ( !is_valid_minerid( cfg_minerid ) )
+                        throw std::invalid_argument( "Invalid minerid config" );
+                    found_cfg++;
+                } else if ( line_str.rfind( "threads ", 0 ) == 0 ) {
+                    cfg_threads = std::stoi( line_str.substr( 8 ) );
+                    if ( !is_valid_threads( cfg_threads ) )
+                        throw std::invalid_argument( "Invalid threads count config" );
+                    found_cfg++;
+                } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
+                    cfg_pools = line_str.substr( 6 );
+                    found_cfg++;
+                } else if ( line_str == "solo" || line_str == "solo true" ) {
+                    cfg_solo = true;
+                    found_cfg++;
+                }
+            }
+        } catch( const std::exception& e) {
+            std::cerr << e.what() << " in file '" << cfg_fname << "' line#"
+                << line_no << "[" << line_str << "]" << std::endl;
+            std::exit( EXIT_FAILURE );
+        }
+    }
+    std::string opt_address { result["address"].as<std::string>() };
+    if ( !is_valid_address( opt_address ) ) {
+        std::cerr << "Invalid miner address provided!" << std::endl;
+        std::exit( EXIT_FAILURE );
+    }
+    std::uint32_t opt_minerid { result["minerid"].as<std::uint32_t>() };
+    if ( !is_valid_minerid( opt_minerid ) ) {
+        std::cerr << "Invalid miner id provided!" << std::endl;
+        std::exit( EXIT_FAILURE );
+    }
+    std::uint32_t opt_threads { result["threads"].as<std::uint32_t>() };
+    if ( !is_valid_threads( opt_threads ) ) {
+        throw std::invalid_argument( "Invalid threads count provided" );
+        std::exit( EXIT_FAILURE );
+    }
+    std::string opt_pools { result["pools"].as<std::string>() };
+    std::size_t opt_solo { result.count( "solo" ) };
+    std::string sel_address { opt_address != DEFAULT_MINER_ADDRESS ? opt_address
+        : cfg_address.length() > 0 ? cfg_address : opt_address };
+    std::string sel_pools { opt_pools != DEFAULT_POOL_URL_LIST ? opt_pools
+        : cfg_pools.length() > 0 ? cfg_pools : opt_pools };
+    std::strcpy( g_miner_address, sel_address.c_str() );
+    g_miner_id = opt_minerid > 0 ? opt_minerid : cfg_minerid >= 0 ? cfg_minerid : opt_minerid;
+    g_threads_count = opt_threads > 2 ? opt_threads: cfg_threads > 2 ? cfg_threads : opt_threads;
+    g_mining_pools = parse_pools_argv( sel_pools );
+    g_solo_mining = opt_solo > 0 ? true : cfg_solo;
     auto left_pad = []( const std::string& s, std::size_t n, char c ){
         std::string r { s };
         if ( n > r.length() ) r.append( n - r.length(), c );
@@ -805,10 +879,6 @@ int main( int argc, char *argv[] ) {
     };
     auto next_pool = g_mining_pools.cbegin();
     auto last_pool = g_mining_pools.cend();
-    std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2\n";
-    std::cout << "by f04ever (c) 2022 @ https://github.com/f04ever/noso-2m\n";
-    std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << "\n";
-    std::cout << "\n";
     std::cout << "- Wallet address: " << g_miner_address << std::endl;
     std::cout << "-       Miner ID: " << g_miner_id << std::endl;
     std::cout << "-  Threads count: " << g_threads_count << std::endl;
@@ -1297,6 +1367,21 @@ void CCommThread::Communicate() {
     } // END while ( g_still_running ) {
     for ( auto &obj : g_mine_objects ) obj->CleanupSyncState();
     for ( auto &thr : g_mine_threads ) thr.join();
+}
+
+bool is_valid_address( const std::string& address ) {
+    if ( address.length() < 30 || address.length() > 31 ) return false;
+    return true;
+}
+
+bool is_valid_minerid( std::uint32_t minerid ) {
+    if ( minerid < 0 || minerid > 8100 ) return false;
+    return true;
+}
+
+bool is_valid_threads( std::uint32_t count ) {
+    if ( count < 2 ) return false;
+    return true;
 }
 
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr ) {
