@@ -1385,24 +1385,24 @@ bool is_valid_threads( std::uint32_t count ) {
 }
 
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr ) {
-    const std::regex re_pool1 { ";" };
+    const std::regex re_pool1 { ";|[[:space:]]" };
     const std::regex re_pool2 {
+        "^"
         "("
             "[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9]"
         ")"
         "(\\:"
             "("
-                // "("
+                "("
                     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
                     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
                     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
                     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])"
-                // ")"
-                // "|"
-                // "("
-                //     "(([a-zA-Z0-9]+[a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*"
-                //      "([a-zA-Z0-9]+[a-zA-Z0-9\\-]*[a-zA-Z0-9])"
-                // ")"
+                ")"
+                "|"
+                "("
+                    "([a-zA-Z0-9]+(\\-[a-zA-Z0-9]+)*\\.)*[a-zA-Z]{2,}"
+                ")"
             ")"
             "(\\:"
                 "("
@@ -1410,6 +1410,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
                 ")$"
             ")?"
         ")?"
+        "$"
     };
     std::vector<std::tuple<std::string, std::string, std::string>> mining_pools;
     std::for_each(
@@ -1421,7 +1422,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
                         std::sregex_iterator {}, [&]( const auto &sm0 ) {
                             std::string name { sm0[1].str() };
                             std::string host { sm0[3].str() };
-                            std::string port { sm0[9].str() };
+                            std::string port { sm0[13].str() };
                             if ( host.length() <= 0 ) {
                                 const auto def_pool = std::find_if(
                                         g_default_pools.begin(), g_default_pools.end(),
