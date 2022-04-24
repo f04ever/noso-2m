@@ -1,3 +1,23 @@
+Version 0.2.3
+
+- Support config file
+- `--pools` option now supports both IP address and domain names
+- Correct summary report of actual hashrate, balance, payment
+- Fixed unexpected exits in Windows.
+- Minor refining
+
+Version 0.2.2
+
+- Quick patch number overflow in block summary
+
+Version 0.2.2
+
+- Protect new target from racing conditions
+- Block summary fixing
+- Update pool protocol for providing miner app's information
+- Update seed nodes
+- Mainnet timestamp check before mininig
+
 Version 0.2.0
 
 - Support pool mining mode, plus pools failover
