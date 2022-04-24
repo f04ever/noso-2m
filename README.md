@@ -1,5 +1,5 @@
 # NOSO-2M
-[![Build Status](https://github.com/f04ever/noso-2m/actions/workflows/build-release.yml/badge.svg?branch=main)](https://github.com/f04ever/noso-2m/actions/workflows/build-release.yml)
+![Build Status](https://github.com/f04ever/noso-2m/actions/workflows/build-release.yml/badge.svg)
 [![Support Linux](https://img.shields.io/badge/support-Linux-blue?logo=Linux)](https://github.com/f04ever/noso-2m/releases/latest)
 [![Support Windows](https://img.shields.io/badge/support-Windows-blue?logo=Windows)](https://github.com/f04ever/noso-2m/releases/latest)
 [![Support macOs](https://img.shields.io/badge/support-macOS-blue?logo=macOS)](https://github.com/f04ever/noso-2m/releases/latest)

@@ -14,6 +14,7 @@
 #include <random>
 #include <chrono>
 #include <numeric>
+#include <fstream>
 #include <iomanip>
 #include <cassert>
 #include <iostream>
@@ -34,8 +35,9 @@
 
 #define NOSO_2M_VERSION_MAJOR 0
 #define NOSO_2M_VERSION_MINOR 2
-#define NOSO_2M_VERSION_PATCH 2
+#define NOSO_2M_VERSION_PATCH 3
 
+#define DEFAULT_CONFIG_FILENAME "noso-2m.cfg"
 #define DEFAULT_POOL_URL_LIST "f04ever;devnoso"
 #define DEFAULT_MINER_ADDRESS "NT3ZeUPHA6AJH7Cc7LLdsTNDZgRnBL"
 #define DEFAULT_MINER_ID 0
@@ -50,7 +52,7 @@
 #define NOSOHASH_COUNTER_MIN 100'000'000
 #define NOSO_NUL_HASH "00000000000000000000000000000000"
 #define NOSO_MAX_DIFF "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-#define NOSO_TIMESTAMP long( std::time( 0 ) )
+#define NOSO_TIMESTAMP ( (long long)( std::time( 0 ) ) )
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
 
 const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
@@ -324,7 +326,7 @@ public:
                        char *buffer, std::size_t buffsize ) {
         assert( std::strlen( base ) == 18
                && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
-        std::snprintf( buffer, buffsize, "BESTHASH 1 2 3 4 %s %s %d %ld\n", address, base, blck, NOSO_TIMESTAMP );
+        std::snprintf( buffer, buffsize, "BESTHASH 1 2 3 4 %s %s %d %lld\n", address, base, blck, NOSO_TIMESTAMP );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
 };
@@ -367,7 +369,7 @@ struct CNodeStatus {
     std::time_t lb_time;
     std::string lb_addr;
     // std::uint32_t check_count;
-    // std::uint32_t lb_pows;
+    // std::uint64_t lb_pows;
     // std::string lb_diff;
     CNodeStatus( const char *ns_line ) {
         assert( ns_line != nullptr && std::strlen( ns_line ) > 0 );
@@ -434,7 +436,7 @@ struct CNodeStatus {
         // this->check_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 15{lb_pows}
         // next_status_token( ' ', p_pos, c_pos, status );
-        // this->lb_pows = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // this->lb_pows = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         // 16{lb_diff}
         // next_status_token( ' ', p_pos, c_pos, status );
         // this->lb_diff = extract_status_token( p_pos, c_pos, status );
@@ -448,13 +450,13 @@ struct CPoolStatus {
     std::string mn_diff;
     std::string prefix;
     std::string address;
-    std::uint32_t balance;
+    std::uint64_t balance;
     std::uint32_t till_payment;
-    std::uint32_t pool_hashrate;
+    std::uint64_t pool_hashrate;
     std::uint32_t payment_block;
-    std::uint32_t payment_amount;
+    std::uint64_t payment_amount;
     std::string payment_order_id;
-    std::uint32_t netrate;
+    std::uint64_t netrate;
     CPoolStatus( const char *ps_line ) {
         assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
@@ -494,7 +496,7 @@ struct CPoolStatus {
         this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 6{balance}
         next_status_token( ' ', p_pos, c_pos, status );
-        this->balance = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        this->balance = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         // 7{till_payment}
         next_status_token( ' ', p_pos, c_pos, status );
         this->till_payment = std::stoul( extract_status_token( p_pos, c_pos, status ) );
@@ -503,10 +505,10 @@ struct CPoolStatus {
         std::string payment_info = extract_status_token( p_pos, c_pos, status );
         // 9{pool_hashrate}
         next_status_token( ' ', p_pos, c_pos, status );
-        this->pool_hashrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        this->pool_hashrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         // 10{netrate}
         next_status_token( ' ', p_pos, c_pos, status );
-        this->netrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        this->netrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         if ( payment_info.length() > 0 ) {
             // 8{LastPayInfo} = Block:ammount:orderID
             size_t p_pos = -1, c_pos = -1;
@@ -515,7 +517,7 @@ struct CPoolStatus {
             this->payment_block = std::stoul( extract_status_token( p_pos, c_pos, payment_info ) );
             // 0{payment_amount}
             next_status_token( ':', p_pos, c_pos, payment_info );
-            this->payment_amount = std::stoul( extract_status_token( p_pos, c_pos, payment_info ) );
+            this->payment_amount = std::stoull( extract_status_token( p_pos, c_pos, payment_info ) );
             // 0{payment_order_id}
             next_status_token( ':', p_pos, c_pos, payment_info );
             this->payment_order_id = extract_status_token( p_pos, c_pos, payment_info );
@@ -547,17 +549,17 @@ struct CNodeTarget : public CTarget {
 };
 
 struct CPoolTarget : public CTarget {
-    std::uint32_t balance;
+    std::uint64_t balance;
     std::uint32_t till_payment;
-    std::uint32_t pool_hashrate;
+    std::uint64_t pool_hashrate;
     std::uint32_t payment_block;
-    std::uint32_t payment_amount;
+    std::uint64_t payment_amount;
     std::string payment_order_id;
-    std::uint32_t netrate;
+    std::uint64_t netrate;
     CPoolTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
-                std::string &prefix, const std::string &address, std::uint32_t balance,
-                std::uint32_t till_payment, std::uint32_t pool_hashrate, std::uint32_t payment_block,
-                std::uint32_t payment_amount, std::string &payment_order_id, std::uint32_t netrate )
+                std::string &prefix, const std::string &address, std::uint64_t balance,
+                std::uint32_t till_payment, std::uint64_t pool_hashrate, std::uint32_t payment_block,
+                std::uint64_t payment_amount, std::string &payment_order_id, std::uint64_t netrate )
         :   CTarget( blck_no, lb_hash, mn_diff ), balance { balance }, till_payment { till_payment },
             pool_hashrate { pool_hashrate }, payment_block { payment_block }, payment_amount { payment_amount },
             payment_order_id { payment_order_id }, netrate { netrate } {
@@ -736,7 +738,7 @@ public:
             );
         }
         catch ( const std::exception &e ) {
-            std::cerr << e.what() << std::endl;
+            std::cerr << e.what() << "[" << m_inet_buffer << "]" << std::endl;
             return nullptr;
         }
     }
@@ -745,7 +747,9 @@ public:
     void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };
-
+bool is_valid_address( const std::string& address );
+bool is_valid_minerid( std::uint32_t minerid );
+bool is_valid_threads( std::uint32_t count );
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr );
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_miner_id { DEFAULT_MINER_ID };
@@ -766,38 +770,108 @@ int main( int argc, char *argv[] ) {
     WSADATA wsaData;
     if( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != NO_ERROR ) {
         std::cerr << "Error at WSAStartup" << std::endl;
-        std::exit( 1 );
+        std::exit( EXIT_FAILURE );
     }
     #endif
     cxxopts::Options options( "noso-2m", "A miner for Nosocryptocurrency Protocol 2" );
     options.add_options()
+        ( "c,config",   "A configuration file",                 cxxopts::value<std::string>()->default_value( DEFAULT_CONFIG_FILENAME ) )
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "i,minerid",  "Miner ID - a number between 0-8100",   cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_MINER_ID ) ) )
-        ( "t,threads",  "Number of threads use for mining",     cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
-        (   "pools",    "Pool list",                            cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
-        (   "solo",     "Solo mode" )
+        ( "t,threads",  "Threads count - 2 or more",            cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
+        (   "pools",    "Mining pools list",                    cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
+        (   "solo",     "Solo mining mode" )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
     auto result = options.parse( argc, argv );
     if ( result.count( "help" ) ) {
         std::cout << options.help() << std::endl;
-        std::exit( 0 );
+        std::exit( EXIT_SUCCESS );
     }
     if ( result.count( "version" ) ) {
         std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
-        exit( 0 );
+        exit( EXIT_SUCCESS );
     }
-    std::string miner_address = result["address"].as<std::string>();
-    std::strcpy( g_miner_address, miner_address.c_str() );
-    assert( std::strlen( g_miner_address ) == 30 || std::strlen( g_miner_address ) == 31 );
-    if ( std::strlen( g_miner_address ) < 30 || std::strlen( g_miner_address ) > 31 ) std::exit(0);
-    g_miner_id = result["minerid"].as<std::uint32_t>();
-    assert( 0 <= g_miner_id && g_miner_id <= 8100 );
-    if ( g_miner_id < 0 || g_miner_id > 8100 ) std::exit(0);
-    g_threads_count = result["threads"].as<std::uint32_t>();
-    g_mining_pools = parse_pools_argv( result["pools"].as<std::string>() );
-    g_solo_mining = result.count( "solo" ) ? true : false;
+    std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2" << std::endl;
+    std::cout << "by f04ever (c) 2022 @ https://github.com/f04ever/noso-2m" << std::endl;
+    std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
+    std::cout  << std::endl;
+    std::string cfg_fname = result["config"].as<std::string>();
+    std::string cfg_address;
+    std::string cfg_pools;
+    long cfg_minerid { -1 };
+    std::uint32_t cfg_threads { 2 };
+    bool cfg_solo { false };
+    std::ifstream cfg_istream( cfg_fname );
+    if( !cfg_istream.good() ) {
+        std::cout << "Config file '" << cfg_fname << "' not found! Use default options" << std::endl;
+        if ( cfg_fname != DEFAULT_CONFIG_FILENAME ) std::exit( EXIT_FAILURE );
+        std::cout  << std::endl;
+    } else {
+        std::cout << "Use config file '" << cfg_fname << "'" << std::endl;
+        std::cout  << std::endl;
+        int line_no { 0 };
+        std::string line_str;
+        try {
+            int found_cfg { 0 };
+            while ( std::getline( cfg_istream, line_str ) && found_cfg < 5) {
+                line_no++;
+                if        ( line_str.rfind( "address ", 0 ) == 0 ) {
+                    cfg_address = line_str.substr( 8 );
+                    if ( !is_valid_address( cfg_address ) )
+                        throw std::invalid_argument( "Invalid address config" );
+                    found_cfg++;
+                } else if ( line_str.rfind( "minerid ", 0 ) == 0 ) {
+                    cfg_minerid = std::stoi( line_str.substr( 8 ) );
+                    if ( !is_valid_minerid( cfg_minerid ) )
+                        throw std::invalid_argument( "Invalid minerid config" );
+                    found_cfg++;
+                } else if ( line_str.rfind( "threads ", 0 ) == 0 ) {
+                    cfg_threads = std::stoi( line_str.substr( 8 ) );
+                    if ( !is_valid_threads( cfg_threads ) )
+                        throw std::invalid_argument( "Invalid threads count config" );
+                    found_cfg++;
+                } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
+                    cfg_pools = line_str.substr( 6 );
+                    found_cfg++;
+                } else if ( line_str == "solo" || line_str == "solo true" ) {
+                    cfg_solo = true;
+                    found_cfg++;
+                }
+            }
+        } catch( const std::exception& e) {
+            std::cerr << e.what() << " in file '" << cfg_fname << "' line#"
+                << line_no << "[" << line_str << "]" << std::endl;
+            std::exit( EXIT_FAILURE );
+        }
+    }
+    std::string opt_address { result["address"].as<std::string>() };
+    if ( !is_valid_address( opt_address ) ) {
+        std::cerr << "Invalid miner address provided!" << std::endl;
+        std::exit( EXIT_FAILURE );
+    }
+    std::uint32_t opt_minerid { result["minerid"].as<std::uint32_t>() };
+    if ( !is_valid_minerid( opt_minerid ) ) {
+        std::cerr << "Invalid miner id provided!" << std::endl;
+        std::exit( EXIT_FAILURE );
+    }
+    std::uint32_t opt_threads { result["threads"].as<std::uint32_t>() };
+    if ( !is_valid_threads( opt_threads ) ) {
+        throw std::invalid_argument( "Invalid threads count provided" );
+        std::exit( EXIT_FAILURE );
+    }
+    std::string opt_pools { result["pools"].as<std::string>() };
+    std::size_t opt_solo { result.count( "solo" ) };
+    std::string sel_address { opt_address != DEFAULT_MINER_ADDRESS ? opt_address
+        : cfg_address.length() > 0 ? cfg_address : opt_address };
+    std::string sel_pools { opt_pools != DEFAULT_POOL_URL_LIST ? opt_pools
+        : cfg_pools.length() > 0 ? cfg_pools : opt_pools };
+    std::strcpy( g_miner_address, sel_address.c_str() );
+    g_miner_id = opt_minerid > 0 ? opt_minerid : cfg_minerid >= 0 ? cfg_minerid : opt_minerid;
+    g_threads_count = opt_threads > 2 ? opt_threads: cfg_threads > 2 ? cfg_threads : opt_threads;
+    g_mining_pools = parse_pools_argv( sel_pools );
+    g_solo_mining = opt_solo > 0 ? true : cfg_solo;
     auto left_pad = []( const std::string& s, std::size_t n, char c ){
         std::string r { s };
         if ( n > r.length() ) r.append( n - r.length(), c );
@@ -805,10 +879,6 @@ int main( int argc, char *argv[] ) {
     };
     auto next_pool = g_mining_pools.cbegin();
     auto last_pool = g_mining_pools.cend();
-    std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2\n";
-    std::cout << "by f04ever (c) 2022 @ https://github.com/f04ever/noso-2m\n";
-    std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << "\n";
-    std::cout << "\n";
     std::cout << "- Wallet address: " << g_miner_address << std::endl;
     std::cout << "-       Miner ID: " << g_miner_id << std::endl;
     std::cout << "-  Threads count: " << g_threads_count << std::endl;
@@ -906,7 +976,7 @@ void CMineThread::Mine() {
     } // END while ( g_still_running ) {
 }
 
-#define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill('0') << std::setw(3) << NOSO_BLOCK_AGE << "))"
+#define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << "))"
 
 CCommThread::CCommThread() {
     for( auto sn : g_default_nodes ) m_node_inets_good.push_back(
@@ -939,7 +1009,7 @@ std::time_t CCommThread::GetMainnetTimestamp( std::size_t min_nodes_count ) {
             return std::time_t( std::atol( m_inet_buffer ) );
         }
         catch ( const std::exception &e ) {
-            std::cerr << e.what() << std::endl;
+            std::cerr << e.what() << "[" << m_inet_buffer << "]" << std::endl;
         }
     }
     return std::time_t( -1 );
@@ -948,22 +1018,30 @@ std::time_t CCommThread::GetMainnetTimestamp( std::size_t min_nodes_count ) {
 void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::duration<double>& elapsed_blck ) {
     std::uint64_t computed_hashes_count { 0 };
     double block_mining_duration { 0. };
-    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&](const auto &object){
+    COUT_NOSO_TIME << "SUMMARY BLOCK#" << blck_no << std::endl;
+    bool first { true };
+    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&]( const auto &object ){
                  auto summary = object->GetBlockSummary();
-                 // COUT_NOSO_TIME
-                 //     << "Thread " << object->m_thread_id << " has computed " << std::get<0>( summary )
-                 //     << " hashes in " << std::get<1>( summary ) << " seconds" << std::endl;
+                 if ( first ) {
+                     first = false;
+                     COUT_NOSO_TIME << "\tTHREADS :  ";
+                 }
+                 else COUT_NOSO_TIME << "\t           ";
+                 std::cout
+                     << "Thread-" << std::setfill( '0' ) << std::setw( 2 ) << object->m_thread_id
+                     << " has computed " << std::get<0>( summary ) << " hashes within "
+                     << std::fixed << std::setprecision(3) << std::get<1>( summary ) << " seconds, hashrate approx. "
+                     << std::get<0>( summary ) / std::get<1>( summary ) / 1000 << " Kh/s" << std::endl;
                  computed_hashes_count += std::get<0>( summary );
                  block_mining_duration += std::get<1>( summary ); } );
     block_mining_duration /= g_mine_objects.size();
     COUT_NOSO_TIME
-        << "SUMMARY BLOCK#" << blck_no << " : "
-        << computed_hashes_count<< " hashes computed in "
-        << std::fixed << std::setprecision(3)
-        << elapsed_blck.count() / 60 << " minutes, hashrate approx. "
+        << "\tIN TOTAL:  THE MINER"
+        << " HAS COMPUTED " << computed_hashes_count<< " HASHES WITHIN "
+        << std::fixed << std::setprecision(3) << elapsed_blck.count() / 60 << " MINUTES, HASHRATE APPROX. "
         << computed_hashes_count / elapsed_blck.count() / 1000 << " Kh/s" << std::endl;
     COUT_NOSO_TIME
-        << "\taccepted "  << m_accepted_solutions_count
+        << "\t           \taccepted "  << m_accepted_solutions_count
         << " rejected " << m_rejected_solutions_count
         << " failured " << m_failured_solutions_count
         << ( g_solo_mining ? " solution(s)" : " share(s)" ) << std::endl;
@@ -1038,7 +1116,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::SyncSources( std::size_t 
             if ( nodes_count >= min_nodes_count ) break;
         }
         catch ( const std::exception &e ) {
-            std::cerr << e.what() << std::endl;
+            std::cerr << e.what() << "[" << m_inet_buffer << "]" << std::endl;
         }
     }
     return vec;
@@ -1291,25 +1369,40 @@ void CCommThread::Communicate() {
     for ( auto &thr : g_mine_threads ) thr.join();
 }
 
+bool is_valid_address( const std::string& address ) {
+    if ( address.length() < 30 || address.length() > 31 ) return false;
+    return true;
+}
+
+bool is_valid_minerid( std::uint32_t minerid ) {
+    if ( minerid < 0 || minerid > 8100 ) return false;
+    return true;
+}
+
+bool is_valid_threads( std::uint32_t count ) {
+    if ( count < 2 ) return false;
+    return true;
+}
+
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr ) {
-    const std::regex re_pool1 { ";" };
+    const std::regex re_pool1 { ";|[[:space:]]" };
     const std::regex re_pool2 {
+        "^"
         "("
             "[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9]"
         ")"
         "(\\:"
             "("
-                // "("
+                "("
                     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
                     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
                     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
                     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])"
-                // ")"
-                // "|"
-                // "("
-                //     "(([a-zA-Z0-9]+[a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*"
-                //      "([a-zA-Z0-9]+[a-zA-Z0-9\\-]*[a-zA-Z0-9])"
-                // ")"
+                ")"
+                "|"
+                "("
+                    "([a-zA-Z0-9]+(\\-[a-zA-Z0-9]+)*\\.)*[a-zA-Z]{2,}"
+                ")"
             ")"
             "(\\:"
                 "("
@@ -1317,6 +1410,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
                 ")$"
             ")?"
         ")?"
+        "$"
     };
     std::vector<std::tuple<std::string, std::string, std::string>> mining_pools;
     std::for_each(
@@ -1328,7 +1422,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
                         std::sregex_iterator {}, [&]( const auto &sm0 ) {
                             std::string name { sm0[1].str() };
                             std::string host { sm0[3].str() };
-                            std::string port { sm0[9].str() };
+                            std::string port { sm0[13].str() };
                             if ( host.length() <= 0 ) {
                                 const auto def_pool = std::find_if(
                                         g_default_pools.begin(), g_default_pools.end(),
