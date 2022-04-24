@@ -1,4 +1,4 @@
-name: CI/CD build release for Linux macOS Windows
+name: build
 on:
   push:
     branches: [ main ]

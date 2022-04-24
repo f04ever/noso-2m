@@ -1,5 +1,5 @@
 # NOSO-2M
-[![Build Status](https://github.com/f04ever/noso-2m/actions/workflows/build-release.yml/badge.svg?branch=main)](https://github.com/f04ever/noso-2m/actions/workflows/build-release.yml)
+![Build Status](https://github.com/f04ever/noso-2m/actions/workflows/build-release.yml/badge.svg)
 [![Support Linux](https://img.shields.io/badge/support-Linux-blue?logo=Linux)](https://github.com/f04ever/noso-2m/releases/latest)
 [![Support Windows](https://img.shields.io/badge/support-Windows-blue?logo=Windows)](https://github.com/f04ever/noso-2m/releases/latest)
 [![Support macOs](https://img.shields.io/badge/support-macOS-blue?logo=macOS)](https://github.com/f04ever/noso-2m/releases/latest)
@@ -26,6 +26,21 @@ A miner for Nosocryptocurrency Protocol 2.
 
 ** NODES:
 
+- By default, `noso-2m` does mining using arguments loading from config file `noso-2m.cfg` at the same location of `noso-2m` program if exist.
+
+- Config file formation like below
+<blockquote>
+<p>`address WALLETADDRESS`</p>
+<p>`minerid MINERID****`</p>
+<p>`threads THREADCOUNT`</p>
+<p>`pools POOL-URL-LIST`</p>
+<p>`solo false`</p>
+</blockquote>
+
+- Config file can locate at diffent location and be specified using option `--config="PATH-TO-CONFIG-FILE"`.
+
+- Arguments loading from config file be overwrited by options provided in the running command.
+
 - By default, `noso-2m` does mining using `pool mining mode`, and does failover between two pools `f04ever` pool and `devnoso` pool.
 
 - Provide pool addresses to the running command by using option `--pools="POOL-URL-LIST"` (opening and closing quotation marks (`"`) are mandatory if having more than one pool URLs provided)
@@ -36,11 +51,11 @@ A miner for Nosocryptocurrency Protocol 2.
 
     + `POOL-URL-LIST` is a list of `POOL-URL`s, separate each other pool by a semicolon (`;`), ex.: `POOL-URL-1;POOL-URL-2;POOL-URL-3`
 
-    + `POOL-URL` has formation: `POOL-NAME:POOL-IP-ADDRESS:POOL-PORT`, the colon (`:`) be used to separate parts.
+    + `POOL-URL` has formation: `POOL-NAME:POOL-ADDRESS:POOL-PORT`, the colon (`:`) be used to separate parts.
 
     + `POOL-NAME` is an arbitrary name, ex.: devnoso, my-pool, pool-1, pool-2, ...
 
-    + `POOL-IP-ADDRESS` is a valid IP address of pool. `noso-2m` does not support using domain name in `POOL-URL` yet.
+    + `POOL-ADDRESS` is either a valid IP address or a domain name of pool.
 
     + `POOL-PORT` is a valid port number of pool, omitted `POOL-PORT` then the default port `8082` be used instead.
 
