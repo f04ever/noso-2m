@@ -35,7 +35,7 @@
 
 #define NOSO_2M_VERSION_MAJOR 0
 #define NOSO_2M_VERSION_MINOR 2
-#define NOSO_2M_VERSION_PATCH 2
+#define NOSO_2M_VERSION_PATCH 3
 
 #define DEFAULT_CONFIG_FILENAME "noso-2m.cfg"
 #define DEFAULT_POOL_URL_LIST "f04ever;devnoso"
@@ -770,7 +770,7 @@ int main( int argc, char *argv[] ) {
     WSADATA wsaData;
     if( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != NO_ERROR ) {
         std::cerr << "Error at WSAStartup" << std::endl;
-        std::exit( 1 );
+        std::exit( EXIT_FAILURE );
     }
     #endif
     cxxopts::Options options( "noso-2m", "A miner for Nosocryptocurrency Protocol 2" );
@@ -778,20 +778,20 @@ int main( int argc, char *argv[] ) {
         ( "c,config",   "A configuration file",                 cxxopts::value<std::string>()->default_value( DEFAULT_CONFIG_FILENAME ) )
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "i,minerid",  "Miner ID - a number between 0-8100",   cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_MINER_ID ) ) )
-        ( "t,threads",  "Number of mining threads, 2 or more",  cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
-        (   "pools",    "Pool list",                            cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
-        (   "solo",     "Solo mode" )
+        ( "t,threads",  "Threads count - 2 or more",            cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
+        (   "pools",    "Mining pools list",                    cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
+        (   "solo",     "Solo mining mode" )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
     auto result = options.parse( argc, argv );
     if ( result.count( "help" ) ) {
         std::cout << options.help() << std::endl;
-        std::exit( 0 );
+        std::exit( EXIT_SUCCESS );
     }
     if ( result.count( "version" ) ) {
         std::cout << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
-        exit( 0 );
+        exit( EXIT_SUCCESS );
     }
     std::cout << "noso-2m - A miner for Nosocryptocurrency Protocol 2" << std::endl;
     std::cout << "by f04ever (c) 2022 @ https://github.com/f04ever/noso-2m" << std::endl;
@@ -1020,7 +1020,7 @@ void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::
     double block_mining_duration { 0. };
     COUT_NOSO_TIME << "SUMMARY BLOCK#" << blck_no << std::endl;
     bool first { true };
-    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&](const auto &object){
+    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&]( const auto &object ){
                  auto summary = object->GetBlockSummary();
                  if ( first ) {
                      first = false;
