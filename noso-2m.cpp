@@ -1019,19 +1019,8 @@ void CCommThread::_PrintBlockSummary( std::uint32_t blck_no, const std::chrono::
     std::uint64_t computed_hashes_count { 0 };
     double block_mining_duration { 0. };
     COUT_NOSO_TIME << "SUMMARY BLOCK#" << blck_no << std::endl;
-    bool first { true };
     for_each( g_mine_objects.begin(), g_mine_objects.end(), [&]( const auto &object ){
                  auto summary = object->GetBlockSummary();
-                 if ( first ) {
-                     first = false;
-                     COUT_NOSO_TIME << "\tTHREADS :  ";
-                 }
-                 else COUT_NOSO_TIME << "\t           ";
-                 std::cout
-                     << "Thread-" << std::setfill( '0' ) << std::setw( 2 ) << object->m_thread_id
-                     << " has computed " << std::get<0>( summary ) << " hashes within "
-                     << std::fixed << std::setprecision(3) << std::get<1>( summary ) << " seconds, hashrate approx. "
-                     << std::get<0>( summary ) / std::get<1>( summary ) / 1000 << " Kh/s" << std::endl;
                  computed_hashes_count += std::get<0>( summary );
                  block_mining_duration += std::get<1>( summary ); } );
     block_mining_duration /= g_mine_objects.size();
