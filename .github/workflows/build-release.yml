@@ -1,0 +1,225 @@
+name: build
+on:
+  push:
+    branches: [ main, devel ]
+    tags:
+      - "*"
+jobs:
+  build-linux:
+    name: 'Build Linux'
+    runs-on: 'ubuntu-latest'
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v2
+    - name: Build source
+      run: |
+        sudo apt-get -y -qq update && sudo apt-get -y -q upgrade 2>&1 > /dev/null
+        sudo apt-get -y -qq install libc++-12-dev libc++abi-12-dev lld 2>&1 > /dev/null
+        sudo apt-get -y -qq install g++-10-i686-linux-gnu 2>&1 > /dev/null
+        sudo apt-get -y -qq install g++-10-arm-linux-gnueabihf 2>&1 > /dev/null
+        sudo apt-get -y -qq install g++-10-aarch64-linux-gnu 2>&1 > /dev/null
+        wget -q http://ftp.de.debian.org/debian/pool/main/l/llvm-toolchain-12/libc++-12-dev_12.0.1-20+b1_i386.deb  2>&1 > /dev/null
+        dpkg-deb -x libc++-12-dev_12.0.1-20+b1_i386.deb clang+llvm-12.0.1-i386-linux-gnu 2>&1 > /dev/null
+        wget -q http://ftp.de.debian.org/debian/pool/main/l/llvm-toolchain-12/libc++abi-12-dev_12.0.1-20+b1_i386.deb  2>&1 > /dev/null
+        dpkg-deb -x libc++abi-12-dev_12.0.1-20+b1_i386.deb clang+llvm-12.0.1-i386-linux-gnu 2>&1 > /dev/null
+        wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz 2>&1 > /dev/null
+        tar xf clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz 2>&1 > /dev/null
+        wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz  2>&1 > /dev/null
+        tar xf clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz 2>&1 > /dev/null
+        wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip 2>&1 > /dev/null
+        unzip -qq android-ndk-r23b-linux.zip 2>&1 > /dev/null
+        #
+        clang++-12 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu -L$(pwd)/clang+llvm-12.0.1-i386-linux-gnu/usr/lib/llvm-12/lib \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++ -lc++abi -s
+        # i686-linux-gnu-g++-10 \
+        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
+        #   -std=c++20 -O3 -lpthread -s
+        file noso-2m-linux-i686
+        #
+        clang++-12 \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++ -lc++abi -s
+        # x86_64-linux-gnu-g++-10 \
+        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
+        #   -std=c++20 -O3 -lpthread -s
+        file noso-2m-linux-x86_64
+        #
+        clang++-12 --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf -L$(pwd)/clang+llvm-12.0.1-armv7a-linux-gnueabihf/lib \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++ -lc++abi -s
+        # arm-linux-gnueabihf-g++-10 \
+        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
+        #   -std=c++20 -O3 -lpthread -s
+        file noso-2m-linux-armv7a
+        #
+        clang++-12 --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu -L$(pwd)/clang+llvm-12.0.1-aarch64-linux-gnu/lib \
+          noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
+          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++ -lc++abi -s
+        # aarch64-linux-gnu-g++-10 \
+        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
+        #   -std=c++20 -O3 -lpthread -s
+        file noso-2m-linux-aarch64
+        #
+        android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang++ \
+          noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a \
+          -std=c++20 -Ofast -static -s
+        file noso-2m-android-armv7a
+        #
+        android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang++ \
+          noso-2m.cpp md5-c.cpp -o noso-2m-android-aarch64 \
+          -std=c++20 -Ofast -static -s
+        file noso-2m-android-aarch64
+      shell: bash
+    - name: Upload artifacs
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'ubuntu-latest'
+        path: |
+          README.md
+          noso-2m-linux-i686
+          noso-2m-linux-x86_64
+          noso-2m-linux-armv7a
+          noso-2m-linux-aarch64
+          noso-2m-android-armv7a
+          noso-2m-android-aarch64
+  build-windows:
+    name: 'Build Windows'
+    runs-on: 'windows-latest'
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v2
+    - name: Build source
+      run: |
+        clang++ --target=i686-pc-win32 \
+          noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe \
+          -std=c++20 -Ofast -Wl,-machine:x86 -lWs2_32.lib
+        clang++ --target=x86_64-pc-win32 \
+          noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe \
+          -std=c++20 -Ofast -Wl,-machine:x64 -lWs2_32.lib
+      shell: bash
+    - name: Upload artifacs
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'windows-latest'
+        path: |
+          README.md
+          noso-2m-i686.exe
+          noso-2m-x86_64.exe
+  build-macos:
+    name: 'Build macOS'
+    runs-on: 'macos-latest'
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v2
+    - name: Build source
+      run: |
+        clang++ \
+          noso-2m.cpp md5-c.cpp -o noso-2m-darwin \
+          -std=c++20 -Ofast -lpthread
+        strip -x noso-2m-darwin
+        file noso-2m-darwin
+      shell: bash
+    - name: Upload artifacs
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'macos-latest'
+        path: |
+          README.md
+          noso-2m-darwin
+  release-linux:
+    if: contains(github.ref, '/tags/')
+    name: 'Release ubuntu-latest'
+    runs-on: 'ubuntu-latest'
+    needs: [build-linux]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - name: Package artifacts
+        run: |
+          tag=${{ github.event.ref }}
+          tag=${tag#"refs/tags/"}
+          cp ubuntu-latest/README.md README.md
+          #
+          cp ubuntu-latest/noso-2m-linux-i686 noso-2m
+          chmod +x noso-2m
+          tar -zcvf noso-2m-${tag}-linux-i686.tar.gz noso-2m README.md
+          #
+          cp ubuntu-latest/noso-2m-linux-x86_64 noso-2m
+          chmod +x noso-2m
+          tar -zcvf noso-2m-${tag}-linux-x86_64.tar.gz noso-2m README.md
+          #
+          cp ubuntu-latest/noso-2m-linux-armv7a noso-2m
+          chmod +x noso-2m
+          tar -zcvf noso-2m-${tag}-linux-armv7a.tar.gz noso-2m README.md
+          #
+          cp ubuntu-latest/noso-2m-linux-aarch64 noso-2m
+          chmod +x noso-2m
+          tar -zcvf noso-2m-${tag}-linux-aarch64.tar.gz noso-2m README.md
+          #
+          cp ubuntu-latest/noso-2m-android-armv7a noso-2m
+          chmod +x noso-2m
+          tar -zcvf noso-2m-${tag}-android-armv7a.tar.gz noso-2m README.md
+          #
+          cp ubuntu-latest/noso-2m-android-aarch64 noso-2m
+          chmod +x noso-2m
+          tar -zcvf noso-2m-${tag}-android-aarch64.tar.gz noso-2m README.md
+        shell: bash
+      - name: Upload artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            noso-2m-*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release-macos:
+    if: contains(github.ref, '/tags/')
+    name: 'Release macos-latest'
+    runs-on: 'macos-latest'
+    needs: [build-macos]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - name: Package artifacts
+        run: |
+          tag=${{ github.event.ref }}
+          tag=${tag#"refs/tags/"}
+          cp macos-latest/README.md README.md
+          cp macos-latest/noso-2m-darwin noso-2m
+          chmod +x noso-2m
+          tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m README.md
+        shell: bash
+      - name: Upload artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            noso-2m-*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release-windows:
+    if: contains(github.ref, '/tags/')
+    name: 'Release windows-latest'
+    runs-on: 'windows-latest'
+    needs: [build-windows]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - name: Package artifacts
+        run: |
+          tag=${{ github.event.ref }}
+          tag=${tag#"refs/tags/"}
+          cp windows-latest/README.md README.md
+          #
+          cp windows-latest/noso-2m-x86_64.exe noso-2m.exe
+          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe README.md
+          #
+          cp windows-latest/noso-2m-i686.exe noso-2m.exe
+          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe README.md
+        shell: bash
+      - name: Upload artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            noso-2m-*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
