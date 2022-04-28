@@ -419,18 +419,18 @@ struct CNodeStatus {
         // 10{lb_hash}
         next_status_token( ' ', p_pos, c_pos, status );
         this->lb_hash = extract_status_token( p_pos, c_pos, status );
-        assert( this->lb_hash.length() == 32 );
+        if ( this->lb_hash.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_hash" );
         // 11{bh_diff/mn_diff}
         next_status_token( ' ', p_pos, c_pos, status );
         this->mn_diff = extract_status_token( p_pos, c_pos, status );
-        assert( this->mn_diff.length() == 32 );
+        if ( this->mn_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving mn_diff" );
         // 12{lb_time}
         next_status_token( ' ', p_pos, c_pos, status );
         this->lb_time = std::stoul( extract_status_token( p_pos, c_pos, status ) );
         // 13{lb_addr}
         next_status_token( ' ', p_pos, c_pos, status );
         this->lb_addr = extract_status_token( p_pos, c_pos, status );
-        assert( this->lb_addr.length() == 30 || this->lb_addr.length() == 31 );
+        if ( this->lb_addr.length() != 30 && this->lb_addr.length() != 31 ) throw std::out_of_range( "Wrong receiving lb_addr" );
         // 14{check_count}
         // next_status_token( ' ', p_pos, c_pos, status );
         // this->check_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
@@ -440,7 +440,7 @@ struct CNodeStatus {
         // 16{lb_diff}
         // next_status_token( ' ', p_pos, c_pos, status );
         // this->lb_diff = extract_status_token( p_pos, c_pos, status );
-        // assert( this->lb_diff.length() == 32 );
+        // if ( this->lb_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_diff" );
     }
 };
 
@@ -478,19 +478,19 @@ struct CPoolStatus {
         // 1{prefix}
         next_status_token( ' ', p_pos, c_pos, status );
         this->prefix = extract_status_token( p_pos, c_pos, status );
-        assert( this->prefix.length() == 3 );
+        if ( this->prefix.length() != 3 ) throw std::out_of_range( "Wrong receiving pool prefix" );
         // 2{address}
         next_status_token( ' ', p_pos, c_pos, status );
         this->address = extract_status_token( p_pos, c_pos, status );
-        assert( this->address.length() == 30 || this->address.length() == 31 );
+        if ( this->address.length() != 30 && this->address.length() != 31 )  throw std::out_of_range( "Wrong receiving pool address" );
         // 3{mn_diff}
         next_status_token( ' ', p_pos, c_pos, status );
         this->mn_diff = extract_status_token( p_pos, c_pos, status );
-        assert( this->mn_diff.length() == 32 );
+        if ( this->mn_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving pool diff" );
         // 4{lb_hash}
         next_status_token( ' ', p_pos, c_pos, status );
         this->lb_hash = extract_status_token( p_pos, c_pos, status );
-        assert(this->lb_hash.length() == 32 );
+        if (this->lb_hash.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_hash" );
         // 5{blck_no}
         next_status_token( ' ', p_pos, c_pos, status );
         this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
