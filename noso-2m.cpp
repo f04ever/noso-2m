@@ -893,8 +893,11 @@ int main( int argc, char *argv[] ) {
     std::cout << "\n";
     std::cout << "Press Ctrl+C to stop" << std::endl;
     std::time_t mainnet_timestamp { CCommThread::GetInstance()->GetMainnetTimestamp( 3 ) };
-    if ( NOSO_TIMESTAMP - mainnet_timestamp > 2 ) {
-        std::cout << "The time of your machine is different from the mainnet. Clock synchronization is required!" << std::endl;
+    if ( mainnet_timestamp < 0 ) {
+        std::cout << "Can not check mainnet's timestamp!" << std::endl;
+        std::exit( EXIT_FAILURE );
+    } else if ( NOSO_TIMESTAMP - mainnet_timestamp > 2 ) {
+        std::cout << "The mainnet's timestamp is different from your machine. Clock synchronization is required!" << std::endl;
         std::exit( EXIT_FAILURE );
     }
     for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
