@@ -327,7 +327,7 @@ public:
     int SubmitSolution( std::uint32_t blck, const char base[19], const char address[32],
                        char *buffer, std::size_t buffsize ) {
         assert( std::strlen( base ) == 18
-               && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
+               && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
         std::snprintf( buffer, buffsize, "BESTHASH 1 2 3 4 %s %s %d %lld\n", address, base, blck, NOSO_TIMESTAMP );
         return inet_command( m_serv_info, m_timeosec, buffer, buffsize );
     }
