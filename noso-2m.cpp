@@ -272,6 +272,8 @@ public:
 constexpr const char CNosoHasher::hexchars_table[];
 constexpr std::uint16_t CNosoHasher::nosohash_chars_table[];
 
+int inet_init();
+void inet_cleanup();
 int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize );
 
 class CInet {
@@ -1442,7 +1444,41 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
     return mining_pools;
 }
 
-int inet_socket( struct addrinfo *serv_info, int timeosec ) {
+inline int inet_init() {
+    #ifdef _WIN32
+    WSADATA wsaData;
+    return WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != NO_ERROR ? -1 : 0;
+    #endif
+    return 0;
+}
+
+inline void inet_cleanup() {
+    #ifdef _WIN32
+    WSACleanup();
+    #endif
+}
+
+inline void inet_close_socket( int sockfd ) {
+    #ifdef _WIN32
+    closesocket( sockfd );
+    #else
+    close( sockfd );
+    #endif
+}
+
+inline int inet_set_nonblock( int sockfd ) {
+    #ifdef _WIN32
+    u_long mode = 1;
+    if ( ioctlsocket( sockfd, FIONBIO, &mode ) != NO_ERROR ) return -1;
+    #else // LINUX/UNIX
+    int flags = 0;
+    if ( ( flags = fcntl( sockfd, F_GETFL, 0 ) ) < 0 ) return -1;
+    if ( fcntl( sockfd, F_SETFL, flags | O_NONBLOCK ) < 0 ) return -1;
+    #endif // END #ifdef _WIN32
+    return sockfd;
+}
+
+inline int inet_socket( struct addrinfo *serv_info, int timeosec ) {
     struct addrinfo *psi = serv_info;
     struct timeval timeout {
         .tv_sec = timeosec,
@@ -1452,105 +1488,49 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
     fd_set rset, wset;
     for( ; psi != NULL; psi = psi->ai_next ) {
         if ( (sockfd = socket( psi->ai_family, psi->ai_socktype,
-                               psi->ai_protocol ) ) == -1 ) {
-            std::perror( "socket: error" );
+                               psi->ai_protocol ) ) == -1 ) continue;
+        if ( inet_set_nonblock( sockfd ) < 0 ) {
+            inet_close_socket( sockfd );
             continue;
         }
-        #ifdef _WIN32
-        u_long iMode = 1;
-        if ( ioctlsocket( sockfd, FIONBIO, &iMode ) != NO_ERROR ) {
-            closesocket( sockfd );
-            std::perror( "ioctlsocket/socket failed" );
-            continue;
-        }
-        #else
-        int flags = 0;
-        if ( ( flags = fcntl( sockfd, F_GETFL, 0 ) ) < 0 ) {
-            close( sockfd );
-            std::perror( "fcntl/socket failed" );
-            continue;
-        }
-        if ( fcntl( sockfd, F_SETFL, flags | O_NONBLOCK ) < 0 ) {
-            close( sockfd );
-            std::perror( "fcntl/socket failed" );
-            continue;
-        }
-        #endif
-        if ( ( rc = connect( sockfd, psi->ai_addr, psi->ai_addrlen ) ) >= 0 ) {
+        if ( ( rc = connect( sockfd, psi->ai_addr, psi->ai_addrlen ) ) >= 0 )
             return sockfd;
-        }
         #ifdef _WIN32
         if ( rc != SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK ) {
             closesocket( sockfd );
-            std::perror( "connect/socket failed" );
             continue;
         }
-        #else
+        #else // LINUX/UNIX
         if ( errno != EINPROGRESS ) {
             close( sockfd );
-            std::perror( "connect/socket failed" );
             continue;
         }
-        #endif
+        #endif // END #ifdef _WIN32
         FD_ZERO( &rset );
         FD_ZERO( &wset );
         FD_SET( sockfd, &rset );
         FD_SET( sockfd, &wset );
         int n = select( sockfd + 1, &rset, &wset, NULL, &timeout );
-        if ( n == 0 ) {
-            #ifdef _WIN32
-            closesocket( sockfd );
-            #else
-            close( sockfd );
-            #endif
-            std::perror("select/socket timeout");
-            continue;
-        }
-        if ( n == -1 ) {
-            #ifdef _WIN32
-            closesocket( sockfd );
-            #else
-            close( sockfd );
-            #endif
-            std::perror( "select/socket failed" );
-            continue;
-        }
+        if ( n <= 0 ) inet_close_socket( sockfd );
         if ( FD_ISSET( sockfd, &rset ) || FD_ISSET( sockfd, &wset ) ) {
             int error = 0;
             socklen_t slen = sizeof( error );
-            #ifdef _WIN32
             if ( getsockopt( sockfd, SOL_SOCKET, SO_ERROR, (char*)&error, &slen ) < 0 ) {
-            #else
-            if ( getsockopt( sockfd, SOL_SOCKET, SO_ERROR, (char*)&error, &slen ) < 0 ) {
-            #endif
-                #ifdef _WIN32
-                closesocket( sockfd );
-                #else
-                close( sockfd );
-                #endif
-                std::perror( "getsockopt/socket: failed" );
+                inet_close_socket( sockfd );
                 continue;
             }
             if ( error ) {
-                #ifdef _WIN32
-                closesocket( sockfd );
-                #else
-                close( sockfd );
-                #endif
-                std::perror( "getsockopt/socket failed" );
+                inet_close_socket( sockfd );
                 continue;
             }
         }
-        else {
-            std::perror( "select/socket failed" );
-            continue;
-        }
+        else continue;
         return sockfd;
     } // END for( ; psi != NULL; psi = psi->ai_next ) {
     return -1;
 }
 
-int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
+inline int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
@@ -1559,23 +1539,13 @@ int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
     FD_ZERO( &fds );
     FD_SET( sockfd, &fds );
     int n = select( sockfd + 1, NULL, &fds, NULL, &timeout );
-    if ( n == 0 ) {
-        std::perror( "select/send timeout" );
-        return n; // timeout!
-    }
-    if ( n == -1 ) {
-        std::perror( "select/send failed" );
-        return n; // error
-    }
+    if ( n <= 0 ) return n; /* n == 0 timeout, n == -1 socket error */
     int slen = send( sockfd, message, size, 0 );
-    if ( slen <= 0 ) {
-        std::perror( "send failed" );
-        return slen;
-    }
+    if ( slen <= 0 ) return slen; /* slen == 0 timeout, slen == -1 socket error */
     return slen;
 }
 
-int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
+inline int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
@@ -1584,35 +1554,20 @@ int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
     FD_ZERO( &fds );
     FD_SET( sockfd, &fds );
     int n = select( sockfd + 1, &fds, NULL, NULL, &timeout );
-    if ( n == 0 ) {
-        std::perror( "select/recv timeout" );
-        return 0; // timeout!
-    }
-    if ( n == -1 ) {
-        std::perror( "select/recv failed" );
-        return n; // error
-    }
+    if ( n <= 0 ) return n; /* n == 0 timeout, n == -1 socket error */
     int rlen = recv( sockfd, buffer, buffsize - 1, 0 );
-    if ( rlen <= 0 ) {
-        if ( rlen == 0 ) std::perror( "recv timeout" );
-        else  std::perror( "recv failed" );
-        return rlen;
-    }
+    if ( rlen <= 0 ) return rlen; /* rlen == 0 timeout, nlen == -1 socket error */
     buffer[ rlen ] = '\0';
     return rlen;
 }
 
-int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize ) {
+inline int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize ) {
     int sockfd = inet_socket( serv_info, timeosec );
     if ( sockfd < 0 ) return sockfd;
     int rlen = 0;
     int slen = inet_send( sockfd, timeosec, buffer, std::strlen( buffer ) );
     if ( slen > 0 ) rlen = inet_recv( sockfd, timeosec, buffer, buffsize );
-    #ifdef _WIN32
-    closesocket( sockfd );
-    #else
-    close( sockfd );
-    #endif
+    inet_close_socket( sockfd );
     if ( slen <= 0 ) return slen;
     return rlen;
 }
