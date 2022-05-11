@@ -152,14 +152,15 @@ private:
 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
     };
     inline void _hash() {
-        int row, col;
+        int row, col, row1;
         for( row = 1; row < 129; row++ ) {
+            row1 = row-1;
             for( col = 0; col < 127; col++ ) {
-                // m_stat[row][col] = nosohash_char(        m_stat[row-1][col] + m_stat[row-1][col+1] );
-                m_stat[row][col] = nosohash_chars_table[ m_stat[row-1][col] + m_stat[row-1][col+1] ];
+                // m_stat[row][col] = nosohash_char(        m_stat[row1][col] + m_stat[row1][col+1] );
+                m_stat[row][col] = nosohash_chars_table[ m_stat[row1][col] + m_stat[row1][col+1] ];
             }
-            // m_stat[row][127] = nosohash_char(        m_stat[row-1][127] + m_stat[row-1][0] );
-            m_stat[row][127] = nosohash_chars_table[ m_stat[row-1][127] + m_stat[row-1][0] ];
+            // m_stat[row][127] = nosohash_char(        m_stat[row1][127] + m_stat[row1][0] );
+            m_stat[row][127] = nosohash_chars_table[ m_stat[row1][127] + m_stat[row1][0] ];
         }
         int i;
         for( i = 0; i < 32; i++ )
