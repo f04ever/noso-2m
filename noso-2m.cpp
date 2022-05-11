@@ -162,18 +162,50 @@ private:
             // m_stat[row][127] = nosohash_char(        m_stat[row1][127] + m_stat[row1][0] );
             m_stat[row][127] = nosohash_chars_table[ m_stat[row1][127] + m_stat[row1][0] ];
         }
-        int i;
-        for( i = 0; i < 32; i++ )
-            // m_hash[i] = hex_dec2char( nosohash_char(
-            //                             m_stat[128][ ( i * 4 ) + 0 ] +
-            //                             m_stat[128][ ( i * 4 ) + 1 ] +
-            //                             m_stat[128][ ( i * 4 ) + 2 ] +
-            //                             m_stat[128][ ( i * 4 ) + 3 ] ) % 16 );
-            m_hash[i] = hex_dec2char( nosohash_chars_table[
-                                        m_stat[128][ ( i * 4 ) + 0 ] +
-                                        m_stat[128][ ( i * 4 ) + 1 ] +
-                                        m_stat[128][ ( i * 4 ) + 2 ] +
-                                        m_stat[128][ ( i * 4 ) + 3 ] ] % 16 );
+        // int i;
+        // for( i = 0; i < 32; i++ )
+        //     // m_hash[i] = hex_dec2char( nosohash_char(
+        //     //                             m_stat[128][ ( i * 4 ) + 0 ] +
+        //     //                             m_stat[128][ ( i * 4 ) + 1 ] +
+        //     //                             m_stat[128][ ( i * 4 ) + 2 ] +
+        //     //                             m_stat[128][ ( i * 4 ) + 3 ] ) % 16 );
+        //     m_hash[i] = hex_dec2char( nosohash_chars_table[
+        //                                 m_stat[128][ ( i * 4 ) + 0 ] +
+        //                                 m_stat[128][ ( i * 4 ) + 1 ] +
+        //                                 m_stat[128][ ( i * 4 ) + 2 ] +
+        //                                 m_stat[128][ ( i * 4 ) + 3 ] ] % 16 );
+        m_hash[ 0] = hex_dec2char( nosohash_chars_table[ m_stat[128][  0] + m_stat[128][  1] + m_stat[128][  2] + m_stat[128][  3] ] % 16 );
+        m_hash[ 1] = hex_dec2char( nosohash_chars_table[ m_stat[128][  4] + m_stat[128][  5] + m_stat[128][  6] + m_stat[128][  7] ] % 16 );
+        m_hash[ 2] = hex_dec2char( nosohash_chars_table[ m_stat[128][  8] + m_stat[128][  9] + m_stat[128][ 10] + m_stat[128][ 11] ] % 16 );
+        m_hash[ 3] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 12] + m_stat[128][ 13] + m_stat[128][ 14] + m_stat[128][ 15] ] % 16 );
+        m_hash[ 4] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 16] + m_stat[128][ 17] + m_stat[128][ 18] + m_stat[128][ 19] ] % 16 );
+        m_hash[ 5] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 20] + m_stat[128][ 21] + m_stat[128][ 22] + m_stat[128][ 23] ] % 16 );
+        m_hash[ 6] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 24] + m_stat[128][ 25] + m_stat[128][ 26] + m_stat[128][ 27] ] % 16 );
+        m_hash[ 7] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 28] + m_stat[128][ 29] + m_stat[128][ 30] + m_stat[128][ 31] ] % 16 );
+        m_hash[ 8] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 32] + m_stat[128][ 33] + m_stat[128][ 34] + m_stat[128][ 35] ] % 16 );
+        m_hash[ 9] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 36] + m_stat[128][ 37] + m_stat[128][ 38] + m_stat[128][ 39] ] % 16 );
+        m_hash[10] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 40] + m_stat[128][ 41] + m_stat[128][ 42] + m_stat[128][ 43] ] % 16 );
+        m_hash[11] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 44] + m_stat[128][ 45] + m_stat[128][ 46] + m_stat[128][ 47] ] % 16 );
+        m_hash[12] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 48] + m_stat[128][ 49] + m_stat[128][ 50] + m_stat[128][ 51] ] % 16 );
+        m_hash[13] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 52] + m_stat[128][ 53] + m_stat[128][ 54] + m_stat[128][ 55] ] % 16 );
+        m_hash[14] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 56] + m_stat[128][ 57] + m_stat[128][ 58] + m_stat[128][ 59] ] % 16 );
+        m_hash[15] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 60] + m_stat[128][ 61] + m_stat[128][ 62] + m_stat[128][ 63] ] % 16 );
+        m_hash[16] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 64] + m_stat[128][ 65] + m_stat[128][ 66] + m_stat[128][ 67] ] % 16 );
+        m_hash[17] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 68] + m_stat[128][ 69] + m_stat[128][ 70] + m_stat[128][ 71] ] % 16 );
+        m_hash[18] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 72] + m_stat[128][ 73] + m_stat[128][ 74] + m_stat[128][ 75] ] % 16 );
+        m_hash[19] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 76] + m_stat[128][ 77] + m_stat[128][ 78] + m_stat[128][ 79] ] % 16 );
+        m_hash[20] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 80] + m_stat[128][ 81] + m_stat[128][ 82] + m_stat[128][ 83] ] % 16 );
+        m_hash[21] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 84] + m_stat[128][ 85] + m_stat[128][ 86] + m_stat[128][ 87] ] % 16 );
+        m_hash[22] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 88] + m_stat[128][ 89] + m_stat[128][ 90] + m_stat[128][ 91] ] % 16 );
+        m_hash[23] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 92] + m_stat[128][ 93] + m_stat[128][ 94] + m_stat[128][ 95] ] % 16 );
+        m_hash[24] = hex_dec2char( nosohash_chars_table[ m_stat[128][ 96] + m_stat[128][ 97] + m_stat[128][ 98] + m_stat[128][ 99] ] % 16 );
+        m_hash[25] = hex_dec2char( nosohash_chars_table[ m_stat[128][100] + m_stat[128][101] + m_stat[128][102] + m_stat[128][103] ] % 16 );
+        m_hash[26] = hex_dec2char( nosohash_chars_table[ m_stat[128][104] + m_stat[128][105] + m_stat[128][106] + m_stat[128][107] ] % 16 );
+        m_hash[27] = hex_dec2char( nosohash_chars_table[ m_stat[128][108] + m_stat[128][109] + m_stat[128][110] + m_stat[128][111] ] % 16 );
+        m_hash[28] = hex_dec2char( nosohash_chars_table[ m_stat[128][112] + m_stat[128][113] + m_stat[128][114] + m_stat[128][115] ] % 16 );
+        m_hash[29] = hex_dec2char( nosohash_chars_table[ m_stat[128][116] + m_stat[128][117] + m_stat[128][118] + m_stat[128][119] ] % 16 );
+        m_hash[30] = hex_dec2char( nosohash_chars_table[ m_stat[128][120] + m_stat[128][121] + m_stat[128][122] + m_stat[128][123] ] % 16 );
+        m_hash[31] = hex_dec2char( nosohash_chars_table[ m_stat[128][124] + m_stat[128][125] + m_stat[128][126] + m_stat[128][127] ] % 16 );
         m_hash[32] = '\0';
         assert( std::strlen( m_hash ) == 32 );
     }
