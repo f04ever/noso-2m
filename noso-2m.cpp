@@ -627,6 +627,7 @@ public:
         m_condv_summary.notify_one();
     }
     void WaitTarget();
+    void DoneTarget();
     void NewTarget( const std::shared_ptr<CTarget> &target );
     void SetBlockSummary( std::uint32_t hashes_count, double duration );
     std::tuple<std::uint32_t, double> GetBlockSummary();
@@ -875,19 +876,20 @@ int main( int argc, char *argv[] ) {
 
 void CMineThread::SetBlockSummary( std::uint32_t hashes_count, double duration ) {
     m_mutex_summary.lock();
-    m_computed_hashes_count = hashes_count;
     m_block_mining_duration = duration;
+    m_computed_hashes_count = hashes_count;
     m_mutex_summary.unlock();
     m_condv_summary.notify_one();
 }
 
 std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
-    std::unique_lock summary_lock( m_mutex_summary );
-    m_condv_summary.wait( summary_lock, [&]{ return !g_still_running || m_computed_hashes_count > 0; } );
-    summary_lock.unlock();
+    std::unique_lock unique_lock_summary_lock( m_mutex_summary );
+    m_condv_summary.wait( unique_lock_summary_lock, [&]{
+                             return !g_still_running || m_computed_hashes_count > 0; } );
     auto summary = std::make_tuple( m_computed_hashes_count, m_block_mining_duration );
     m_computed_hashes_count = 0;
     m_block_mining_duration = 0.;
+    unique_lock_summary_lock.unlock();
     return summary;
 }
 
@@ -895,6 +897,12 @@ void CMineThread::WaitTarget() {
     std::unique_lock blck_no_blck_no( m_mutex_blck_no );
     m_condv_blck_no.wait( blck_no_blck_no, [&]{ return !g_still_running || m_blck_no > 0; } );
     blck_no_blck_no.unlock();
+}
+
+void CMineThread::DoneTarget() {
+    std::unique_lock unique_lock_blck_no( m_mutex_blck_no );
+    m_blck_no = 0;
+    unique_lock_blck_no.unlock();
 }
 
 void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
@@ -936,7 +944,7 @@ void CMineThread::Mine() {
         }
         std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
         this->SetBlockSummary( noso_hash_counter, elapsed_mining.count() );
-        m_blck_no = 0;
+        this->DoneTarget();
     } // END while ( g_still_running ) {
 }
 
