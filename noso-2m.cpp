@@ -51,7 +51,6 @@
 #define INET_CIRCLE_SECONDS 0.1
 #define INET_BUFFER_SIZE 1024
 
-#define NOSOHASH_COUNTER_MIN 100'000'000
 #define NOSO_NUL_HASH "00000000000000000000000000000000"
 #define NOSO_MAX_DIFF "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 #define NOSO_TIMESTAMP ( (long long)( std::time( 0 ) ) )
@@ -283,10 +282,10 @@ public:
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
     }
     const char* GetBase( std::uint32_t counter ) {
-        // TODO consider case counter > 999'999'999 => base len > 18. Currently
-        // it does not happen, each single thread can hash/search under
-        // 700'000'000 hashes each block
-        std::sprintf( m_base + 9, "%09d", NOSOHASH_COUNTER_MIN + counter ); // update 9-digits-counter part
+        // TODO consider case counter > 999'999'999 => base len > 18.
+        // Currently that does not happen, since each single thread can hash
+        // about 700'000'000 (and less) hashes each block approximately
+        std::sprintf( m_base + 9, "%09d", counter ); // update 9-digits-counter part
         assert( std::strlen( m_base ) == 18 ); // 18 = 9 + 9 = 9-chars-prefix + 9-digits-counter
         std::memcpy( m_stat[0] + 9, m_base + 9, 9 );  // update the 9-digits-counter part as it was updated in base
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
