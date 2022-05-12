@@ -58,7 +58,7 @@
 
 #define COUT_NOSO_TIME std::cout << NOSO_TIMESTAMP << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << "))"
 
-const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
+static const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
         { "45.146.252.103"  ,   "8080" },
         { "109.230.238.240" ,   "8080" },
         { "194.156.88.117"  ,   "8080" },
@@ -71,52 +71,26 @@ const std::vector<std::tuple<std::string, std::string>> g_default_nodes {
         { "107.174.137.27"  ,   "8080" },
     }; // seed nodes
 
-const std::vector<std::tuple<std::string, std::string, std::string>> g_default_pools {
+static const std::vector<std::tuple<std::string, std::string, std::string>> g_default_pools {
         { "f04ever", "209.126.80.203", "8082" },
         { "devnoso", "45.146.252.103", "8082" },
     };
 
-const char NOSOHASH_HASHEABLE_CHARS[] {
+constexpr static const char NOSOHASH_HASHEABLE_CHARS[] {
     "!\"#$%&')*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" };
-const std::size_t NOSOHASH_HASHEABLE_COUNT =  93 - 1; // std::strlen( NOSOHASH_HASHEABLE_COUNT );
+constexpr static const std::size_t NOSOHASH_HASHEABLE_COUNT =  92;
 inline std::string nosohash_prefix( int num ) {
     return std::string {
         NOSOHASH_HASHEABLE_CHARS[ num / NOSOHASH_HASHEABLE_COUNT ],
         NOSOHASH_HASHEABLE_CHARS[ num % NOSOHASH_HASHEABLE_COUNT ], };
 }
 
-// inline int nosohash_chars( int num ) {
-//     assert( 32 <= num && num <= 504 );
-//     while ( num > 126 ) num -= 95;
-//     assert( 32 <= num && num <= 126 );
-//     return num;
-// };
-
-// #ifndef NDEBUG
-// constexpr static const std::array<char, 16> HEXCHAR_DOMAIN { '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
-// #endif
-// inline int hex_char2dec( char hexchar ) {
-//     assert( std::find( HEXCHAR_DOMAIN.begin(), HEXCHAR_DOMAIN.end(), hexchar ) != HEXCHAR_DOMAIN.end() );
-//     return  ( '0' <= hexchar && hexchar <= '9' ) ? hexchar - '0' :
-//             ( 'A' <= hexchar && hexchar <= 'F' ) ? hexchar - 'A' + 10 : 0;
-// }
-
-// #ifndef NDEBUG
-// constexpr static const std::array<int, 16> HEXDEC_DOMAIN{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-// #endif
-// inline char hex_dec2char( int hexdec ) {
-//     assert( std::find( HEXDEC_DOMAIN.begin(), HEXDEC_DOMAIN.end(), hexdec ) != HEXDEC_DOMAIN.end() );
-//     return  (  0 <= hexdec && hexdec <=  9 ) ? hexdec + '0' :
-//             ( 10 <= hexdec && hexdec <= 15 ) ? hexdec + 'A' - 10 : '\0';
-// }
-
 class CNosoHasher {
 private:
-    char m_base[19]; // 18 = 9-chars-prefix + 9-chars-counter
+    char m_base[19];
     char m_hash[33];
     char m_diff[33];
-    char m_stat[129][128]; // 1+128 rows x 128 columns
-    // the 1st row is the input of hash function with len = 128 = 9-chars-prefix + 9 chars-counter + 30/31-chars-address + N-fill-chars rest
+    char m_stat[129][128];
     MD5Context m_md5_ctx;
     constexpr static const char hex_dec2char_table[] {
 '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
@@ -130,13 +104,6 @@ private:
  3,   4,   5,   6,   7,   8,   9,   0,   0,   0,
  0,   0,   0,   0,  10,  11,  12,  13,  14,  15, };
     constexpr static std::uint16_t nosohash_chars_table[505] {
-    // for ( int i = 0; i < 505; ++i ) {    // as 4 * 126 = 504 maximum value
-    //     int n = i >= 32 ? i : 0;
-    //     while ( n > 126 ) n -= 95;       // as 127 - 95 =  32 minimum value
-    //     // std::cout << std::setw( 3 ) << i << ", ";
-    //     std::cout << std::setw( 3 ) << n << ", ";
-    //     if ( i % 24 == 0 ) std::cout << std::endl;
-    // }
   0,
   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
   0,   0,   0,   0,   0,   0,   0,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,
@@ -164,30 +131,10 @@ private:
         int row, col, row1;
         for( row = 1; row < 129; row++ ) {
             row1 = row-1;
-            for( col = 0; col < 127; col++ ) {
-                // m_stat[row][col] = nosohash_chars(        m_stat[row1][col] + m_stat[row1][col+1] );
+            for( col = 0; col < 127; col++ )
                 m_stat[row][col] = nosohash_chars_table[ m_stat[row1][col] + m_stat[row1][col+1] ];
-            }
-            // m_stat[row][127] = nosohash_chars(        m_stat[row1][127] + m_stat[row1][0] );
             m_stat[row][127] = nosohash_chars_table[ m_stat[row1][127] + m_stat[row1][0] ];
         }
-        // int i;
-        // for( i = 0; i < 32; i++ )
-        //     // // m_hash[i] = hex_dec2char( nosohash_chars(
-        //     // //                             m_stat[128][ ( i * 4 ) + 0 ] +
-        //     // //                             m_stat[128][ ( i * 4 ) + 1 ] +
-        //     // //                             m_stat[128][ ( i * 4 ) + 2 ] +
-        //     // //                             m_stat[128][ ( i * 4 ) + 3 ] ) % 16 );
-        //     // m_hash[i] = hex_dec2char( nosohash_chars_table[
-        //     //                             m_stat[128][ ( i * 4 ) + 0 ] +
-        //     //                             m_stat[128][ ( i * 4 ) + 1 ] +
-        //     //                             m_stat[128][ ( i * 4 ) + 2 ] +
-        //     //                             m_stat[128][ ( i * 4 ) + 3 ] ] % 16 );
-        //     m_hash[i] = hex_dec2char_table[ nosohash_chars_table[
-        //                                 m_stat[128][ ( i * 4 ) + 0 ] +
-        //                                 m_stat[128][ ( i * 4 ) + 1 ] +
-        //                                 m_stat[128][ ( i * 4 ) + 2 ] +
-        //                                 m_stat[128][ ( i * 4 ) + 3 ] ] % 16 ];
         m_hash[ 0] = hex_dec2char_table[ nosohash_chars_table[ m_stat[128][  0] + m_stat[128][  1] + m_stat[128][  2] + m_stat[128][  3] ] % 16 ];
         m_hash[ 1] = hex_dec2char_table[ nosohash_chars_table[ m_stat[128][  4] + m_stat[128][  5] + m_stat[128][  6] + m_stat[128][  7] ] % 16 ];
         m_hash[ 2] = hex_dec2char_table[ nosohash_chars_table[ m_stat[128][  8] + m_stat[128][  9] + m_stat[128][ 10] + m_stat[128][ 11] ] % 16 ];
@@ -221,23 +168,12 @@ private:
         m_hash[30] = hex_dec2char_table[ nosohash_chars_table[ m_stat[128][120] + m_stat[128][121] + m_stat[128][122] + m_stat[128][123] ] % 16 ];
         m_hash[31] = hex_dec2char_table[ nosohash_chars_table[ m_stat[128][124] + m_stat[128][125] + m_stat[128][126] + m_stat[128][127] ] % 16 ];
         m_hash[32] = '\0';
-        assert( std::strlen( m_hash ) == 32 );
     }
     inline void _md5() {
         assert( std::strlen( m_hash ) == 32 );
         md5Init( &m_md5_ctx );
         md5Update( &m_md5_ctx, (uint8_t *)m_hash, 32 );
         md5Finalize( &m_md5_ctx );
-        // std::sprintf( m_hash,
-        //             "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-        //             m_md5_ctx.digest[ 0], m_md5_ctx.digest[ 1],
-        //             m_md5_ctx.digest[ 2], m_md5_ctx.digest[ 3],
-        //             m_md5_ctx.digest[ 4], m_md5_ctx.digest[ 5],
-        //             m_md5_ctx.digest[ 6], m_md5_ctx.digest[ 7],
-        //             m_md5_ctx.digest[ 8], m_md5_ctx.digest[ 9],
-        //             m_md5_ctx.digest[10], m_md5_ctx.digest[11],
-        //             m_md5_ctx.digest[12], m_md5_ctx.digest[13],
-        //             m_md5_ctx.digest[14], m_md5_ctx.digest[15] );
         m_hash[ 0] = hex_dec2char_table[m_md5_ctx.digest[ 0] >>  4];
         m_hash[ 1] = hex_dec2char_table[m_md5_ctx.digest[ 0] & 0xF];
         m_hash[ 2] = hex_dec2char_table[m_md5_ctx.digest[ 1] >>  4];
@@ -271,22 +207,21 @@ private:
         m_hash[30] = hex_dec2char_table[m_md5_ctx.digest[15] >>  4];
         m_hash[31] = hex_dec2char_table[m_md5_ctx.digest[15] & 0xF];
         m_hash[32] = '\0';
-        assert( std::strlen( m_hash ) == 32 );
     }
 public:
     CNosoHasher( const char prefix[10], const char address[32] ) {
         constexpr static const char NOSOHASH_FILLER_CHARS[] = "%)+/5;=CGIOSYaegk";
-        constexpr static const int NOSOHASH_FILLER_COUNT = 17; // std::strlen( NOSOHASH_FILLER_CHARS );
+        constexpr static const int NOSOHASH_FILLER_COUNT = 17;
         assert( std::strlen( prefix ) == 9
                && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
         std::memcpy( m_base, prefix, 9 );
-        std::sprintf( m_base + 9, "%09d", 0 ); // placehold for 9-digits-counter
-        assert( std::strlen( m_base ) == 18 ); // 18 = 9 + 9 = 9-chars-prefix + 9-digits-counter
-        int addr_len = std::strlen( address );
+        std::sprintf( m_base + 9, "%09d", 0 );
+        assert( std::strlen( m_base ) == 18 );
+        int addr_len = 30 + (address[30] ? 1 : 0);
         std::memcpy( m_stat[0], m_base, 9 );
-        std::memcpy( m_stat[0] + 9, m_base + 9, 9 );  // update the 9-digits-counter part as the same as it is updated in base
+        std::memcpy( m_stat[0] + 9, m_base + 9, 9 );
         std::memcpy( m_stat[0] + 9 + 9, address, addr_len );
-        int len = 18 + addr_len; // 48/49 = 9 + 9 + 30/31 = 9-chars-prefix + 9-digits-counter + 30/31-chars-address
+        int len = 18 + addr_len;
         int div = ( 128 - len ) / NOSOHASH_FILLER_COUNT;
         int mod = ( 128 - len ) % NOSOHASH_FILLER_COUNT;
         for ( int i = 0; i < div; i++ ) {
@@ -297,56 +232,19 @@ public:
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
     }
     const char* GetBase( std::uint32_t counter ) {
-        // TODO consider case counter > 999'999'999 => base len > 18.
-        // Currently that does not happen, since each single thread can hash
-        // about 700'000'000 (and less) hashes each block approximately
-        std::sprintf( m_base + 9, "%09d", counter ); // update 9-digits-counter part
-        assert( std::strlen( m_base ) == 18 ); // 18 = 9 + 9 = 9-chars-prefix + 9-digits-counter
-        std::memcpy( m_stat[0] + 9, m_base + 9, 9 );  // update the 9-digits-counter part as it was updated in base
+        std::sprintf( m_base + 9, "%09d", counter );
+        assert( std::strlen( m_base ) == 18 );
+        std::memcpy( m_stat[0] + 9, m_base + 9, 9 );
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
         return m_base;
     }
     const char* GetHash() {
-        _hash();
-        _md5();
+        this->_hash();
+        this->_md5();
         return m_hash;
     }
     const char* GetDiff( const char target[33] ) {
         assert( std::strlen( m_hash ) == 32 && std::strlen( target ) == 32 );
-        // for ( std::size_t i = 0; i < 32; i ++ )
-        //     m_diff[i] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[i] ) - hex_char2dec( target[i] ) ) ) );
-        // m_diff[ 0] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 0] ) - hex_char2dec( target[ 0] ) ) ) );
-        // m_diff[ 1] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 1] ) - hex_char2dec( target[ 1] ) ) ) );
-        // m_diff[ 2] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 2] ) - hex_char2dec( target[ 2] ) ) ) );
-        // m_diff[ 3] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 3] ) - hex_char2dec( target[ 3] ) ) ) );
-        // m_diff[ 4] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 4] ) - hex_char2dec( target[ 4] ) ) ) );
-        // m_diff[ 5] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 5] ) - hex_char2dec( target[ 5] ) ) ) );
-        // m_diff[ 6] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 6] ) - hex_char2dec( target[ 6] ) ) ) );
-        // m_diff[ 7] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 7] ) - hex_char2dec( target[ 7] ) ) ) );
-        // m_diff[ 8] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 8] ) - hex_char2dec( target[ 8] ) ) ) );
-        // m_diff[ 9] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[ 9] ) - hex_char2dec( target[ 9] ) ) ) );
-        // m_diff[10] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[10] ) - hex_char2dec( target[10] ) ) ) );
-        // m_diff[11] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[11] ) - hex_char2dec( target[11] ) ) ) );
-        // m_diff[12] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[12] ) - hex_char2dec( target[12] ) ) ) );
-        // m_diff[13] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[13] ) - hex_char2dec( target[13] ) ) ) );
-        // m_diff[14] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[14] ) - hex_char2dec( target[14] ) ) ) );
-        // m_diff[15] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[15] ) - hex_char2dec( target[15] ) ) ) );
-        // m_diff[16] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[16] ) - hex_char2dec( target[16] ) ) ) );
-        // m_diff[17] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[17] ) - hex_char2dec( target[17] ) ) ) );
-        // m_diff[18] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[18] ) - hex_char2dec( target[18] ) ) ) );
-        // m_diff[19] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[19] ) - hex_char2dec( target[19] ) ) ) );
-        // m_diff[20] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[20] ) - hex_char2dec( target[20] ) ) ) );
-        // m_diff[21] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[21] ) - hex_char2dec( target[21] ) ) ) );
-        // m_diff[22] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[22] ) - hex_char2dec( target[22] ) ) ) );
-        // m_diff[23] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[23] ) - hex_char2dec( target[23] ) ) ) );
-        // m_diff[24] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[24] ) - hex_char2dec( target[24] ) ) ) );
-        // m_diff[25] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[25] ) - hex_char2dec( target[25] ) ) ) );
-        // m_diff[26] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[26] ) - hex_char2dec( target[26] ) ) ) );
-        // m_diff[27] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[27] ) - hex_char2dec( target[27] ) ) ) );
-        // m_diff[28] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[28] ) - hex_char2dec( target[28] ) ) ) );
-        // m_diff[29] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[29] ) - hex_char2dec( target[29] ) ) ) );
-        // m_diff[30] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[30] ) - hex_char2dec( target[30] ) ) ) );
-        // m_diff[31] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[31] ) - hex_char2dec( target[31] ) ) ) );
         m_diff[ 0] = hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 0] ] - hex_char2dec_table[ (int)target[ 0] ] ) ];
         m_diff[ 1] = hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 1] ] - hex_char2dec_table[ (int)target[ 1] ] ) ];
         m_diff[ 2] = hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 2] ] - hex_char2dec_table[ (int)target[ 2] ] ) ];
@@ -380,12 +278,12 @@ public:
         m_diff[30] = hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[30] ] - hex_char2dec_table[ (int)target[30] ] ) ];
         m_diff[31] = hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[31] ] - hex_char2dec_table[ (int)target[31] ] ) ];
         m_diff[32] = '\0';
-        assert( std::strlen( m_diff ) == 32 );
         return m_diff;
     }
 };
 constexpr const char CNosoHasher::hex_dec2char_table[];
 constexpr const char CNosoHasher::hex_char2dec_table[];
+constexpr const std::uint16_t CNosoHasher::nosohash_chars_table[];
 
 int inet_init();
 void inet_cleanup();
