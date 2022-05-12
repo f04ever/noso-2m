@@ -85,12 +85,12 @@ inline std::string nosohash_prefix( int num ) {
         NOSOHASH_HASHEABLE_CHARS[ num % NOSOHASH_HASHEABLE_COUNT ], };
 }
 
-inline int nosohash_char( int num ) {
-    assert( 32 <= num && num <= 504 );
-    while ( num > 126 ) num -= 95;
-    assert( 32 <= num && num <= 126 );
-    return num;
-};
+// inline int nosohash_chars( int num ) {
+//     assert( 32 <= num && num <= 504 );
+//     while ( num > 126 ) num -= 95;
+//     assert( 32 <= num && num <= 126 );
+//     return num;
+// };
 
 #ifndef NDEBUG
 const std::array<char, 16> HEXCHAR_DOMAIN { '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
@@ -155,15 +155,20 @@ private:
         for( row = 1; row < 129; row++ ) {
             row1 = row-1;
             for( col = 0; col < 127; col++ ) {
-                // m_stat[row][col] = nosohash_char(        m_stat[row1][col] + m_stat[row1][col+1] );
+                // m_stat[row][col] = nosohash_chars(        m_stat[row1][col] + m_stat[row1][col+1] );
                 m_stat[row][col] = nosohash_chars_table[ m_stat[row1][col] + m_stat[row1][col+1] ];
             }
-            // m_stat[row][127] = nosohash_char(        m_stat[row1][127] + m_stat[row1][0] );
+            // m_stat[row][127] = nosohash_chars(        m_stat[row1][127] + m_stat[row1][0] );
             m_stat[row][127] = nosohash_chars_table[ m_stat[row1][127] + m_stat[row1][0] ];
         }
         // int i;
         // for( i = 0; i < 32; i++ )
-        //     // m_hash[i] = hex_dec2char( nosohash_char(
+        //     // // m_hash[i] = hex_dec2char( nosohash_chars(
+        //     // //                             m_stat[128][ ( i * 4 ) + 0 ] +
+        //     // //                             m_stat[128][ ( i * 4 ) + 1 ] +
+        //     // //                             m_stat[128][ ( i * 4 ) + 2 ] +
+        //     // //                             m_stat[128][ ( i * 4 ) + 3 ] ) % 16 );
+        //     // m_hash[i] = hex_dec2char( nosohash_chars_table[
         //     //                             m_stat[128][ ( i * 4 ) + 0 ] +
         //     //                             m_stat[128][ ( i * 4 ) + 1 ] +
         //     //                             m_stat[128][ ( i * 4 ) + 2 ] +
