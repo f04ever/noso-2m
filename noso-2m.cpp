@@ -92,14 +92,14 @@ inline std::string nosohash_prefix( int num ) {
 //     return num;
 // };
 
-#ifndef NDEBUG
-const std::array<char, 16> HEXCHAR_DOMAIN { '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
-#endif
-inline int hex_char2dec( char hexchar ) {
-    assert( std::find( HEXCHAR_DOMAIN.begin(), HEXCHAR_DOMAIN.end(), hexchar ) != HEXCHAR_DOMAIN.end() );
-    return  ( '0' <= hexchar && hexchar <= '9' ) ? hexchar - '0' :
-            ( 'A' <= hexchar && hexchar <= 'F' ) ? hexchar - 'A' + 10 : 0;
-}
+// #ifndef NDEBUG
+// constexpr static const std::array<char, 16> HEXCHAR_DOMAIN { '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
+// #endif
+// inline int hex_char2dec( char hexchar ) {
+//     assert( std::find( HEXCHAR_DOMAIN.begin(), HEXCHAR_DOMAIN.end(), hexchar ) != HEXCHAR_DOMAIN.end() );
+//     return  ( '0' <= hexchar && hexchar <= '9' ) ? hexchar - '0' :
+//             ( 'A' <= hexchar && hexchar <= 'F' ) ? hexchar - 'A' + 10 : 0;
+// }
 
 // #ifndef NDEBUG
 // constexpr static const std::array<int, 16> HEXDEC_DOMAIN{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
@@ -120,6 +120,15 @@ private:
     MD5Context m_md5_ctx;
     constexpr static const char hex_dec2char_table[] {
 '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
+    constexpr static const char hex_char2dec_table[] {
+ 0,
+ 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+ 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+ 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+ 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+ 0,   0,   0,   0,   0,   0,   0,   0,   1,   2,
+ 3,   4,   5,   6,   7,   8,   9,   0,   0,   0,
+ 0,   0,   0,   0,  10,  11,  12,  13,  14,  15, };
     constexpr static std::uint16_t nosohash_chars_table[505] {
     // for ( int i = 0; i < 505; ++i ) {    // as 4 * 126 = 504 maximum value
     //     int n = i >= 32 ? i : 0;
@@ -338,45 +347,45 @@ public:
         // m_diff[29] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[29] ) - hex_char2dec( target[29] ) ) ) );
         // m_diff[30] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[30] ) - hex_char2dec( target[30] ) ) ) );
         // m_diff[31] = std::toupper( hex_dec2char( std::abs( hex_char2dec( m_hash[31] ) - hex_char2dec( target[31] ) ) ) );
-        m_diff[ 0] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 0] ) - hex_char2dec( target[ 0] ) ) ] );
-        m_diff[ 1] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 1] ) - hex_char2dec( target[ 1] ) ) ] );
-        m_diff[ 2] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 2] ) - hex_char2dec( target[ 2] ) ) ] );
-        m_diff[ 3] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 3] ) - hex_char2dec( target[ 3] ) ) ] );
-        m_diff[ 4] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 4] ) - hex_char2dec( target[ 4] ) ) ] );
-        m_diff[ 5] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 5] ) - hex_char2dec( target[ 5] ) ) ] );
-        m_diff[ 6] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 6] ) - hex_char2dec( target[ 6] ) ) ] );
-        m_diff[ 7] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 7] ) - hex_char2dec( target[ 7] ) ) ] );
-        m_diff[ 8] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 8] ) - hex_char2dec( target[ 8] ) ) ] );
-        m_diff[ 9] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[ 9] ) - hex_char2dec( target[ 9] ) ) ] );
-        m_diff[10] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[10] ) - hex_char2dec( target[10] ) ) ] );
-        m_diff[11] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[11] ) - hex_char2dec( target[11] ) ) ] );
-        m_diff[12] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[12] ) - hex_char2dec( target[12] ) ) ] );
-        m_diff[13] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[13] ) - hex_char2dec( target[13] ) ) ] );
-        m_diff[14] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[14] ) - hex_char2dec( target[14] ) ) ] );
-        m_diff[15] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[15] ) - hex_char2dec( target[15] ) ) ] );
-        m_diff[16] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[16] ) - hex_char2dec( target[16] ) ) ] );
-        m_diff[17] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[17] ) - hex_char2dec( target[17] ) ) ] );
-        m_diff[18] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[18] ) - hex_char2dec( target[18] ) ) ] );
-        m_diff[19] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[19] ) - hex_char2dec( target[19] ) ) ] );
-        m_diff[20] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[20] ) - hex_char2dec( target[20] ) ) ] );
-        m_diff[21] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[21] ) - hex_char2dec( target[21] ) ) ] );
-        m_diff[22] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[22] ) - hex_char2dec( target[22] ) ) ] );
-        m_diff[23] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[23] ) - hex_char2dec( target[23] ) ) ] );
-        m_diff[24] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[24] ) - hex_char2dec( target[24] ) ) ] );
-        m_diff[25] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[25] ) - hex_char2dec( target[25] ) ) ] );
-        m_diff[26] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[26] ) - hex_char2dec( target[26] ) ) ] );
-        m_diff[27] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[27] ) - hex_char2dec( target[27] ) ) ] );
-        m_diff[28] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[28] ) - hex_char2dec( target[28] ) ) ] );
-        m_diff[29] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[29] ) - hex_char2dec( target[29] ) ) ] );
-        m_diff[30] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[30] ) - hex_char2dec( target[30] ) ) ] );
-        m_diff[31] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec( m_hash[31] ) - hex_char2dec( target[31] ) ) ] );
+        m_diff[ 0] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 0] ] - hex_char2dec_table[ (int)target[ 0] ] ) ] );
+        m_diff[ 1] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 1] ] - hex_char2dec_table[ (int)target[ 1] ] ) ] );
+        m_diff[ 2] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 2] ] - hex_char2dec_table[ (int)target[ 2] ] ) ] );
+        m_diff[ 3] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 3] ] - hex_char2dec_table[ (int)target[ 3] ] ) ] );
+        m_diff[ 4] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 4] ] - hex_char2dec_table[ (int)target[ 4] ] ) ] );
+        m_diff[ 5] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 5] ] - hex_char2dec_table[ (int)target[ 5] ] ) ] );
+        m_diff[ 6] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 6] ] - hex_char2dec_table[ (int)target[ 6] ] ) ] );
+        m_diff[ 7] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 7] ] - hex_char2dec_table[ (int)target[ 7] ] ) ] );
+        m_diff[ 8] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 8] ] - hex_char2dec_table[ (int)target[ 8] ] ) ] );
+        m_diff[ 9] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[ 9] ] - hex_char2dec_table[ (int)target[ 9] ] ) ] );
+        m_diff[10] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[10] ] - hex_char2dec_table[ (int)target[10] ] ) ] );
+        m_diff[11] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[11] ] - hex_char2dec_table[ (int)target[11] ] ) ] );
+        m_diff[12] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[12] ] - hex_char2dec_table[ (int)target[12] ] ) ] );
+        m_diff[13] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[13] ] - hex_char2dec_table[ (int)target[13] ] ) ] );
+        m_diff[14] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[14] ] - hex_char2dec_table[ (int)target[14] ] ) ] );
+        m_diff[15] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[15] ] - hex_char2dec_table[ (int)target[15] ] ) ] );
+        m_diff[16] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[16] ] - hex_char2dec_table[ (int)target[16] ] ) ] );
+        m_diff[17] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[17] ] - hex_char2dec_table[ (int)target[17] ] ) ] );
+        m_diff[18] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[18] ] - hex_char2dec_table[ (int)target[18] ] ) ] );
+        m_diff[19] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[19] ] - hex_char2dec_table[ (int)target[19] ] ) ] );
+        m_diff[20] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[20] ] - hex_char2dec_table[ (int)target[20] ] ) ] );
+        m_diff[21] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[21] ] - hex_char2dec_table[ (int)target[21] ] ) ] );
+        m_diff[22] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[22] ] - hex_char2dec_table[ (int)target[22] ] ) ] );
+        m_diff[23] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[23] ] - hex_char2dec_table[ (int)target[23] ] ) ] );
+        m_diff[24] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[24] ] - hex_char2dec_table[ (int)target[24] ] ) ] );
+        m_diff[25] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[25] ] - hex_char2dec_table[ (int)target[25] ] ) ] );
+        m_diff[26] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[26] ] - hex_char2dec_table[ (int)target[26] ] ) ] );
+        m_diff[27] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[27] ] - hex_char2dec_table[ (int)target[27] ] ) ] );
+        m_diff[28] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[28] ] - hex_char2dec_table[ (int)target[28] ] ) ] );
+        m_diff[29] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[29] ] - hex_char2dec_table[ (int)target[29] ] ) ] );
+        m_diff[30] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[30] ] - hex_char2dec_table[ (int)target[30] ] ) ] );
+        m_diff[31] = std::toupper( hex_dec2char_table[ std::abs( hex_char2dec_table[ (int)m_hash[31] ] - hex_char2dec_table[ (int)target[31] ] ) ] );
         m_diff[32] = '\0';
         assert( std::strlen( m_diff ) == 32 );
         return m_diff;
     }
 };
 constexpr const char CNosoHasher::hex_dec2char_table[];
-constexpr std::uint16_t CNosoHasher::nosohash_chars_table[];
+constexpr const char CNosoHasher::hex_char2dec_table[];
 
 int inet_init();
 void inet_cleanup();
