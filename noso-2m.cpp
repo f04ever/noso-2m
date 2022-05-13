@@ -936,19 +936,25 @@ void CMineThread::Mine() {
                 && std::strlen( m_mn_diff ) == 32 );
         char best_diff[33];
         std::strcpy( best_diff, m_mn_diff );
+        std::size_t match_len { 0 };
+        while ( best_diff[match_len] == '0' ) ++match_len;
         std::uint32_t noso_hash_counter { 0 };
         CNosoHasher noso_hasher( m_prefix, m_address );
         auto begin_mining { std::chrono::steady_clock::now() };
         while ( g_still_running && 1 <= NOSO_BLOCK_AGE && NOSO_BLOCK_AGE <= 585 ) {
             const char *base { noso_hasher.GetBase( noso_hash_counter++ ) };
             const char *hash { noso_hasher.GetHash() };
-            const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
-            assert( std::strlen( base ) == 18
-                    && std::strlen( hash ) == 32
-                    && std::strlen( diff ) == 32 );
-            if ( std::strcmp( diff, best_diff ) < 0 ) {
-                CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
-                if ( g_solo_mining ) std::strcpy( best_diff, diff );
+            assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 );
+            if ( std::strncmp( hash, m_lb_hash, match_len ) == 0 ) {
+                const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
+                assert( std::strlen( diff ) == 32 );
+                if ( g_solo_mining ) {
+                    if ( std::strcmp( diff, best_diff ) < 0 ) {
+                        CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
+                        std::strcpy( best_diff, diff );
+                        while ( best_diff[match_len] == '0' ) ++match_len;
+                    }
+                } else CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
             }
         }
         std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
