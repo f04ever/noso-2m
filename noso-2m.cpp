@@ -1611,7 +1611,7 @@ inline int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *bu
     int sockfd = inet_socket( serv_info, timeosec );
     if ( sockfd < 0 ) return sockfd;
     int rlen = 0;
-    int slen = inet_send( sockfd, timeosec, buffer, std::strlen( buffer ) );
+    int slen = inet_send( sockfd, timeosec, buffer, buffsize );
     if ( slen > 0 ) rlen = inet_recv( sockfd, timeosec, buffer, buffsize );
     inet_close_socket( sockfd );
     if ( slen <= 0 ) return slen;
