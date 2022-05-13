@@ -640,7 +640,7 @@ public:
     void NewTarget( const std::shared_ptr<CTarget> &target );
     void SetBlockSummary( std::uint32_t hashes_count, double duration );
     std::tuple<std::uint32_t, double> GetBlockSummary();
-    virtual void Mine();
+    virtual void Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>& ) );
 };
 
 class CCommThread { // A singleton pattern class
@@ -874,8 +874,10 @@ int main( int argc, char *argv[] ) {
     for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
         g_mine_objects.push_back( std::make_shared<CMineThread>( g_miner_id, thread_id ) );
     std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );
+    constexpr auto const NewSolFunc { []( const std::shared_ptr<CSolution>& solution ){
+        CCommThread::GetInstance()->AddSolution( solution ); } };
     for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
-        g_mine_threads.emplace_back( &CMineThread::Mine, g_mine_objects[thread_id] );
+        g_mine_threads.emplace_back( &CMineThread::Mine, g_mine_objects[thread_id], NewSolFunc );
     comm_thread.join();
     #ifdef _WIN32
     WSACleanup();
@@ -927,7 +929,7 @@ void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
     m_condv_blck_no.notify_one();
 }
 
-void CMineThread::Mine() {
+void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>& ) ) {
     while ( g_still_running ) {
         this->WaitTarget();
         if ( !g_still_running ) break;
@@ -950,11 +952,11 @@ void CMineThread::Mine() {
                 assert( std::strlen( diff ) == 32 );
                 if ( g_solo_mining ) {
                     if ( std::strcmp( diff, best_diff ) < 0 ) {
-                        CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
+                        NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
                         std::strcpy( best_diff, diff );
                         while ( best_diff[match_len] == '0' ) ++match_len;
                     }
-                } else CCommThread::GetInstance()->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
+                } else NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
             }
         }
         std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
