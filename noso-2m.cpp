@@ -1,7 +1,6 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
-
 #include <map>
 #include <set>
 #include <mutex>
@@ -19,7 +18,6 @@
 #include <cassert>
 #include <iostream>
 #include <condition_variable>
-
 #include <signal.h>
 #ifdef _WIN32
 #include <winsock2.h>
@@ -39,13 +37,12 @@
 
 #define DEFAULT_CONFIG_FILENAME "noso-2m.cfg"
 #define DEFAULT_POOL_URL_LIST "f04ever;devnoso"
-#define DEFAULT_MINER_ADDRESS "NT3ZeUPHA6AJH7Cc7LLdsTNDZgRnBL"
+#define DEFAULT_MINER_ADDRESS "N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS"
 #define DEFAULT_MINER_ID 0
 #define DEFAULT_THREADS_COUNT 2
 #define DEFAULT_NODE_INET_TIMEOSEC 10
 #define DEFAULT_POOL_INET_TIMEOSEC 60
-#define NOSO_TIMESTAMP_DIFFERENCES 2
-#define DEFAULT_LOGGING_FILENAME "noso-2m.log"
+#define DEFAULT_TIMESTAMP_DIFFERENCES 3
 
 #define CONSENSUS_NODES_COUNT 3
 #define INET_CIRCLE_SECONDS 0.1
@@ -276,6 +273,9 @@ public:
 constexpr const char CNosoHasher::hexchars_table[];
 constexpr std::uint16_t CNosoHasher::nosohash_chars_table[];
 
+std::string& ltrim( std::string& s );
+std::string& rtrim( std::string& s );
+bool iequal( const std::string& s1, const std::string& s2 );
 int inet_init();
 void inet_cleanup();
 int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize );
@@ -289,32 +289,10 @@ public:
         :   m_host { host }, m_port { port }, m_timeosec( timeosec ) {
     }
 private:
-    struct addrinfo * InitService() {
-        struct addrinfo hints, *serv_info;
-        std::memset( &hints, 0, sizeof( hints ) );
-        hints.ai_family = AF_INET;
-        hints.ai_socktype = SOCK_STREAM;
-        int n = getaddrinfo( this->m_host.c_str(), this->m_port.c_str(), &hints, &serv_info );
-        if ( n ) {
-            COUT_NOSO_TIME << "CInet::InitService/getaddrinfo: " << gai_strerror( n ) << std::endl;
-            return NULL;
-        }
-        return serv_info;
-    }
-    static void CleanService( struct addrinfo * serv_info ) {
-        if ( serv_info == NULL ) return;
-        freeaddrinfo( serv_info );
-        serv_info = NULL;
-    }
+    struct addrinfo * InitService();
+    static void CleanService( struct addrinfo * serv_info );
 public:
-    int ExecCommand( char *buffer, std::size_t buffsize ) {
-        assert( buffer && buffsize > 0 );
-        struct addrinfo * serv_info = this->InitService();
-        if ( serv_info == NULL ) return -1;
-        int n = inet_command( serv_info, m_timeosec, buffer, buffsize );
-        this->CleanService( serv_info );
-        return n;
-    }
+    int ExecCommand( char *buffer, std::size_t buffsize );
 };
 
 class CNodeInet : public CInet {
@@ -464,13 +442,13 @@ struct CPoolStatus {
     std::string mn_diff;
     std::string prefix;
     std::string address;
-    std::uint64_t balance;
+    std::uint64_t till_balance;
     std::uint32_t till_payment;
     std::uint64_t pool_hashrate;
     std::uint32_t payment_block;
     std::uint64_t payment_amount;
     std::string payment_order_id;
-    std::uint64_t netrate;
+    std::uint64_t mnet_hashrate;
     CPoolStatus( const char *ps_line ) {
         assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
@@ -508,9 +486,9 @@ struct CPoolStatus {
         // 5{blck_no}
         next_status_token( ' ', p_pos, c_pos, status );
         this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-        // 6{balance}
+        // 6{till_balance}
         next_status_token( ' ', p_pos, c_pos, status );
-        this->balance = std::stoull( extract_status_token( p_pos, c_pos, status ) );
+        this->till_balance = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         // 7{till_payment}
         next_status_token( ' ', p_pos, c_pos, status );
         this->till_payment = std::stoul( extract_status_token( p_pos, c_pos, status ) );
@@ -520,9 +498,9 @@ struct CPoolStatus {
         // 9{pool_hashrate}
         next_status_token( ' ', p_pos, c_pos, status );
         this->pool_hashrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
-        // 10{netrate}
+        // 10{mnet_hashrate}
         next_status_token( ' ', p_pos, c_pos, status );
-        this->netrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
+        this->mnet_hashrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
         if ( payment_info.length() > 0 ) {
             // 8{LastPayInfo} = Block:ammount:orderID
             size_t p_pos = -1, c_pos = -1;
@@ -563,20 +541,22 @@ struct CNodeTarget : public CTarget {
 };
 
 struct CPoolTarget : public CTarget {
-    std::uint64_t balance;
+    std::uint64_t till_balance;
     std::uint32_t till_payment;
     std::uint64_t pool_hashrate;
     std::uint32_t payment_block;
     std::uint64_t payment_amount;
     std::string payment_order_id;
-    std::uint64_t netrate;
+    std::uint64_t mnet_hashrate;
+    std::string pool_name;
     CPoolTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
-                std::string &prefix, const std::string &address, std::uint64_t balance,
+                const std::string &prefix, const std::string &address, std::uint64_t till_balance,
                 std::uint32_t till_payment, std::uint64_t pool_hashrate, std::uint32_t payment_block,
-                std::uint64_t payment_amount, std::string &payment_order_id, std::uint64_t netrate )
-        :   CTarget( blck_no, lb_hash, mn_diff ), balance { balance }, till_payment { till_payment },
+                std::uint64_t payment_amount, const std::string &payment_order_id, std::uint64_t mnet_hashrate,
+                const std::string& pool_name )
+        :   CTarget( blck_no, lb_hash, mn_diff ), till_balance { till_balance }, till_payment { till_payment },
             pool_hashrate { pool_hashrate }, payment_block { payment_block }, payment_amount { payment_amount },
-            payment_order_id { payment_order_id }, netrate { netrate } {
+            payment_order_id { payment_order_id }, mnet_hashrate { mnet_hashrate }, pool_name { pool_name } {
         this->prefix = prefix;
         this->address = address;
     }
@@ -857,7 +837,7 @@ int main( int argc, char *argv[] ) {
     if ( mainnet_timestamp < 0 ) {
         std::cout << "Can not check mainnet's timestamp!" << std::endl;
         std::exit( EXIT_FAILURE );
-    } else if ( NOSO_TIMESTAMP - mainnet_timestamp > 2 ) {
+    } else if ( NOSO_TIMESTAMP - mainnet_timestamp > DEFAULT_TIMESTAMP_DIFFERENCES ) {
         std::cout << "The mainnet's timestamp is different from your machine. Clock synchronization is required!" << std::endl;
         std::exit( EXIT_FAILURE );
     }
@@ -882,9 +862,9 @@ void CMineThread::SetBlockSummary( std::uint32_t hashes_count, double duration )
 }
 
 std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
-    std::unique_lock summary_lock( m_mutex_summary );
-    m_condv_summary.wait( summary_lock, [&]{ return !g_still_running || m_computed_hashes_count > 0; } );
-    summary_lock.unlock();
+    std::unique_lock unique_lock_summary_lock( m_mutex_summary );
+    m_condv_summary.wait( unique_lock_summary_lock, [&]{ return !g_still_running || m_computed_hashes_count > 0; } );
+    unique_lock_summary_lock.unlock();
     auto summary = std::make_tuple( m_computed_hashes_count, m_block_mining_duration );
     m_computed_hashes_count = 0;
     m_block_mining_duration = 0.;
@@ -892,9 +872,9 @@ std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
 }
 
 void CMineThread::WaitTarget() {
-    std::unique_lock blck_no_blck_no( m_mutex_blck_no );
-    m_condv_blck_no.wait( blck_no_blck_no, [&]{ return !g_still_running || m_blck_no > 0; } );
-    blck_no_blck_no.unlock();
+    std::unique_lock unique_lock_blck_no( m_mutex_blck_no );
+    m_condv_blck_no.wait( unique_lock_blck_no, [&]{ return !g_still_running || m_blck_no > 0; } );
+    unique_lock_blck_no.unlock();
 }
 
 void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
@@ -1028,12 +1008,16 @@ std::shared_ptr<CNodeTarget> CCommThread::GetNodeTargetConsensus() {
         ++m_freq_lb_time [ns->lb_time];
         ++m_freq_lb_addr [ns->lb_addr];
     }
-    return std::make_shared<CNodeTarget>(
-        max_freq( m_freq_blck_no ),
-        max_freq( m_freq_lb_hash ),
-        max_freq( m_freq_mn_diff ),
-        max_freq( m_freq_lb_time ),
-        max_freq( m_freq_lb_addr ) );
+    std::shared_ptr<CNodeTarget> target {
+        std::make_shared<CNodeTarget>(
+            max_freq( m_freq_blck_no ),
+            max_freq( m_freq_lb_hash ),
+            max_freq( m_freq_mn_diff ),
+            max_freq( m_freq_lb_time ),
+            max_freq( m_freq_lb_addr ) ) };
+        target->prefix = "";
+        target->address = g_miner_address;
+    return target;
 }
 
 int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
@@ -1100,13 +1084,14 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
                 ps.mn_diff,
                 ps.prefix,
                 ps.address,
-                ps.balance,
+                ps.till_balance,
                 ps.till_payment,
                 ps.pool_hashrate,
                 ps.payment_block,
                 ps.payment_amount,
                 ps.payment_order_id,
-                ps.netrate
+                ps.mnet_hashrate,
+                std::get<0>( pool )
             );
         }
         catch ( const std::exception &e ) {
@@ -1290,10 +1275,10 @@ std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
         COUT_NOSO_TIME << "MINING ON POOL "
             << std::get<0>( pool ) << "(" << std::get<1>( pool ) << ":" << std::get<2>( pool ) << ")"
             << " POOL/MAINNET HASHRATE(Mh/s) " << std::fixed << std::setprecision( 3 )
-            << pool_target->pool_hashrate / 1'000'000.0 << " / " << pool_target->netrate / 1'000'000.0 << ";"
+            << pool_target->pool_hashrate / 1'000'000.0 << " / " << pool_target->mnet_hashrate / 1'000'000.0 << ";"
             << " NEXT PAYMENT " << pool_target->till_payment << " BLOCKS;"
             << " YOUR BALANCE " << std::fixed << std::setprecision( 8 )
-            << pool_target->balance / 100'000'000.0 << std::endl;
+            << pool_target->till_balance / 100'000'000.0 << std::endl;
         if ( pool_target->payment_block == pool_target->blck_no ) {
             COUT_NOSO_TIME << "YOU HAVE A POOL PAYMENT"
                 << std::fixed << std::setprecision( 8 )
@@ -1606,4 +1591,52 @@ inline int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *bu
     inet_close_socket( sockfd );
     if ( slen <= 0 ) return slen;
     return rlen;
+}
+
+inline struct addrinfo * CInet::InitService() {
+    struct addrinfo hints, *serv_info;
+    std::memset( &hints, 0, sizeof( hints ) );
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    int n = getaddrinfo( this->m_host.c_str(), this->m_port.c_str(), &hints, &serv_info );
+    if ( n ) {
+        COUT_NOSO_TIME << "CInet::InitService/getaddrinfo: " << gai_strerror( n ) << std::endl;
+        return NULL;
+    }
+    return serv_info;
+}
+
+inline void CInet::CleanService( struct addrinfo * serv_info ) {
+    if ( serv_info == NULL ) return;
+    freeaddrinfo( serv_info );
+    serv_info = NULL;
+}
+
+int CInet::ExecCommand( char *buffer, std::size_t buffsize ) {
+    assert( buffer && buffsize > 0 );
+    struct addrinfo * serv_info = this->InitService();
+    if ( serv_info == NULL ) return -1;
+    int n = inet_command( serv_info, m_timeosec, buffer, buffsize );
+    this->CleanService( serv_info );
+    return n;
+}
+
+inline std::string& ltrim( std::string& s ) {
+    s.erase( s.begin(), std::find_if( s.begin(), s.end(),
+                                     []( unsigned char ch ) {
+                                         return !std::isspace( ch ); } ) );
+    return s;
+}
+
+inline std::string& rtrim( std::string& s ) {
+    s.erase( std::find_if( s.rbegin(), s.rend(),
+                          []( unsigned char ch ) {
+                              return !std::isspace( ch ); } ).base(), s.end() );
+    return s;
+}
+
+inline bool iequal( const std::string& s1, const std::string& s2 ) {
+    return std::equal( s1.cbegin(), s1.cend(), s2.cbegin(), s2.cend(),
+                      []( unsigned char a, unsigned char b ) {
+                          return tolower( a ) == tolower( b ); } );
 }
