@@ -928,15 +928,15 @@ void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>&
             const char *hash { noso_hasher.GetHash() };
             assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 );
             if ( std::strncmp( hash, m_lb_hash, match_len ) == 0 ) {
-                const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
-                assert( std::strlen( diff ) == 32 );
                 if ( g_solo_mining ) {
+                    const char *diff { noso_hasher.GetDiff( m_lb_hash ) };
+                    assert( std::strlen( diff ) == 32 );
                     if ( std::strcmp( diff, best_diff ) < 0 ) {
                         NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
                         std::strcpy( best_diff, diff );
                         while ( best_diff[match_len] == '0' ) ++match_len;
                     }
-                } else NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
+                } else NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, "" ) );
             }
         }
         std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
