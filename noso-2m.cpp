@@ -569,7 +569,8 @@ struct CSolution {
     std::string diff;
     CSolution( std::uint32_t blck_, const char base_[19], const char hash_[33], const char diff_[33] )
         :   blck { blck_ }, base { base_ }, hash { hash_ }, diff { diff_ } {
-        assert( std::strlen( base_ ) == 18 && std::strlen( hash_ ) == 32 && std::strlen( diff_ ) == 32 );
+        assert( std::strlen( base_ ) == 18 && std::strlen( hash_ ) == 32
+               && ( std::strlen( diff_ ) == 0 || std::strlen( diff_ ) == 32 ) );
     }
 };
 
@@ -870,8 +871,8 @@ int main( int argc, char *argv[] ) {
             if ( !is_valid_minerid( opt_minerid ) )
                 throw std::invalid_argument( "Invalid miner id option" );
             opt_threads = parsed_options["threads"].as<std::uint32_t>();
-            if ( !is_valid_threads( opt_threads ) )
-                throw std::invalid_argument( "Invalid threads count option" );
+            // if ( !is_valid_threads( opt_threads ) )
+            //     throw std::invalid_argument( "Invalid threads count option" );
             opt_pools = parsed_options["pools"].as<std::string>();
             opt_solo = parsed_options.count( "solo" );
         } catch( const std::exception& e) {
@@ -1561,9 +1562,6 @@ void CCommThread::Communicate() {
             }
         } // END while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
         std::chrono::duration<double> elapsed_blck = std::chrono::steady_clock::now() - begin_blck;
-        // while ( g_still_running && NOSO_BLOCK_AGE < 586 ) {
-        //     std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * INET_CIRCLE_SECONDS ) ) );
-        // }
         this->_ReportTargetSummary( target, elapsed_blck );
         this->_ResetMiningBlock();
     } // END while ( g_still_running ) {
