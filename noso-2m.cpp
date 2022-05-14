@@ -742,13 +742,19 @@ public:
     }
 };
 
+#define LOGGING_STDOUT
+#undef LOGGING_STDOUT
+#ifdef LOGGING_STDOUT
+static LogFile _NOSO_LOGGING_LOGSTREAM( std::cout );
+#else
 static std::ofstream _NOSO_LOGGING_OFS( DEFAULT_LOGGING_FILENAME );
-static LogFile _NOSO_LOGGING_LOGFILE( _NOSO_LOGGING_OFS );
-#define LOG_FATAL LogEntry<LogFile>( _NOSO_LOGGING_LOGFILE ).GetStream< LogLevel::FATAL >()
-#define LOG_ERROR LogEntry<LogFile>( _NOSO_LOGGING_LOGFILE ).GetStream< LogLevel::ERROR >()
-#define LOG_WARN  LogEntry<LogFile>( _NOSO_LOGGING_LOGFILE ).GetStream< LogLevel::WARN  >()
-#define LOG_INFO  LogEntry<LogFile>( _NOSO_LOGGING_LOGFILE ).GetStream< LogLevel::INFO  >()
-#define LOG_DEBUG LogEntry<LogFile>( _NOSO_LOGGING_LOGFILE ).GetStream< LogLevel::DEBUG >()
+static LogFile _NOSO_LOGGING_LOGSTREAM( _NOSO_LOGGING_OFS );
+#endif
+#define LOG_FATAL LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::FATAL >()
+#define LOG_ERROR LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::ERROR >()
+#define LOG_WARN  LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::WARN  >()
+#define LOG_INFO  LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::INFO  >()
+#define LOG_DEBUG LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::DEBUG >()
 #define NOSO_LOG_INFO  LOG_INFO  << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << ")"
 #define NOSO_LOG_WARN  LOG_WARN  << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << ")"
 #define NOSO_LOG_ERROR LOG_ERROR << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << ")"
