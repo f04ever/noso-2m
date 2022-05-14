@@ -1423,46 +1423,36 @@ void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolut
     if      ( code == 1 ) {
         NOSO_LOG_ERROR
             << "    ERROR"
-            << ")blck[" << solution->blck
-            << "]diff[" << solution->diff
+            << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]base[" << solution->base
-            << "]Wrong block number submitted!"
+            << "]Wrong block#" << solution->blck << " submitted!"
             << std::endl;
     } else if ( code == 2 ) {
         NOSO_LOG_ERROR
             << "    ERROR"
-            << ")blck[" << solution->blck
-            << "]diff[" << solution->diff
+            << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]base[" << solution->base
             << "]Incorrect timestamp submitted!"
             << std::endl;
     } else if ( code == 3 ) {
         NOSO_LOG_ERROR
             << "    ERROR"
-            << ")blck[" << solution->blck
-            << "]diff[" << solution->diff
+            << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]base[" << solution->base
             << "]Invalid address (" << g_miner_address << ") submitted!"
             << std::endl;
     } else if ( code == 7 ) {
         NOSO_LOG_ERROR
             << "    ERROR"
-            << ")blck[" << solution->blck
-            << "]diff[" << solution->diff
+            << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]base[" << solution->base
             << "]Wrong hash base submitted!"
             << std::endl;
     } else if ( code == 4 ) {
         NOSO_LOG_ERROR
             << "    ERROR"
-            << ")blck[" << solution->blck
-            << "]diff[" << solution->diff
+            << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]base[" << solution->base
             << "]Duplicate hash submitted!"
             << std::endl;
     }
@@ -1492,10 +1482,8 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
             if ( solution->diff < new_mn_diff ) this->AddSolution( solution );
             NOSO_LOG_DEBUG
                 << " WAITBLCK"
-                << ")blck[" << solution->blck
-                << "]diff[" << solution->diff
+                << ")base[" << solution->base
                 << "]hash[" << solution->hash
-                << "]base[" << solution->base
                 << "]Network building block!"
                 << std::endl;
         }
@@ -1507,20 +1495,16 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
         m_accepted_solutions_count ++;
         NOSO_LOG_DEBUG
             << " ACCEPTED"
-            << ")blck[" << solution->blck
-            << "]diff[" << solution->diff
+            << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]base[" << solution->base
             << "]"
             << std::endl;
     } else if ( code > 0) {
         m_rejected_solutions_count ++;
         NOSO_LOG_DEBUG
             << " REJECTED"
-            << ")blck[" << solution->blck
-            << "]diff[" << solution->diff
+            << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]base[" << solution->base
             << "]"
             << std::endl;
     } else {
@@ -1528,10 +1512,8 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
         m_failured_solutions_count ++;
         NOSO_LOG_DEBUG
             << " FAILURED"
-            << ")blck[" << solution->blck
-            << "]diff[" << solution->diff
+            << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]base[" << solution->base
             << "]Will retry submitting!"
             << std::endl;
     }
