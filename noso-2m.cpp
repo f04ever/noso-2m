@@ -338,6 +338,11 @@ public:
     CPoolInet( const std::string& name, const std::string &host, const std::string &port , int timeosec )
         :   CInet( host, port, timeosec ), m_name { name } {
     }
+    int RequestPoolInfo( char *buffer, std::size_t buffsize ) {
+        assert( buffer && buffsize > 0 );
+        std::snprintf( buffer, buffsize, "POOLINFO\n" );
+        return this->ExecCommand( buffer, buffsize );
+    }
     int RequestSource( const char address[32], char *buffer, std::size_t buffsize ) {
         assert( buffer && buffsize > 0 );
         assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
@@ -445,6 +450,31 @@ struct CNodeStatus {
         // next_status_token( ' ', p_pos, c_pos, status );
         // this->lb_diff = extract_status_token( p_pos, c_pos, status );
         // if ( this->lb_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_diff" );
+    }
+};
+
+struct CPoolInfo {
+    std::uint32_t pool_miners;
+    std::uint64_t pool_hashrate;
+    std::uint32_t pool_fee;
+    CPoolInfo( const char *pi ) {
+        assert( pi != nullptr && std::strlen( pi ) > 0 );
+        auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
+            p_pos = c_pos;
+            c_pos = status.find( sep, c_pos + 1 );
+        };
+        auto extract_status_token = []( size_t p_pos, size_t c_pos, const std::string& status ) {
+            return status.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : ( c_pos - p_pos - 1 ) );
+        };
+        std::string status { pi };
+        status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
+        size_t p_pos = -1, c_pos = -1;
+        next_status_token( ' ', p_pos, c_pos, status );
+        this->pool_miners = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        next_status_token( ' ', p_pos, c_pos, status );
+        this->pool_hashrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
+        next_status_token( ' ', p_pos, c_pos, status );
+        this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     }
 };
 
