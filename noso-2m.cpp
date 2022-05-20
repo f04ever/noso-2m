@@ -461,6 +461,7 @@ struct CPoolStatus {
     std::uint64_t payment_amount;
     std::string payment_order_id;
     std::uint64_t mnet_hashrate;
+    std::uint32_t pool_fee;
     CPoolStatus( const char *ps_line ) {
         assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
         auto next_status_token = []( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
@@ -475,7 +476,7 @@ struct CPoolStatus {
         size_t p_pos = -1, c_pos = -1;
         // {0}OK 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber}
         // 6{MinerBalance} 7{BlocksTillPayment} 8{LastPayInfo} 9{LastBlockPoolHashrate}
-        // 10{MainNetHashrate}
+        // 10{MainNetHashrate} 11{PoolFee}
         // 0{OK}
         next_status_token( ' ', p_pos, c_pos, status );
         // std::string status = extract_status_token( p_pos, c_pos, status );
@@ -513,6 +514,10 @@ struct CPoolStatus {
         // 10{mnet_hashrate}
         next_status_token( ' ', p_pos, c_pos, status );
         this->mnet_hashrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
+        // 11{pool_fee}
+        next_status_token( ' ', p_pos, c_pos, status );
+        this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+        // 8{payment_info}
         if ( payment_info.length() > 0 ) {
             // 8{LastPayInfo} = Block:ammount:orderID
             size_t p_pos = -1, c_pos = -1;
