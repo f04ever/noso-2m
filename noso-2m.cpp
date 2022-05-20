@@ -769,6 +769,8 @@ void inet_cleanup();
 bool is_valid_address( const std::string& address );
 bool is_valid_minerid( std::uint32_t minerid );
 bool is_valid_threads( std::uint32_t count );
+char hashrate_pretty_unit( std::uint64_t count );
+double hashrate_pretty_value( std::uint64_t count );
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr );
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_miner_id { DEFAULT_MINER_ID };
@@ -1309,20 +1311,6 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
 }
 
 void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) {
-    auto hrate_unit = []( std::uint64_t b ) {
-        return
-          ( b /             1'000.0 ) < 1'000 ? 'K'
-        : ( b /         1'000'000.0 ) < 1'000 ? 'M'
-        : ( b /     1'000'000'000.0 ) < 1'000 ? 'G'
-        : ( b / 1'000'000'000'000.0 ) < 1'000 ? 'T'
-        :                                      'P'; };
-    auto hrate_value = []( std::uint64_t b ) {
-        return
-          ( b /             1'000.0 ) < 1'000 ? ( b /                 1'000.0 )
-        : ( b /         1'000'000.0 ) < 1'000 ? ( b /             1'000'000.0 )
-        : ( b /     1'000'000'000.0 ) < 1'000 ? ( b /         1'000'000'000.0 )
-        : ( b / 1'000'000'000'000.0 ) < 1'000 ? ( b /     1'000'000'000'000.0 )
-        :                                      ( b / 1'000'000'000'000'000.0 ); };
     char msg[100];
     if ( g_solo_mining ) {
         std::shared_ptr<CNodeTarget> node_target { std::dynamic_pointer_cast<CNodeTarget>( target ) };
@@ -1332,7 +1320,7 @@ void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) 
                 << std::fixed << std::setprecision( 2 ) << m_last_block_elapsed_secs / 60 << " minutes"
                 << std::endl;
             std::snprintf( msg, 100, " Hashrate(Miner/Pool/Mnet) %5.01f%c /    n/a /    n/a",
-                          hrate_value( m_last_block_hashrate ),      hrate_unit( m_last_block_hashrate ) );
+                          hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ) );
             NOSO_LOG_INFO << msg << std::endl;
         }
         if ( node_target->lb_addr == g_miner_address ) {
@@ -1351,9 +1339,9 @@ void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) 
                 << std::fixed << std::setprecision( 2 ) << m_last_block_elapsed_secs / 60 << " minutes"
                 << std::endl;
             std::snprintf( msg, 100, " Hashrate(Miner/Pool/Mnet) %5.01f%c / %5.01f%c / %5.01f%c",
-                          hrate_value( m_last_block_hashrate ),      hrate_unit( m_last_block_hashrate ),
-                          hrate_value( pool_target->pool_hashrate ), hrate_unit( pool_target->pool_hashrate ),
-                          hrate_value( pool_target->mnet_hashrate ), hrate_unit( pool_target->mnet_hashrate ) );
+                          hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ),
+                          hashrate_pretty_value( pool_target->pool_hashrate ), hashrate_pretty_unit( pool_target->pool_hashrate ),
+                          hashrate_pretty_value( pool_target->mnet_hashrate ), hashrate_pretty_unit( pool_target->mnet_hashrate ) );
             NOSO_LOG_INFO << msg << std::endl;
             if ( pool_target->payment_block == pool_target->blck_no ) {
                 std::snprintf( msg, 100, " Paid %.8g NOSO", pool_target->payment_amount / 100'000'000.0 );
@@ -1571,6 +1559,24 @@ inline bool is_valid_threads( std::uint32_t count ) {
     if ( count < 2 ) return false;
     return true;
 }
+
+inline char hashrate_pretty_unit( std::uint64_t count ) {
+    return
+          ( count /             1'000.0 ) < 1'000 ? 'K' /* Kilo */
+        : ( count /         1'000'000.0 ) < 1'000 ? 'M' /* Mega */
+        : ( count /     1'000'000'000.0 ) < 1'000 ? 'G' /* Giga */
+        : ( count / 1'000'000'000'000.0 ) < 1'000 ? 'T' /* Tera */
+        :                                           'P' /* Peta */;
+};
+
+inline double hashrate_pretty_value( std::uint64_t count ) {
+    return
+          ( count /             1'000.0 ) < 1'000 ? ( count /                 1'000.0 ) /* Kilo */
+        : ( count /         1'000'000.0 ) < 1'000 ? ( count /             1'000'000.0 ) /* Mega */
+        : ( count /     1'000'000'000.0 ) < 1'000 ? ( count /         1'000'000'000.0 ) /* Giga */
+        : ( count / 1'000'000'000'000.0 ) < 1'000 ? ( count /     1'000'000'000'000.0 ) /* Tera */
+        :                                           ( count / 1'000'000'000'000'000.0 ) /* Peta */;
+};
 
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr ) {
     const std::regex re_pool1 { ";|[[:space:]]" };
