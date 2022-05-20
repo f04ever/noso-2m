@@ -627,6 +627,17 @@ public:
     virtual void Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>& ) );
 };
 
+
+char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
+std::uint32_t g_miner_id { DEFAULT_MINER_ID };
+std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
+std::uint32_t g_mined_block_count { 0 };
+std::vector<std::thread> g_mine_threads;
+std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
+std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
+bool g_still_running { true };
+bool g_solo_mining { false };
+
 class CCommThread { // A singleton pattern class
 private:
     mutable std::default_random_engine m_random_engine {
@@ -650,9 +661,10 @@ private:
     std::map<std::string  , int> m_freq_lb_addr;
     char m_inet_buffer[INET_BUFFER_SIZE];
     CCommThread();
-    void _ResetMiningBlock();
+    void CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck );
+    void ResetMiningBlock();
     void _ReportMiningTarget( const std::shared_ptr<CTarget>& target );
-    void _ReportTargetSummary( const std::shared_ptr<CTarget>& target, const std::chrono::duration<double>& elapsed_blck );
+    void _ReportTargetSummary( const std::shared_ptr<CTarget>& target );
     void _ReportErrorSubmitting( int code, const std::shared_ptr<CSolution> &solution );
 public:
     CCommThread( const CCommThread& ) = delete; // Copy prohibited
@@ -1380,15 +1392,6 @@ bool is_valid_threads( std::uint32_t count );
 char hashrate_pretty_unit( std::uint64_t count );
 double hashrate_pretty_value( std::uint64_t count );
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( const std::string& poolstr );
-char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
-std::uint32_t g_miner_id { DEFAULT_MINER_ID };
-std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
-std::uint32_t g_mined_block_count { 0 };
-std::vector<std::thread> g_mine_threads;
-std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
-std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
-bool g_still_running { true };
-bool g_solo_mining { false };
 
 int main( int argc, char *argv[] ) {
     cxxopts::Options command_options( "noso-2m", "A miner for Nosocryptocurrency Protocol-2" );
@@ -2061,16 +2064,7 @@ void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) 
     NOSO_TUI_OutputStatWin();
 }
 
-void CCommThread::_ReportTargetSummary( const std::shared_ptr<CTarget>& target, const std::chrono::duration<double>& elapsed_blck ) {
-    m_last_block_hashes_count = 0;
-    m_last_block_elapsed_secs = elapsed_blck.count();
-    m_last_thread_minings.clear();
-    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&]( const auto &object ){
-                 auto block_summary = object->GetBlockSummary();
-                 m_last_thread_minings.push_back( block_summary );
-                 std::uint64_t thread_hashes { std::get<0>( block_summary ) };
-                 m_last_block_hashes_count += thread_hashes; } );
-    m_last_block_hashrate = m_last_block_hashes_count / m_last_block_elapsed_secs;
+void CCommThread::_ReportTargetSummary( const std::shared_ptr<CTarget>& target ) {
     char msg[100];
     std::snprintf( msg, 100, "---------------------------------------------------" );
     NOSO_TUI_OutputHistPad( msg );
@@ -2102,7 +2096,19 @@ void CCommThread::_ReportTargetSummary( const std::shared_ptr<CTarget>& target, 
     NOSO_TUI_OutputActiWinDefault();
 };
 
-void CCommThread::_ResetMiningBlock() {
+void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck ) {
+    m_last_block_hashes_count = 0;
+    m_last_block_elapsed_secs = elapsed_blck.count();
+    m_last_thread_minings.clear();
+    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&]( const auto &object ){
+                 auto block_summary = object->GetBlockSummary();
+                 m_last_thread_minings.push_back( block_summary );
+                 std::uint64_t thread_hashes { std::get<0>( block_summary ) };
+                 m_last_block_hashes_count += thread_hashes; } );
+    m_last_block_hashrate = m_last_block_hashes_count / m_last_block_elapsed_secs;
+}
+
+void CCommThread::ResetMiningBlock() {
     m_accepted_solutions_count = 0;
     m_rejected_solutions_count = 0;
     m_failured_solutions_count = 0;
@@ -2262,10 +2268,10 @@ void CCommThread::Communicate() {
             if ( elapsed_submit.count() < INET_CIRCLE_SECONDS ) {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * INET_CIRCLE_SECONDS ) ) );
             }
-        } // END while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
-        std::chrono::duration<double> elapsed_blck = std::chrono::steady_clock::now() - begin_blck;
-        this->_ReportTargetSummary( target, elapsed_blck );
-        this->_ResetMiningBlock();
+        }
+        this->CloseMiningBlock( std::chrono::steady_clock::now() - begin_blck );
+        this->_ReportTargetSummary( target );
+        this->ResetMiningBlock();
     } // END while ( g_still_running ) {
     for ( auto &obj : g_mine_objects ) obj->CleanupSyncState();
     for ( auto &thr : g_mine_threads ) thr.join();
