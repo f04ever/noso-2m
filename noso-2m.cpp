@@ -708,6 +708,7 @@ public:
     void Communicate();
 };
 
+std::string lpad( const std::string& s, std::size_t n, char c );
 std::string& ltrim( std::string& s );
 std::string& rtrim( std::string& s );
 bool iequal( const std::string& s1, const std::string& s2 );
@@ -1527,10 +1528,6 @@ int main( int argc, char *argv[] ) {
     std::snprintf( buffer, 100, "%-31s [%04d] | %d threads", g_miner_address, g_miner_id, g_threads_count );
     NOSO_TUI_OutputHeadPad( buffer );
     NOSO_TUI_OutputHeadWin();
-    auto left_pad = []( const std::string& s, std::size_t n, char c ){
-        std::string r { s };
-        if ( n > r.length() ) r.append( n - r.length(), c );
-        return r; };
     std::string msg { "" };
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
@@ -1549,7 +1546,8 @@ int main( int argc, char *argv[] ) {
     if ( !g_solo_mining ) {
         for( auto itor = g_mining_pools.cbegin(); itor != g_mining_pools.cend(); itor = std::next( itor ) ) {
             msg = ( itor == g_mining_pools.cbegin() ? "-   Mining pools: " : "                : " )
-                    + left_pad( std::get<0>( *itor ), 12, ' ' ).substr( 0, 12 ) + "(" + std::get<1>( *itor ) + ":" + std::get<2>( *itor ) + ")";
+                    + lpad( std::get<0>( *itor ), 12, ' ' ).substr( 0, 12 )
+                    + "(" + std::get<1>( *itor ) + ":" + std::get<2>( *itor ) + ")";
             NOSO_LOG_INFO << msg << std::endl;
             NOSO_TUI_OutputHistPad( msg.c_str() );
         }
@@ -2529,6 +2527,12 @@ int CInet::ExecCommand( char *buffer, std::size_t buffsize ) {
     this->CleanService( serv_info );
     return n;
 }
+
+inline std::string lpad( const std::string& s, std::size_t n, char c ) {
+    std::string r { s };
+    if ( n > r.length() ) r.append( n - r.length(), c );
+    return r;
+};
 
 inline std::string& ltrim( std::string& s ) {
     s.erase( s.begin(), std::find_if( s.begin(), s.end(),
