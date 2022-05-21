@@ -755,6 +755,12 @@ public:
     void Communicate();
 };
 
+class CUtils {
+public:
+    static int ShowPoolInformation( std::vector<std::tuple<std::string, std::string, std::string>> const & mining_pools );
+    static int ShowThreadHashrates( std::vector<std::tuple<std::uint32_t, double>> const & thread_hashrates );
+};
+
 std::string lpad( const std::string& s, std::size_t n, char c );
 std::string& ltrim( std::string& s );
 std::string& rtrim( std::string& s );
@@ -1047,11 +1053,27 @@ private:
         }
         this->OutputStatPad( curr_cmdstr.c_str() );
         this->OutputStatWin();
-        if ( curr_cmdstr != prev_cmdstr && curr_cmdstr == "help" ) this->SwitchInfoPad();
-        else this->ToggleLogsPad();
-        prev_cmdstr = curr_cmdstr;
-        this->OutputLogsWin();
         if ( iequal( "exit", curr_cmdstr ) ) return ( -1 );
+        static int last_error { -1 };
+        if ( last_error >= 0 && curr_cmdstr == prev_cmdstr ) {
+            this->ToggleLogsPad();
+            this->OutputLogsWin();
+        } else {
+            if        ( iequal( "help",     curr_cmdstr ) ) {
+                this->SwitchInfoPad();
+                this->OutputLogsWin();
+            } else if ( iequal( "options",  curr_cmdstr ) ) {
+            } else if ( iequal( "config",   curr_cmdstr ) ) {
+            } else if ( iequal( "seeds",    curr_cmdstr ) ) {
+            } else if ( iequal( "nodes",    curr_cmdstr ) ) {
+            } else if ( iequal( "pools",    curr_cmdstr ) ) {
+                this->OutputStatPad( "Showing pools information" );
+                this->OutputStatWin();
+                last_error = CUtils::ShowPoolInformation( g_mining_pools );
+            } else if ( iequal( "threads",  curr_cmdstr ) ) {
+            }
+        }
+        prev_cmdstr = curr_cmdstr;
         return ( 0 );
     };
 private:
@@ -2310,6 +2332,59 @@ void CCommThread::Communicate() {
     } // END while ( g_still_running ) {
     for ( auto &obj : g_mine_objects ) obj->CleanupSyncState();
     for ( auto &thr : g_mine_threads ) thr.join();
+}
+
+int CUtils::ShowPoolInformation( std::vector<std::tuple<std::string, std::string, std::string>> const & mining_pools ) {
+    char inet_buffer[INET_BUFFER_SIZE];
+    char msg[200];
+    std::snprintf( msg, 200, "POOL INFORMATION" );
+    NOSO_TUI_OutputInfoPad( msg );
+    std::snprintf( msg, 200, "     | pool name    | pool host            | fee(%%) | miners | hashrate " );
+    NOSO_TUI_OutputInfoPad( msg );
+    std::snprintf( msg, 200, "------------------------------------------------------------------------" );
+    NOSO_TUI_OutputInfoPad( msg );
+    std::for_each( std::cbegin( mining_pools ), std::cend( mining_pools ),
+                  [&, idx = 0]( std::tuple<std::string, std::string, std::string> const & pool ) mutable {
+                      CPoolInet inet { std::get<0>( pool ), std::get<1>( pool ), std::get<2>( pool ), DEFAULT_POOL_INET_TIMEOSEC };
+                      const int rsize { inet.RequestPoolInfo( inet_buffer, INET_BUFFER_SIZE ) };
+                      if ( rsize <= 0 ) {
+                          NOSO_LOG_DEBUG
+                              << "CUtils::ShowPoolInformation Poor connecting with pool "
+                              << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
+                              << std::endl;
+                          NOSO_TUI_OutputStatPad( "A poor connecting with pool!" );
+                          NOSO_TUI_OutputStatWin();
+                      } else {
+                          try {
+                              auto info { std::make_shared<CPoolInfo>( inet_buffer ) };
+                              std::snprintf( msg, 200, " %3u | %-12s | %-20s | %6.02f | %6u | %7.02f%c ",
+                                            idx, inet.m_name.substr( 0, 12 ).c_str(),
+                                            ( inet.m_host + ":" + inet.m_port ).substr( 0, 20 ).c_str(),
+                                            info->pool_fee / 100.0, info->pool_miners,
+                                            hashrate_pretty_value( info->pool_hashrate ),
+                                            hashrate_pretty_unit( info->pool_hashrate ) );
+                          }
+                          catch ( const std::exception &e ) {
+                              std::snprintf( msg, 200, " %3u | %-12s | %-20s |    N/A |    N/A |      N/A ",
+                                            idx, inet.m_name.substr( 0, 12 ).c_str(),
+                                            ( inet.m_host + ":" + inet.m_port ).substr( 0, 20 ).c_str() );
+                              NOSO_LOG_DEBUG
+                                  << "CUtils::ShowPoolInformation Unrecognised response from pool "
+                                  << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
+                                  << "[" << inet_buffer << "](size=" << rsize << ")" << e.what()
+                                  << std::endl;
+                              NOSO_TUI_OutputStatPad( "An unrecognised response from pool!" );
+                              NOSO_TUI_OutputStatWin();
+                          }
+                          NOSO_TUI_OutputInfoPad( msg );
+                          NOSO_TUI_OutputInfoWin();
+                      }
+                      ++idx;
+                  } );
+    std::snprintf( msg, 200, "--" );
+    NOSO_TUI_OutputInfoPad( msg );
+    NOSO_TUI_OutputInfoWin();
+    return (0);
 }
 
 inline bool is_valid_address( const std::string& address ) {
