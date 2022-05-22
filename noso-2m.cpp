@@ -670,6 +670,7 @@ std::uint32_t g_mined_block_count { 0 };
 std::vector<std::thread> g_mine_threads;
 std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
 std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
+std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 bool g_still_running { true };
 bool g_solo_mining { false };
 
@@ -685,7 +686,6 @@ private:
     std::uint64_t m_last_block_hashes_count { 0 };
     double m_last_block_elapsed_secs { 0. };
     double m_last_block_hashrate { 0. };
-    std::vector<std::tuple<std::uint32_t, double>> m_last_thread_minings;
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
@@ -1051,8 +1051,6 @@ private:
             form_driver( m_cmdl_frm, REQ_LAST_FIELD );
             form_driver( m_cmdl_frm, REQ_END_LINE );
         }
-        this->OutputStatPad( curr_cmdstr.c_str() );
-        this->OutputStatWin();
         if ( iequal( "exit", curr_cmdstr ) ) return ( -1 );
         static int last_error { -1 };
         if ( last_error >= 0 && curr_cmdstr == prev_cmdstr ) {
@@ -1071,6 +1069,12 @@ private:
                 this->OutputStatWin();
                 last_error = CUtils::ShowPoolInformation( g_mining_pools );
             } else if ( iequal( "threads",  curr_cmdstr ) ) {
+                this->OutputStatPad( "Showing hashrate per thread" );
+                this->OutputStatWin();
+                last_error = CUtils::ShowThreadHashrates( g_last_block_thread_hashrates );
+            } else {
+                this->OutputStatPad( ( "Unknown command '" + curr_cmdstr + "'!" ).c_str() );
+                this->OutputStatWin();
             }
         }
         prev_cmdstr = curr_cmdstr;
@@ -2156,12 +2160,15 @@ void CCommThread::_ReportTargetSummary( const std::shared_ptr<CTarget>& target )
 void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck ) {
     m_last_block_hashes_count = 0;
     m_last_block_elapsed_secs = elapsed_blck.count();
-    m_last_thread_minings.clear();
-    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&]( const auto &object ){
+    g_last_block_thread_hashrates.clear();
+    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&]( const auto &object ) {
                  auto block_summary = object->GetBlockSummary();
-                 m_last_thread_minings.push_back( block_summary );
                  std::uint64_t thread_hashes { std::get<0>( block_summary ) };
-                 m_last_block_hashes_count += thread_hashes; } );
+                 double thread_duration { std::get<1>( block_summary ) };
+                 double thread_hashrate { thread_hashes / thread_duration };
+                 g_last_block_thread_hashrates.push_back( std::tuple( object->m_thread_id, thread_hashrate ) );
+                 m_last_block_hashes_count += thread_hashes;
+             } );
     m_last_block_hashrate = m_last_block_hashes_count / m_last_block_elapsed_secs;
 }
 
@@ -2381,6 +2388,58 @@ int CUtils::ShowPoolInformation( std::vector<std::tuple<std::string, std::string
                       }
                       ++idx;
                   } );
+    std::snprintf( msg, 200, "--" );
+    NOSO_TUI_OutputInfoPad( msg );
+    NOSO_TUI_OutputInfoWin();
+    return (0);
+}
+
+int CUtils::ShowThreadHashrates( std::vector<std::tuple<std::uint32_t, double>> const & thread_hashrates ) {
+    char msg[200];
+    std::size_t const thread_count { thread_hashrates.size() };
+    if ( NOSO_BLOCK_AGE <= 10 || thread_count <= 0 ) {
+        std::snprintf( msg, 200, "Wait for a block finished then try again!" );
+        NOSO_TUI_OutputInfoPad( msg );
+        std::snprintf( msg, 200, "--" );
+        NOSO_TUI_OutputInfoPad( msg );
+        NOSO_TUI_OutputInfoWin();
+        return (-1);
+    }
+    std::snprintf( msg, 200, "MINING THREADS (%zu) HASHRATES", thread_count );
+    NOSO_TUI_OutputInfoPad( msg );
+    char msg1[200];
+    char msg2[200];
+    std::size_t const threads_per_row { 4 };
+    std::size_t const threads_row_count { thread_count / threads_per_row };
+    std::size_t const threads_col_remain { thread_count % threads_per_row };
+    std::size_t const threads_col_count { threads_row_count > 0 ? threads_per_row : threads_col_remain };
+    for ( std::size_t col { 0 }; col < threads_col_count; ++col ) {
+        std::snprintf( msg1 + 17 * col, 200, " tid | hashrate |" );
+        std::snprintf( msg2 + 17 * col, 200, "-----------------" );
+    }
+    msg1[17 * threads_col_count - 1] = '\0';
+    msg2[17 * threads_col_count - 1] = '\0';
+    NOSO_TUI_OutputInfoPad( msg1 );
+    NOSO_TUI_OutputInfoPad( msg2 );
+    auto next { std::cbegin( thread_hashrates ) };
+    auto out_one_column = [&]( std::size_t col ) {
+        std::uint32_t const thread_id { std::get<0>( *next ) };
+        double const thread_hashrate { std::get<1>( *next ) };
+        std::snprintf( msg + 17 * col, 200, " %3u | %7.01f%1c |", thread_id,
+                        hashrate_pretty_value( thread_hashrate ),
+                        hashrate_pretty_unit( thread_hashrate ) );
+    };
+    auto out_all_columns = [&]( std::size_t column_count ) {
+        for ( std::size_t col { 0 }; col < column_count; ++col ) {
+            out_one_column( col );
+            next = std::next( next );
+        }
+        msg[17 * column_count - 1] = '\0';
+        NOSO_TUI_OutputInfoPad( msg );
+    };
+    for ( std::size_t row { 0 }; row < threads_row_count; ++row )
+        out_all_columns( threads_per_row );
+    out_all_columns( threads_col_remain );
     std::snprintf( msg, 200, "--" );
     NOSO_TUI_OutputInfoPad( msg );
     NOSO_TUI_OutputInfoWin();
