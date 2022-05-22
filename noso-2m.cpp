@@ -2043,51 +2043,48 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
 }
 
 void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) {
-    if ( m_last_block_hashrate > 0 )
+    char msg[100];
+    if ( m_last_block_hashrate > 0 ) {
         NOSO_LOG_DEBUG
             << " Computed " << m_last_block_hashes_count << " hashes within "
             << std::fixed << std::setprecision( 2 ) << m_last_block_elapsed_secs / 60 << " minutes"
             << std::endl;
-    char msg[100];
-    if ( g_solo_mining ) {
-        std::shared_ptr<CNodeTarget> node_target { std::dynamic_pointer_cast<CNodeTarget>( target ) };
-        if ( m_last_block_hashrate > 0 ) {
+        if ( g_solo_mining ) {
+            std::shared_ptr<CNodeTarget> node_target { std::dynamic_pointer_cast<CNodeTarget>( target ) };
             std::snprintf( msg, 100, " Hashrate(Miner/Pool/Mnet) %5.01f%c /    n/a /    n/a",
-                          hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ) );
+                        hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ) );
             NOSO_LOG_INFO << msg << std::endl;
             NOSO_TUI_OutputHistPad( msg );
-        }
-        if ( node_target->lb_addr == g_miner_address ) {
-            g_mined_block_count++;
-            std::snprintf( msg, 100, " Yay! win this block %06u", node_target->blck_no + 1 );
-            NOSO_LOG_INFO << msg << std::endl;
-            NOSO_TUI_OutputHistPad( msg );
-        }
-        if ( g_mined_block_count > 0 ) {
-            std::snprintf( msg, 100, " Won total %3u blocks", g_mined_block_count );
-            NOSO_LOG_INFO << msg << std::endl;
-            NOSO_TUI_OutputHistPad( msg );
-        }
-    } else {
-        std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
-        if ( m_last_block_hashrate > 0 ) {
+            if ( node_target->lb_addr == g_miner_address ) {
+                g_mined_block_count++;
+                std::snprintf( msg, 100, " Yay! win this block %06u", node_target->blck_no + 1 );
+                NOSO_LOG_INFO << msg << std::endl;
+                NOSO_TUI_OutputHistPad( msg );
+            }
+            if ( g_mined_block_count > 0 ) {
+                std::snprintf( msg, 100, " Won total %3u blocks", g_mined_block_count );
+                NOSO_LOG_INFO << msg << std::endl;
+                NOSO_TUI_OutputHistPad( msg );
+            }
+        } else {
+            std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
             std::snprintf( msg, 100, " Hashrate(Miner/Pool/Mnet) %5.01f%c / %5.01f%c / %5.01f%c",
-                          hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ),
-                          hashrate_pretty_value( pool_target->pool_hashrate ), hashrate_pretty_unit( pool_target->pool_hashrate ),
-                          hashrate_pretty_value( pool_target->mnet_hashrate ), hashrate_pretty_unit( pool_target->mnet_hashrate ) );
+                        hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ),
+                        hashrate_pretty_value( pool_target->pool_hashrate ), hashrate_pretty_unit( pool_target->pool_hashrate ),
+                        hashrate_pretty_value( pool_target->mnet_hashrate ), hashrate_pretty_unit( pool_target->mnet_hashrate ) );
             NOSO_LOG_INFO << msg << std::endl;
             NOSO_TUI_OutputHistPad( msg );
+            if ( pool_target->payment_block == pool_target->blck_no ) {
+                std::snprintf( msg, 100, " Paid %.8g NOSO", pool_target->payment_amount / 100'000'000.0 );
+                NOSO_LOG_INFO << msg << std::endl;
+                NOSO_TUI_OutputHistPad( msg );
+                std::snprintf( msg, 100, " %s", pool_target->payment_order_id.c_str() );
+                NOSO_LOG_INFO << msg << std::endl;
+                NOSO_TUI_OutputHistPad( msg );
+            }
         }
-        if ( pool_target->payment_block == pool_target->blck_no ) {
-            std::snprintf( msg, 100, " Paid %.8g NOSO", pool_target->payment_amount / 100'000'000.0 );
-            NOSO_LOG_INFO << msg << std::endl;
-            NOSO_TUI_OutputHistPad( msg );
-            std::snprintf( msg, 100, " %s", pool_target->payment_order_id.c_str() );
-            NOSO_LOG_INFO << msg << std::endl;
-            NOSO_TUI_OutputHistPad( msg );
-        }
+        NOSO_TUI_OutputHistWin();
     }
-    NOSO_TUI_OutputHistWin();
     std::snprintf( msg, 100, "---------------------------------------------------" );
     NOSO_LOG_INFO << msg << std::endl;
     std::snprintf( msg, 100, "BLOCK %06u       %-32s", target->blck_no + 1, target->lb_hash.substr( 0, 32 ).c_str() );
