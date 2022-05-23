@@ -86,17 +86,13 @@ jobs:
         mkdir arm-linux-androideabi-ncurses
         mkdir aarch64-linux-android-ncurses
         cd ncurses-6.2
-        CC=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang \
-        STRIP=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
-        ./configure \
+        CC=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang STRIP=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip ./configure \
           --host=armv7a-linux-androideabi \
           --prefix=$(pwd)/../armv7a-linux-androideabi-ncurses \
           --without-manpages --without-progs --without-tack --without-tests
         make
         make install
-        CC=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-clang \
-        STRIP=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
-        ./configure \
+        CC=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-clang STRIP=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip ./configure \
           --host=aarch64-linux-android \
           --prefix=$(pwd)/../aarch64-linux-android-ncurses \
           --without-manpages --without-progs --without-tack --without-tests
@@ -146,12 +142,12 @@ jobs:
         curl --output mingw64.zip --url https://invisible-island.net/datafiles/release/mingw64.zip
         7z x mingw64.zip -omingw64
         dir
-        clang++ --target=i686-pc-win32 -Imingw32\\include\\ncursesw \
+        clang++ --target=i686-pc-win32 -Imingw32\\include -Imingw32\\include\\ncursesw \
           noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe \
           -std=c++20 -Ofast -DNDEBUG \
           -Wl,-machine:x86 -lWs2_32.lib \
           mingw32\\lib\\libncursesw.a mingw32\\lib\\libformw.a
-        clang++ --target=x86_64-pc-win32 -Imingw64\\include\\ncursesw \
+        clang++ --target=x86_64-pc-win32 -Imingw64\\include -Imingw64\\include\\ncursesw \
           noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe \
           -std=c++20 -Ofast -DNDEBUG \
           -Wl,-machine:x64 -lWs2_32.lib \
