@@ -83,16 +83,20 @@ jobs:
         #
         wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.2.tar.gz 2>&1 > /dev/null
         tar xf ncurses-6.2.tar.gz 2>&1 > /dev/null
-        mkdir arm-linux-androideabi-ncurses
+        mkdir armv7a-linux-androideabi-ncurses
         mkdir aarch64-linux-android-ncurses
         cd ncurses-6.2
-        CC=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang STRIP=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip ./configure \
+        CC=$(pwd)/../android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang \
+        STRIP=$(pwd)/../android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+        ./configure \
           --host=armv7a-linux-androideabi \
           --prefix=$(pwd)/../armv7a-linux-androideabi-ncurses \
           --without-manpages --without-progs --without-tack --without-tests
         make
         make install
-        CC=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-clang STRIP=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip ./configure \
+        CC=$(pwd)/../android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-clang \
+        STRIP=$(pwd)/../android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+        ./configure \
           --host=aarch64-linux-android \
           --prefix=$(pwd)/../aarch64-linux-android-ncurses \
           --without-manpages --without-progs --without-tack --without-tests
