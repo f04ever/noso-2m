@@ -104,6 +104,7 @@ jobs:
         make install
         cd ..
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang++ \
+          -I$(pwd)/armv7a-linux-androideabi-ncurses/include \
           -I$(pwd)/armv7a-linux-androideabi-ncurses/include/ncurses \
           -L$(pwd)/armv7a-linux-androideabi-ncurses/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a \
@@ -113,6 +114,7 @@ jobs:
         file noso-2m-android-armv7a
         #
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang++ \
+          -I$(pwd)/aarch64-linux-android-ncurses/include \
           -I$(pwd)/aarch64-linux-android-ncurses/include/ncurses \
           -L$(pwd)/aarch64-linux-android-ncurses/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-android-aarch64 \
