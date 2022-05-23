@@ -1044,40 +1044,40 @@ private:
         return cmdstr;
     };
     int command() {
-        static std::string prev_cmdstr;
-        std::string curr_cmdstr = command_string();
+        std::string cmdstr = command_string();
         if ( m_cmdl_frm ) {
             pos_form_cursor( m_cmdl_frm );
             form_driver( m_cmdl_frm, REQ_LAST_FIELD );
             form_driver( m_cmdl_frm, REQ_END_LINE );
         }
-        if ( iequal( "exit", curr_cmdstr ) ) return ( -1 );
-        static int last_error { -1 };
-        if ( last_error >= 0 && curr_cmdstr == prev_cmdstr ) {
+        if ( iequal( "exit", cmdstr ) ) return ( -1 );
+        if ( cmdstr == "" ) {
             this->ToggleLogsPad();
             this->OutputLogsWin();
+        } else if ( iequal( "help",     cmdstr ) ) {
+            this->OutputInfoPad( "Supported commands:" );
+            this->OutputInfoPad( "" );
+            this->OutputInfoPad( "  threads - Show hashrate per thread last mining block" );
+            this->OutputInfoPad( "  pools   - Show pool information of configured pools" );
+            this->OutputInfoPad( "  help    - Show this list of supported commands" );
+            this->OutputInfoPad( "  exit    - Exit noso-2m, same as Ctrl+C" );
+            this->OutputInfoPad( "" );
+            this->OutputInfoPad( "--" );
+            this->OutputInfoWin();
+        } else if ( iequal( "pools",    cmdstr ) ) {
+            this->OutputStatPad( "Showing pools information" );
+            this->OutputStatWin();
+            CUtils::ShowPoolInformation( g_mining_pools );
+        } else if ( iequal( "threads",  cmdstr ) ) {
+            this->OutputStatPad( "Showing hashrate per thread" );
+            this->OutputStatWin();
+            CUtils::ShowThreadHashrates( g_last_block_thread_hashrates );
         } else {
-            if        ( iequal( "help",     curr_cmdstr ) ) {
-                this->SwitchInfoPad();
-                this->OutputLogsWin();
-            } else if ( iequal( "options",  curr_cmdstr ) ) {
-            } else if ( iequal( "config",   curr_cmdstr ) ) {
-            } else if ( iequal( "seeds",    curr_cmdstr ) ) {
-            } else if ( iequal( "nodes",    curr_cmdstr ) ) {
-            } else if ( iequal( "pools",    curr_cmdstr ) ) {
-                this->OutputStatPad( "Showing pools information" );
-                this->OutputStatWin();
-                last_error = CUtils::ShowPoolInformation( g_mining_pools );
-            } else if ( iequal( "threads",  curr_cmdstr ) ) {
-                this->OutputStatPad( "Showing hashrate per thread" );
-                this->OutputStatWin();
-                last_error = CUtils::ShowThreadHashrates( g_last_block_thread_hashrates );
-            } else {
-                this->OutputStatPad( ( "Unknown command '" + curr_cmdstr + "'!" ).c_str() );
-                this->OutputStatWin();
-            }
+            this->OutputStatPad( ( "Unknown command '" + cmdstr + "'!" ).c_str() );
+            this->OutputStatWin();
         }
-        prev_cmdstr = curr_cmdstr;
+        set_field_buffer( m_cmdl_fld[1], 0, "" );
+        form_driver( m_cmdl_frm, REQ_END_LINE );
         return ( 0 );
     };
 private:
@@ -1133,7 +1133,8 @@ public:
     int HandleEventLoop(){
         raw();
         noecho();
-        // curs_set( 0 );
+        curs_set( 0 );
+        leaveok( stdscr, true );
         keypad( stdscr, TRUE );
         notimeout( stdscr, TRUE );
         int key { 0 };
