@@ -83,12 +83,14 @@ jobs:
         #
         wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.2.tar.gz 2>&1 > /dev/null
         tar xf ncurses-6.2.tar.gz 2>&1 > /dev/null
+        mkdir arm-linux-androideabi-ncurses
+        mkdir aarch64-linux-android-ncurses
         cd ncurses-6.2
         CC=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang \
         STRIP=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
         ./configure \
-          --host=arm-linux-androideabi \
-          --prefix=$(pwd)/arm-linux-androideabi-ncurses \
+          --host=armv7a-linux-androideabi \
+          --prefix=$(pwd)/../armv7a-linux-androideabi-ncurses \
           --without-manpages --without-progs --without-tack --without-tests
         make
         make install
@@ -96,14 +98,14 @@ jobs:
         STRIP=$(pwd)/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
         ./configure \
           --host=aarch64-linux-android \
-          --prefix=$(pwd)/aarch64-linux-android-ncurses \
+          --prefix=$(pwd)/../aarch64-linux-android-ncurses \
           --without-manpages --without-progs --without-tack --without-tests
         make
         make install
         cd ..
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang++ \
-          -I$(pwd)/arm-linux-androideabi-ncurses/include/ncurses \
-          -L$(pwd)/arm-linux-androideabi-ncurses/lib \
+          -I$(pwd)/armv7a-linux-androideabi-ncurses/include/ncurses \
+          -L$(pwd)/armv7a-linux-androideabi-ncurses/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a \
           -std=c++20 -Ofast -DNDEBUG \
           -lncurses -lform -ltermcap \
@@ -140,9 +142,9 @@ jobs:
     - name: Build source
       run: |
         curl --output mingw32.zip --url https://invisible-island.net/datafiles/release/mingw32.zip
-        7z e mingw32.zip -omingw32
+        7z x mingw32.zip -omingw32
         curl --output mingw64.zip --url https://invisible-island.net/datafiles/release/mingw64.zip
-        7z e mingw64.zip -omingw64
+        7z x mingw64.zip -omingw64
         dir
         clang++ --target=i686-pc-win32 -Imingw32\\include\\ncursesw \
           noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe \
