@@ -2423,7 +2423,7 @@ int CUtils::ShowThreadHashrates( std::vector<std::tuple<std::uint32_t, double>> 
     auto out_one_column = [&]( std::size_t col ) {
         std::uint32_t const thread_id { std::get<0>( *next ) };
         double const thread_hashrate { std::get<1>( *next ) };
-        std::snprintf( msg + 17 * col, 200, " %3u | %7.01f%1c |", thread_id,
+        std::snprintf( msg + 17 * col, 200, " %3u | %7.02f%1c |", thread_id,
                         hashrate_pretty_value( thread_hashrate ),
                         hashrate_pretty_unit( thread_hashrate ) );
     };
