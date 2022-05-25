@@ -18,57 +18,109 @@ jobs:
         sudo apt-get -y -qq install g++-10-i686-linux-gnu 2>&1 > /dev/null
         sudo apt-get -y -qq install g++-10-arm-linux-gnueabihf 2>&1 > /dev/null
         sudo apt-get -y -qq install g++-10-aarch64-linux-gnu 2>&1 > /dev/null
+        sudo apt-get -y -qq install libncurses-dev 2>&1 > /dev/null
         wget -q http://ftp.de.debian.org/debian/pool/main/l/llvm-toolchain-12/libc++-12-dev_12.0.1-20+b1_i386.deb  2>&1 > /dev/null
         dpkg-deb -x libc++-12-dev_12.0.1-20+b1_i386.deb clang+llvm-12.0.1-i386-linux-gnu 2>&1 > /dev/null
         wget -q http://ftp.de.debian.org/debian/pool/main/l/llvm-toolchain-12/libc++abi-12-dev_12.0.1-20+b1_i386.deb  2>&1 > /dev/null
         dpkg-deb -x libc++abi-12-dev_12.0.1-20+b1_i386.deb clang+llvm-12.0.1-i386-linux-gnu 2>&1 > /dev/null
+        wget -q http://de.archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libncurses-dev_6.2-0ubuntu2_i386.deb 2>&1 > /dev/null
+        dpkg-deb -x libncurses-dev_6.2-0ubuntu2_i386.deb libncurses-dev_6.2-0ubuntu2_i386 2>&1 > /dev/null
         wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz 2>&1 > /dev/null
         tar xf clang+llvm-12.0.1-aarch64-linux-gnu.tar.xz 2>&1 > /dev/null
+        wget -q https://mirrors.ecnu.edu.cn/ubuntu-ports/ubuntu-ports/pool/main/n/ncurses/libncurses-dev_6.2-0ubuntu2_arm64.deb 2>&1 > /dev/null
+        dpkg-deb -x libncurses-dev_6.2-0ubuntu2_arm64.deb libncurses-dev_6.2-0ubuntu2_arm64 2>&1 > /dev/null
         wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz  2>&1 > /dev/null
         tar xf clang+llvm-12.0.1-armv7a-linux-gnueabihf.tar.xz 2>&1 > /dev/null
+        wget -q https://mirrors.ecnu.edu.cn/ubuntu-ports/ubuntu-ports/pool/main/n/ncurses/libncurses-dev_6.2-0ubuntu2_armhf.deb 2>&1 > /dev/null
+        dpkg-deb -x libncurses-dev_6.2-0ubuntu2_armhf.deb libncurses-dev_6.2-0ubuntu2_armhf 2>&1 > /dev/null
         wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip 2>&1 > /dev/null
         unzip -qq android-ndk-r23b-linux.zip 2>&1 > /dev/null
         #
-        clang++-12 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu -L$(pwd)/clang+llvm-12.0.1-i386-linux-gnu/usr/lib/llvm-12/lib \
+        clang++-12 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu \
+          -L$(pwd)/clang+llvm-12.0.1-i386-linux-gnu/usr/lib/llvm-12/lib \
+          -I$(pwd)/libncurses-dev_6.2-0ubuntu2_i386/usr/include \
+          -L$(pwd)/libncurses-dev_6.2-0ubuntu2_i386/usr/lib/i386-linux-gnu \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++ -lc++abi -s
-        # i686-linux-gnu-g++-10 \
-        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
-        #   -std=c++20 -O3 -lpthread -s
+          -std=c++20 -Ofast -DNDEBUG \
+          --stdlib=libc++ -fuse-ld=lld \
+          -lpthread -lc++ -lc++abi \
+          -lncurses -lform -ltermcap \
+          -static -s
         file noso-2m-linux-i686
         #
         clang++-12 \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++ -lc++abi -s
-        # x86_64-linux-gnu-g++-10 \
-        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
-        #   -std=c++20 -O3 -lpthread -s
+          -std=c++20 -Ofast -DNDEBUG \
+          --stdlib=libc++ -fuse-ld=lld \
+          -lpthread -lc++ -lc++abi \
+          -lncurses -lform -ltermcap \
+          -static -s
         file noso-2m-linux-x86_64
         #
-        clang++-12 --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf -L$(pwd)/clang+llvm-12.0.1-armv7a-linux-gnueabihf/lib \
+        clang++-12 --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf \
+          -L$(pwd)/clang+llvm-12.0.1-armv7a-linux-gnueabihf/lib \
+          -I$(pwd)/libncurses-dev_6.2-0ubuntu2_armhf/usr/include \
+          -L$(pwd)/libncurses-dev_6.2-0ubuntu2_armhf/usr/lib/arm-linux-gnueabihf \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++ -lc++abi -s
-        # arm-linux-gnueabihf-g++-10 \
-        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
-        #   -std=c++20 -O3 -lpthread -s
+          -std=c++20 -Ofast -DNDEBUG \
+          --stdlib=libc++ -fuse-ld=lld \
+          -lpthread -lc++ -lc++abi \
+          -lncurses -lform -ltermcap \
+          -static -s
         file noso-2m-linux-armv7a
         #
-        clang++-12 --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu -L$(pwd)/clang+llvm-12.0.1-aarch64-linux-gnu/lib \
+        clang++-12 --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu \
+          -L$(pwd)/clang+llvm-12.0.1-aarch64-linux-gnu/lib \
+          -I$(pwd)/libncurses-dev_6.2-0ubuntu2_arm64/usr/include \
+          -L$(pwd)/libncurses-dev_6.2-0ubuntu2_arm64/usr/lib/aarch64-linux-gnu \
           noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
-          -std=c++20 --stdlib=libc++ -Ofast -fuse-ld=lld -static -lpthread -lc++ -lc++abi -s
-        # aarch64-linux-gnu-g++-10 \
-        #   noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
-        #   -std=c++20 -O3 -lpthread -s
+          -std=c++20 -Ofast -DNDEBUG \
+          --stdlib=libc++ -fuse-ld=lld \
+          -lpthread -lc++ -lc++abi \
+          -lncurses -lform -ltermcap \
+          -static -s
         file noso-2m-linux-aarch64
         #
+        wget -q https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.2.tar.gz 2>&1 > /dev/null
+        tar xf ncurses-6.2.tar.gz 2>&1 > /dev/null
+        mkdir armv7a-linux-androideabi-ncurses
+        mkdir aarch64-linux-android-ncurses
+        cd ncurses-6.2
+        CC=$(pwd)/../android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang \
+        STRIP=$(pwd)/../android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+        ./configure \
+          --host=armv7a-linux-androideabi \
+          --prefix=$(pwd)/../armv7a-linux-androideabi-ncurses \
+          --without-manpages --without-progs --without-tack --without-tests 2>&1 > /dev/null
+        make 2>&1 > /dev/null
+        make install 2>&1 > /dev/null
+        CC=$(pwd)/../android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang \
+        STRIP=$(pwd)/../android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+        ./configure \
+          --host=aarch64-linux-android \
+          --prefix=$(pwd)/../aarch64-linux-android-ncurses \
+          --without-manpages --without-progs --without-tack --without-tests 2>&1 > /dev/null
+        make 2>&1 > /dev/null
+        make install 2>&1 > /dev/null
+        cd ..
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang++ \
+          -I$(pwd)/armv7a-linux-androideabi-ncurses/include \
+          -I$(pwd)/armv7a-linux-androideabi-ncurses/include/ncurses \
+          -L$(pwd)/armv7a-linux-androideabi-ncurses/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a \
-          -std=c++20 -Ofast -static -s
+          -std=c++20 -Ofast -DNDEBUG \
+          -lncurses -lform \
+          -static -s
         file noso-2m-android-armv7a
         #
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang++ \
+          -I$(pwd)/aarch64-linux-android-ncurses/include \
+          -I$(pwd)/aarch64-linux-android-ncurses/include/ncurses \
+          -L$(pwd)/aarch64-linux-android-ncurses/lib \
           noso-2m.cpp md5-c.cpp -o noso-2m-android-aarch64 \
-          -std=c++20 -Ofast -static -s
+          -std=c++20 -Ofast -DNDEBUG \
+          -lncurses -lform \
+          -static -s
         file noso-2m-android-aarch64
       shell: bash
     - name: Upload artifacs
@@ -92,11 +144,21 @@ jobs:
     - name: Build source
       run: |
         clang++ --target=i686-pc-win32 \
+          -Imingw-w64-clang-i686-ncurses-6_3\\include \
+          -Imingw-w64-clang-i686-ncurses-6_3\\include\\ncurses \
+          mingw-w64-clang-i686-ncurses-6_3\\lib\\libncurses.dll.a \
+          mingw-w64-clang-i686-ncurses-6_3\\lib\\libform.dll.a \
           noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe \
-          -std=c++20 -Ofast -Wl,-machine:x86 -lWs2_32.lib
+          -std=c++20 -Ofast -DNOGDI -DNDEBUG \
+          -Wl,-machine:x86 -nostdlib -lWs2_32.lib -lmsvcrt
         clang++ --target=x86_64-pc-win32 \
+          -Imingw-w64-clang-x86_64-ncurses-6_3\\include \
+          -Imingw-w64-clang-x86_64-ncurses-6_3\\include\\ncurses \
+          mingw-w64-clang-x86_64-ncurses-6_3\\lib\\libncurses.dll.a \
+          mingw-w64-clang-x86_64-ncurses-6_3\\lib\\libform.dll.a \
           noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe \
-          -std=c++20 -Ofast -Wl,-machine:x64 -lWs2_32.lib
+          -std=c++20 -Ofast -DNOGDI -DNDEBUG \
+          -Wl,-machine:x64 -nostdlib -lWs2_32.lib -lmsvcrt
       shell: bash
     - name: Upload artifacs
       uses: actions/upload-artifact@v2
@@ -104,7 +166,11 @@ jobs:
         name: 'windows-latest'
         path: |
           README.md
+          mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll
+          mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll
           noso-2m-i686.exe
+          mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll
+          mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll
           noso-2m-x86_64.exe
   build-macos:
     name: 'Build macOS'
@@ -116,7 +182,8 @@ jobs:
       run: |
         clang++ \
           noso-2m.cpp md5-c.cpp -o noso-2m-darwin \
-          -std=c++20 -Ofast -lpthread
+          -std=c++20 -Ofast -DNDEBUG \
+          -lncurses -lform -ltermcap
         strip -x noso-2m-darwin
         file noso-2m-darwin
       shell: bash
@@ -211,10 +278,14 @@ jobs:
           cp windows-latest/README.md README.md
           #
           cp windows-latest/noso-2m-x86_64.exe noso-2m.exe
-          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe README.md
+          cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
+          cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll libform6.dll
+          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe libncurses6.dll libform6.dll README.md
           #
           cp windows-latest/noso-2m-i686.exe noso-2m.exe
-          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe README.md
+          cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
+          cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll libform6.dll
+          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe libncurses6.dll libform6.dll README.md
         shell: bash
       - name: Upload artifacts
         uses: softprops/action-gh-release@v1
