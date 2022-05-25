@@ -12,7 +12,9 @@ A miner for Nosocryptocurrency Protocol-2.
 
 `noso-2m` be developed using C/C++, compatible with standards C++17/20. It is expected be buildable and executable on a wide range of hardware architectures (Intel, AMD, arm, aarch64) and operating systems (Linux, macOS, Android (Termux), and Windows).
 
-From version 0.2.4, noso-2m supports a simple text UI that expects to help normal users starting with noso-2m easier. A logging file `noso-2m.log` is provided as well for advanced users. The command `pools` shows information of pools listed in config file or provided when run the `noso-2m` program. Use command `help` for more utilised commands and helps.
+From version 0.2.4, noso-2m supports a simple text UI that expects to help new users starting with noso-2m easier. A logging file `noso-2m.log` is provided as well for advanced users. A command line provides information during mining. The command `pools` shows information of pools listed in config file or provided when run the `noso-2m` program. Use command `help` for more utilised commands and helps. On Microsoft Windows, don't try to resize the console window since a problematic inherited from the NCURSES library causes text shows weird (but not effect the mining jobs).
+
+![Screenshot](images/textui.png)
 
 ## Run `noso-2m` miner
 
