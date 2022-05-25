@@ -278,13 +278,13 @@ jobs:
           cp windows-latest/README.md README.md
           #
           cp windows-latest/noso-2m-x86_64.exe noso-2m.exe
-          cp mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
-          cp mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll libform6.dll
+          cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
+          cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll libform6.dll
           7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe libncurses6.dll libform6.dll README.md
           #
           cp windows-latest/noso-2m-i686.exe noso-2m.exe
-          cp mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
-          cp mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll libform6.dll
+          cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
+          cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll libform6.dll
           7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe libncurses6.dll libform6.dll README.md
         shell: bash
       - name: Upload artifacts
