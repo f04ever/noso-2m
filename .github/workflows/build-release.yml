@@ -166,7 +166,11 @@ jobs:
         name: 'windows-latest'
         path: |
           README.md
+          mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll
+          mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll
           noso-2m-i686.exe
+          mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll
+          mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll
           noso-2m-x86_64.exe
   build-macos:
     name: 'Build macOS'
