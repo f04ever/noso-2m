@@ -143,21 +143,22 @@ jobs:
       uses: actions/checkout@v2
     - name: Build source
       run: |
-        curl --output mingw32.zip --url https://invisible-island.net/datafiles/release/mingw32.zip
-        7z x mingw32.zip -omingw32
-        curl --output mingw64.zip --url https://invisible-island.net/datafiles/release/mingw64.zip
-        7z x mingw64.zip -omingw64
-        dir
-        clang++ --target=i686-pc-win32 -Imingw32\\include -Imingw32\\include\\ncursesw \
+        clang++ --target=i686-pc-win32 \
+          -Imingw-w64-clang-i686-ncurses-6_3\\include \
+          -Imingw-w64-clang-i686-ncurses-6_3\\include\\ncurses \
+          mingw-w64-clang-i686-ncurses-6_3\\lib\\libncurses.dll.a \
+          mingw-w64-clang-i686-ncurses-6_3\\lib\\libform.dll.a \
           noso-2m.cpp md5-c.cpp -o noso-2m-i686.exe \
           -std=c++20 -Ofast -DNOGDI -DNDEBUG \
-          -Wl,-machine:x86 -lWs2_32.lib \
-          mingw32\\lib\\libncursesw.a mingw32\\lib\\libformw.a
-        clang++ --target=x86_64-pc-win32 -Imingw64\\include -Imingw64\\include\\ncursesw \
+          -Wl,-machine:x86 -nostdlib -lWs2_32.lib -lmsvcrt
+        clang++ --target=x86_64-pc-win32 \
+          -Imingw-w64-clang-x86_64-ncurses-6_3\\include \
+          -Imingw-w64-clang-x86_64-ncurses-6_3\\include\\ncurses \
+          mingw-w64-clang-x86_64-ncurses-6_3\\lib\\libncurses.dll.a \
+          mingw-w64-clang-x86_64-ncurses-6_3\\lib\\libform.dll.a \
           noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe \
           -std=c++20 -Ofast -DNOGDI -DNDEBUG \
-          -Wl,-machine:x64 -lWs2_32.lib \
-          mingw64\\lib\\libncursesw.a mingw64\\lib\\libformw.a
+          -Wl,-machine:x64 -nostdlib -lWs2_32.lib -lmsvcrt
       shell: bash
     - name: Upload artifacs
       uses: actions/upload-artifact@v2
@@ -273,10 +274,14 @@ jobs:
           cp windows-latest/README.md README.md
           #
           cp windows-latest/noso-2m-x86_64.exe noso-2m.exe
-          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe README.md
+          cp mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
+          cp mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll libform6.dll
+          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe libncurses6.dll libform6.dll README.md
           #
           cp windows-latest/noso-2m-i686.exe noso-2m.exe
-          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe README.md
+          cp mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
+          cp mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll libform6.dll
+          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe libncurses6.dll libform6.dll README.md
         shell: bash
       - name: Upload artifacts
         uses: softprops/action-gh-release@v1
