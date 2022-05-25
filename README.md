@@ -6,11 +6,15 @@
 [![Support Android](https://img.shields.io/badge/support-Android-blue?logo=Android)](https://github.com/f04ever/noso-2m/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/f04ever/noso-2m/total)](https://github.com/f04ever/noso-2m/releases)
 
-A miner for Nosocryptocurrency Protocol 2.
+A miner for Nosocryptocurrency Protocol-2.
 
 `noso-2m` supports mining both ***solo*** and ***pool*** modes on mainnet. `noso-2m` supports *_failover_* to other pools in pool mining modes.
 
-`noso-2m` be developed using C/C++, compatible with standards C++14/17/20. It is expected be buildable and executable on a wide range of hardware architectures (Intel, AMD, arm, aarch64) and operating systems (Linux, macOS, Android (Termux), and Windows).
+`noso-2m` be developed using C/C++, compatible with standards C++17/20. It is expected be buildable and executable on a wide range of hardware architectures (Intel, AMD, arm, aarch64) and operating systems (Linux, macOS, Android (Termux), and Windows).
+
+From version 0.2.4, noso-2m supports a simple text UI that expects to help new users starting with noso-2m easier. A logging file `noso-2m.log` is provided as well for advanced users. A command line provides information during mining. The command `pools` shows information of pools listed in config file or provided when run the `noso-2m` program. Use command `help` for more utilised commands and helps. On Microsoft Windows, don't try to resize the console window since a problematic inherited from the NCURSES library causes text shows weird (but not effect the mining jobs).
+
+![Screenshot](images/textui.png)
 
 ## Run `noso-2m` miner
 
@@ -77,25 +81,25 @@ On Windows, requires clang and Build Tools for Visual Studio.
 
 - Currently `noso-2m` is compatiple with C++14/17/20. So, clang version 3.4 or later, or gcc version 6.1 or later. Recommend to build `noso-2m` with `c++20`.
 
-- Can replace `c++20` in the build commands below by `c++17`, `c++14` for older versions of clang, gcc, or Windows Build Tools
+- Can replace `c++20` in the build commands below by `c++17` for older versions of clang, gcc, or Windows Build Tools
 
 Simple command for download source code and build `noso-2m` as below:
 
 ### On Linux, MacOS, or Android (Termux)
 
-`clang++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -lpthread -O3`
+`clang++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG --stdlib=libc++ -fuse-ld=lld -lpthread -lc++abi -lncurses -lform -ltermcap`
 
 Or use gcc,
 
-`g++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -lpthread -O3`
+`g++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG -lpthread -lncurses -lform -ltermcap`
 
 ### On Windows
 
-`clang++ noso-2m.cpp md5-c.cpp -o noso-2m.exe -std=c++20 -lWs2_32.lib -O2`
+`clang++ noso-2m.cpp md5-c.cpp -o noso-2m.exe -std=c++20 -O2 -DNDEBUG -lWs2_32.lib`
 
 Or use clang compatible driver mode for Microsoft Build Tools
 
-`clang-cl noso-2m.cpp md5-c.cpp /o noso-2m.exe /std:c++20 /EHsc /O2 /link Ws2_32.lib`
+`clang-cl noso-2m.cpp md5-c.cpp /o noso-2m.exe /std:c++20 /O2 /EHsc /DNDEBUG /link Ws2_32.lib`
 
 ## Donations
 
