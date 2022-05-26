@@ -54,7 +54,7 @@ $ ./noso-2m -a WALLETADDRESS -t THREADCOUNT 2>errors.txt
 
 - The config file can be located somewhere else and be specified using option `--config="PATH-TO-CONFIG-FILE"`.
 
-- Arguments loading from config file will override the options provided in on the command line.
+- Arguments loading from the config file will override the options provided on the command line.
 
 - By default, `noso-2m` mines in `pool mode`, and does failover between two pools: the `f04ever` pool and the `devnoso` pool.
 
