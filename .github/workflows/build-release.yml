@@ -28,11 +28,12 @@ jobs:
     - name: Build source
       shell: bash
       run: |
-        mkdir -p build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake  --build . --clean-first
-        file noso-2m
+        mkdir -p build && \
+        cd build && \
+        cmake -DCMAKE_BUILD_TYPE=Release .. && \
+        cmake  --build . --clean-first --verbose && \
+        mv noso-2m noso-2m-x86_64-linux && \
+        file noso-2m-x86_64-linux
 
   build-windows:
     name: Build Windows
@@ -40,19 +41,20 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v2
-    - name: Setup clang
-      uses: egor-tensin/setup-clang@v1
-      with:
-        version: latest
-        platform: x64
+#    - name: Setup clang
+#      uses: egor-tensin/setup-clang@v1
+#      with:
+#        version: latest
+#        platform: x64
     - name: Build source
       shell: bash
       run: |
-        mkdir -p build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake  --build . --clean-first
-        file noso-2m.exe
+        mkdir -p build && \
+        cd build && \
+        cmake -DCMAKE_BUILD_TYPE=Release .. && \
+        cmake  --build . --clean-first --verbose && \
+        mv noso-2m.exe noso-2m-x86_64-win64.exe && \
+        file noso-2m-x86_64-win64.exe
 
   build-macos:
     name: Build macOS
@@ -68,11 +70,13 @@ jobs:
     - name: Build source
       shell: bash
       run: |
-        mkdir -p build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake  --build . --clean-first
-        file noso-2m
+        mkdir -p build && \
+        cd build && \
+        cmake -DCMAKE_BUILD_TYPE=Release .. && \
+        cmake  --build . --clean-first --verbose && \
+        mv noso-2m noso-2m-darwin && \
+        strip -x noso-2m-darwin && \
+        file noso-2m-darwin
 
   release-linux:
     if: contains(github.ref, '/tags/')

@@ -9,11 +9,12 @@ SET (CMAKE_C_FLAGS_RELEASE                    "-O3 -DNDEBUG")
 
 ## clang++
 SET (CMAKE_CXX_COMPILER                       "clang++")
+SET (CMAKE_CXX_FLAGS                          "-Wall --stdlib=libc++")
 SET (CMAKE_CXX_FLAGS_DEBUG                    "-g")
 SET (CMAKE_CXX_FLAGS_RELEASE                  "-O3 -DNDEBUG")
 
 # set the linker
-SET (CMAKE_LINKER                             "lld")
+#SET (CMAKE_CXX_LINK_EXECUTABLE                "/usr/bin/lld")
 
 # set release
 #SET (CMAKE_RELEASE_TYPE                       Release)
@@ -47,5 +48,5 @@ configure_file(noso-2m_config.h.in noso-2m_config.h)
 target_include_directories(noso-2m PUBLIC "${PROJECT_BINARY_DIR}")
 
 # add the libs
-target_link_libraries(noso-2m PUBLIC pthread c++abi ncurses form termcap)
+target_link_libraries(noso-2m PUBLIC pthread c++ c++abi ncurses form termcap)
 
