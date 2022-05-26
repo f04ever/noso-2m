@@ -129,6 +129,7 @@ jobs:
         name: 'ubuntu-latest'
         path: |
           README.md
+          noso-2m.cfg
           noso-2m-linux-i686
           noso-2m-linux-x86_64
           noso-2m-linux-armv7a
@@ -166,6 +167,7 @@ jobs:
         name: 'windows-latest'
         path: |
           README.md
+          noso-2m.cfg
           mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll
           mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll
           noso-2m-i686.exe
@@ -193,6 +195,7 @@ jobs:
         name: 'macos-latest'
         path: |
           README.md
+          noso-2m.cfg
           noso-2m-darwin
   release-linux:
     if: contains(github.ref, '/tags/')
@@ -207,30 +210,31 @@ jobs:
           tag=${{ github.event.ref }}
           tag=${tag#"refs/tags/"}
           cp ubuntu-latest/README.md README.md
+          cp ubuntu-latest/noso-2m.cfg noso-2m-SAMPLE.cfg
           #
           cp ubuntu-latest/noso-2m-linux-i686 noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-i686.tar.gz noso-2m README.md
+          tar -zcvf noso-2m-${tag}-linux-i686.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-x86_64 noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-x86_64.tar.gz noso-2m README.md
+          tar -zcvf noso-2m-${tag}-linux-x86_64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-armv7a noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-armv7a.tar.gz noso-2m README.md
+          tar -zcvf noso-2m-${tag}-linux-armv7a.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-aarch64 noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-aarch64.tar.gz noso-2m README.md
+          tar -zcvf noso-2m-${tag}-linux-aarch64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-android-armv7a noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-android-armv7a.tar.gz noso-2m README.md
+          tar -zcvf noso-2m-${tag}-android-armv7a.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-android-aarch64 noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-android-aarch64.tar.gz noso-2m README.md
+          tar -zcvf noso-2m-${tag}-android-aarch64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
         shell: bash
       - name: Upload artifacts
         uses: softprops/action-gh-release@v1
@@ -252,9 +256,10 @@ jobs:
           tag=${{ github.event.ref }}
           tag=${tag#"refs/tags/"}
           cp macos-latest/README.md README.md
+          cp macos-latest/noso-2m.cfg noso-2m-SAMPLE.cfg
           cp macos-latest/noso-2m-darwin noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m README.md
+          tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
         shell: bash
       - name: Upload artifacts
         uses: softprops/action-gh-release@v1
@@ -276,16 +281,17 @@ jobs:
           tag=${{ github.event.ref }}
           tag=${tag#"refs/tags/"}
           cp windows-latest/README.md README.md
+          cp windows-latest/noso-2m.cfg noso-2m-SAMPLE.cfg
           #
           cp windows-latest/noso-2m-x86_64.exe noso-2m.exe
           cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
           cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll libform6.dll
-          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe libncurses6.dll libform6.dll README.md
+          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe libncurses6.dll libform6.dll noso-2m-SAMPLE.cfg README.md
           #
           cp windows-latest/noso-2m-i686.exe noso-2m.exe
           cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
           cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll libform6.dll
-          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe libncurses6.dll libform6.dll README.md
+          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe libncurses6.dll libform6.dll noso-2m-SAMPLE.cfg README.md
         shell: bash
       - name: Upload artifacts
         uses: softprops/action-gh-release@v1
