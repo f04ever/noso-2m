@@ -30,7 +30,7 @@ jobs:
       run: |
         mkdir -p build && \
         cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -G Ninja .. && \
+        cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" .. && \
         cmake  --build . --clean-first --verbose && \
         mv noso-2m noso-2m-x86_64-linux && \
         file noso-2m-x86_64-linux
@@ -51,7 +51,7 @@ jobs:
       run: |
         mkdir -p build && \
         cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -G Ninja .. && \
+        cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" .. && \
         cmake  --build . --clean-first --verbose && \
         mv noso-2m.exe noso-2m-x86_64-win64.exe && \
         file noso-2m-x86_64-win64.exe
@@ -72,7 +72,7 @@ jobs:
       run: |
         mkdir -p build && \
         cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -G Ninja .. && \
+        cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" .. && \
         cmake  --build . --clean-first --verbose && \
         mv noso-2m noso-2m-darwin && \
         strip -x noso-2m-darwin && \
