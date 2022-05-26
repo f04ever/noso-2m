@@ -14,6 +14,9 @@ SET (CMAKE_CXX_FLAGS_RELEASE_INIT             "-O3 -DNDEBUG")
 # set the linker
 SET (CMAKE_LINKER                             "/usr/bin/lld")
 
+# set release
+#SET (CMAKE_RELEASE_TYPE                       Release)
+
 # specify the C++ standard
 ## this should be equal to -std=c++20
 SET (CMAKE_CXX_STANDARD                       20)
