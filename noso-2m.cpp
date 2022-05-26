@@ -1575,13 +1575,17 @@ int main( int argc, char *argv[] ) {
             NOSO_TUI_OutputHistPad( msg.c_str() );
             throw std::bad_exception();
         }
-        std::string sel_address { opt_address != DEFAULT_MINER_ADDRESS ? opt_address
-            : cfg_address.length() > 0 ? cfg_address : opt_address };
-        std::string sel_pools { opt_pools != DEFAULT_POOL_URL_LIST ? opt_pools
-            : cfg_pools.length() > 0 ? cfg_pools : opt_pools };
+        std::string sel_address {
+            opt_address != DEFAULT_MINER_ADDRESS ? opt_address
+                : cfg_address.length() > 0 ? cfg_address : DEFAULT_MINER_ADDRESS };
+        std::string sel_pools {
+            opt_pools != DEFAULT_POOL_URL_LIST ? opt_pools
+                : cfg_pools.length() > 0 ? cfg_pools : DEFAULT_POOL_URL_LIST };
         std::strcpy( g_miner_address, sel_address.c_str() );
-        g_miner_id = opt_minerid > 0 ? opt_minerid : cfg_minerid >= 0 ? cfg_minerid : opt_minerid;
-        g_threads_count = opt_threads > 2 ? opt_threads: cfg_threads > 2 ? cfg_threads : opt_threads;
+        g_miner_id = opt_minerid > DEFAULT_MINER_ID ? opt_minerid
+            : cfg_minerid >= DEFAULT_MINER_ID ? cfg_minerid : DEFAULT_MINER_ID;
+        g_threads_count = opt_threads > DEFAULT_THREADS_COUNT ? opt_threads
+            : cfg_threads > DEFAULT_THREADS_COUNT ? cfg_threads : DEFAULT_THREADS_COUNT;
         g_mining_pools = parse_pools_argv( sel_pools );
         g_solo_mining = opt_solo > 0 ? true : cfg_solo;
     } catch( const std::bad_exception& e) {
