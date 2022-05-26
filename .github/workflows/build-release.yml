@@ -41,11 +41,11 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v2
-    - name: Setup clang
-      uses: egor-tensin/setup-clang@v1
-      with:
-        version: latest
-        platform: x64
+#    - name: Setup clang
+#      uses: egor-tensin/setup-clang@v1
+#      with:
+#        version: latest
+#        platform: x64
     - name: Build source
       shell: bash
       run: |
