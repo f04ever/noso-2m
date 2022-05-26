@@ -20,12 +20,12 @@ jobs:
       with:
         version: latest
         platform: x64
-    - name: Install dependecies
-      shell: bash
-      run: |
-        sudo apt -y -qq update
-        sudo apt -y install libncurses-dev libc++-dev libc++abi-dev
-    - name: Build source
+#    - name: Install dependecies
+#      shell: bash
+#      run: |
+#        sudo apt -y -qq update
+#        sudo apt -y install libncurses-dev libc++-dev libc++abi-dev
+    - name: Build Linux x86_64
       shell: bash
       run: |
         mkdir -p build && \
@@ -46,7 +46,7 @@ jobs:
       with:
         version: latest
         platform: x64
-    - name: Build source
+    - name: Build Windows x86_64
       shell: bash
       run: |
         mkdir -p build && \
@@ -67,7 +67,7 @@ jobs:
 #      with:
 #        version: latest
 #        platform: x64
-    - name: Build source
+    - name: Build macOS darwin
       shell: bash
       run: |
         mkdir -p build && \
