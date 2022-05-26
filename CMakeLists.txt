@@ -3,13 +3,14 @@ cmake_minimum_required(VERSION 3.10)
 # Configure for clang
 ## Not completely sure this section is needed, but just in case
 SET (CMAKE_C_COMPILER                         "/usr/bin/clang")
-SET (CMAKE_C_FLAGS_INIT                       "-Wall")
-SET (CMAKE_C_FLAGS_RELEASE_INIT               "-O3 -DNDEBUG")
+SET (CMAKE_C_FLAGS                            "-Wall")
+SET (CMAKE_C_FLAGS_DEBUG                      "-g")
+SET (CMAKE_C_FLAGS_RELEASE                    "-O3 -DNDEBUG")
 
 ## clang++
 SET (CMAKE_CXX_COMPILER                       "/usr/bin/clang++")
-SET (CMAKE_CXX_FLAGS_INIT                     "-Wall")
-SET (CMAKE_CXX_FLAGS_RELEASE_INIT             "-O3 -DNDEBUG")
+SET (CMAKE_CXX_FLAGS_DEBUG                    "-g")
+SET (CMAKE_CXX_FLAGS_RELEASE                  "-O3 -DNDEBUG")
 
 # set the linker
 SET (CMAKE_LINKER                             "/usr/bin/lld")
