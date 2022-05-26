@@ -36,7 +36,7 @@ $ ./noso-2m -a WALLETADDRESS -t THREADCOUNT 2>errors.txt
 ### On Windows
 
 ```console
-C:\> noso-2m.exe -a WALLETADDRESS -t THREADCOUNT 2> errors.txt
+> noso-2m.exe -a WALLETADDRESS -t THREADCOUNT 2> errors.txt
 ```
 
 ### Help
@@ -78,7 +78,7 @@ C:\> noso-2m.exe -a WALLETADDRESS -t THREADCOUNT 2> errors.txt
 
     - An example: 
         ```console
-        ./noso-2m -a N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS -i 1000 -t 8 --pools="f04ever:209.126.80.203:8082;devnoso:45.146.252.103:8082"
+        $ ./noso-2m -a N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS -i 1000 -t 8 --pools="f04ever:209.126.80.203:8082;devnoso:45.146.252.103:8082"
         ```
 
 - Use option `--solo` for solo mining mode on the mainnet. You need to provide a `Miner ID` via the  option `-i` / `--minerid` if you plan on mining with multiple machines using the same wallet address when in solo mode.
@@ -134,13 +134,13 @@ $ g++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG -lpthread -lncurs
 ### Building on Windows
 
 ```console
-C:\> clang++ noso-2m.cpp md5-c.cpp -o noso-2m.exe -std=c++20 -O2 -DNDEBUG -lWs2_32.lib
+> clang++ noso-2m.cpp md5-c.cpp -o noso-2m.exe -std=c++20 -O2 -DNDEBUG -lWs2_32.lib
 ```
 
 Or use clang compatible driver mode for Microsoft Build Tools
 
 ```console
-C:\> clang-cl noso-2m.cpp md5-c.cpp /o noso-2m.exe /std:c++20 /O2 /EHsc /DNDEBUG /link Ws2_32.lib
+> clang-cl noso-2m.cpp md5-c.cpp /o noso-2m.exe /std:c++20 /O2 /EHsc /DNDEBUG /link Ws2_32.lib
 ```
 
 ## Donations
