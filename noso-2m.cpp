@@ -1408,8 +1408,9 @@ static std::shared_ptr<CTextUI> _TEXTUI { CTextUI::GetInstance() };
 #define NOSO_TUI_OutputActiWinTillBalance( param )  _TEXTUI->OutputActiWinTillBalance( (param) )
 #define NOSO_TUI_OutputActiWinTillPayment( param )  _TEXTUI->OutputActiWinTillPayment( (param) )
 #define NOSO_TUI_OutputActiWinMiningSource( param ) _TEXTUI->OutputActiWinMiningSource( (param) )
-static std::ofstream _NOSO_LOGGING_OFS( DEFAULT_LOGGING_FILENAME );
+static std::ofstream _NOSO_LOGGING_OFS;
 static LogFile _NOSO_LOGGING_LOGSTREAM( _NOSO_LOGGING_OFS );
+#define NOSO_LOG_INIT() _NOSO_LOGGING_OFS.open( DEFAULT_LOGGING_FILENAME )
 #else // OF #ifndef NO_TEXTUI
 #define NOSO_TUI_StartTUI()         ((void)0)
 #define NOSO_TUI_WaitKeyPress()     ((void)0)
@@ -1434,6 +1435,7 @@ static LogFile _NOSO_LOGGING_LOGSTREAM( _NOSO_LOGGING_OFS );
 #define NOSO_TUI_OutputActiWinTillPayment( param )  ((void)0)
 #define NOSO_TUI_OutputActiWinMiningSource( param ) ((void)0)
 static LogFile _NOSO_LOGGING_LOGSTREAM( std::cout );
+#define NOSO_LOG_INIT() ((void)0)
 #endif // OF #ifndef NO_TEXTUI ... #else
 #define _LOG_FATAL LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::FATAL >()
 #define _LOG_ERROR LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::ERROR >()
@@ -1483,6 +1485,7 @@ int main( int argc, char *argv[] ) {
         NOSO_STDOUT << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
         std::exit( EXIT_SUCCESS );
     }
+    NOSO_LOG_INIT();
     NOSO_LOG_INFO << "noso-2m - A miner for Nosocryptocurrency Protocol-2" << std::endl;
     NOSO_LOG_INFO << "f04ever (c) 2022 https://github.com/f04ever/noso-2m" << std::endl;
     NOSO_LOG_INFO << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
