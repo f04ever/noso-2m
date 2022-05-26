@@ -106,7 +106,7 @@ On Linux/macOS/Android(Termux), it requires clang, or gcc.
 On an Ubuntu machine you can install the dependencies with the following command:
 
 ```console
-$ sudo apt install build-essential clang lld libc++-dev libc++adb-dev
+$ sudo apt install build-essential clang lld libc++-dev libc++abi-dev
 ```
 
 ### Windows
