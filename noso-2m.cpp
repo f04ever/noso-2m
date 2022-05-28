@@ -631,8 +631,8 @@ struct CSolsSetCompare {
 
 class CMineThread {
 public:
-    std::uint32_t m_miner_id;
-    std::uint32_t m_thread_id;
+    std::uint32_t const m_miner_id;
+    std::uint32_t const m_thread_id;
 protected:
     char m_address[32];
     char m_prefix[10];
