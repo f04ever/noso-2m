@@ -15,7 +15,7 @@
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_CXX_FLAGS": "-Wall",
+                "CMAKE_CXX_FLAGS": "-Wall --stdlib=libc++",
                 "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
                 "CMAKE_BUILD_TYPE":"Release"
             }
@@ -26,7 +26,7 @@
             "displayName": "Linux 64b",
             "description": "Build for Linux 64b",
             "cacheVariables": {
-                "CMAKE_CXX_FLAGS": "-Wall --target=x86_64-linux-gnu"
+                "CMAKE_CXX_FLAGS": "-Wall --stdlib=libc++ --target=x86_64-linux-gnu"
             }
         },
         {
@@ -35,7 +35,7 @@
             "displayName": "Linux 32b",
             "description": "Build for Linux 32b",
             "cacheVariables": {
-                "CMAKE_CXX_FLAGS": "-Wall --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu"
+                "CMAKE_CXX_FLAGS": "-Wall --stdlib=libc++ --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu"
             }
         },
         {
