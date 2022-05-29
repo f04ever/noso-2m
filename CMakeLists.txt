@@ -33,8 +33,8 @@ project(
 
 # Find required packages
 ## pthread
-#SET (THREADS_PREFER_PTHREAD_FLAG    True)
-#find_package(Threads REQUIRED)
+SET (CMAKE_THREAD_PREFER_PTHREAD    True)
+find_package(Threads REQUIRED)
 
 ## ncurses
 SET (CURSES_NEED_NCURSES    True)
@@ -65,7 +65,7 @@ target_include_directories(noso-2m PUBLIC
 
 # add the libs to the linker
 target_link_libraries(noso-2m PUBLIC
-#  pthread
+  pthread
 #  c++
 #  c++abi
   "${CURSES_LIBRARIES}"
