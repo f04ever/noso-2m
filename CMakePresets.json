@@ -1,0 +1,40 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "displayName": "Base Config",
+            "description": "Base build using Unix Makefiles generator",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE":"Release"
+            }
+        },
+        {
+            "name": "linux-x86_64",
+            "inherits": "base",
+            "displayName": "Linux 64b",
+            "description": "Build for Linux 64b"
+        },
+        {
+            "name": "windows-x86_64",
+            "inherits": "base",
+            "displayName": "Windows 64b",
+            "description": "Build for Windows 64b",
+            "generator": "Visual Studio 17 2022"
+        },
+        {
+            "name": "macos-x86_64",
+            "inherits": "base",
+            "displayName": "macOS 64b",
+            "description": "Build for macOS 64b"
+        }
+    ]
+}

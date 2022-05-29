@@ -25,9 +25,9 @@ jobs:
       run: |
         mkdir -p build && \
         cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" .. && \
-        cmake  --build . --clean-first && \
-        mv noso-2m noso-2m-x86_64-linux && \
+        cmake --preset=linux-x86_64 .. && \
+        cmake --build linux-x86_64 --clean-first && \
+        mv linux-x86_64/noso-2m noso-2m-x86_64-linux && \
         file noso-2m-x86_64-linux
 
   build-windows:
@@ -46,9 +46,9 @@ jobs:
       run: |
         mkdir -p build && \
         cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022" .. && \
-        cmake  --build . --clean-first && \
-        mv noso-2m.exe noso-2m-x86_64-win64.exe && \
+        cmake --preset=windows-x86_64 .. && \
+        cmake --build windows-x86_64 --clean-first && \
+        mv windows-x86_64/noso-2m.exe noso-2m-x86_64-win64.exe && \
         file noso-2m-x86_64-win64.exe
 
   build-macos:
@@ -67,9 +67,9 @@ jobs:
       run: |
         mkdir -p build && \
         cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" .. && \
-        cmake  --build . --clean-first && \
-        mv noso-2m noso-2m-darwin && \
+        cmake --preset=macos-x86_64 .. && \
+        cmake --build macos-x86_64 --clean-first && \
+        mv macos-x86_64/noso-2m noso-2m-darwin && \
         strip -x noso-2m-darwin && \
         file noso-2m-darwin
 

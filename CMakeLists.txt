@@ -70,7 +70,7 @@ target_link_libraries(noso-2m PUBLIC
 #  c++abi
   ncurses
 #  "${CURSES_LIBRARIES}"
-#  form
+  form
 #  termcap
 )
 
