@@ -8,15 +8,14 @@ cmake_minimum_required(VERSION 3.20)
 #SET (CMAKE_C_FLAGS_RELEASE                    "-O3 -DNDEBUG")
 
 ## clang++
-SET (CMAKE_CXX_COMPILER         "clang++")
-SET (CMAKE_CXX_FLAGS            "-Wall --stdlib=libc++")
-SET (CMAKE_CXX_FLAGS_DEBUG      "-g")
-SET (CMAKE_CXX_FLAGS_RELEASE    "-O3 -DNDEBUG")
-
-# set the linker
-#SET (CMAKE_CXX_LINK_EXECUTABLE    "/usr/bin/lld")
+## Migrated to presets
+#SET (CMAKE_CXX_COMPILER         "clang++")
+#SET (CMAKE_CXX_FLAGS            "-Wall --stdlib=libc++")
+#SET (CMAKE_CXX_FLAGS_DEBUG      "-g")
+#SET (CMAKE_CXX_FLAGS_RELEASE    "-O3 -DNDEBUG")
 
 # set release
+## Migrated to Presets
 #SET (CMAKE_RELEASE_TYPE    Release)
 
 # specify the C++ standard

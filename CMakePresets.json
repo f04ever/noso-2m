@@ -14,6 +14,9 @@
             "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_FLAGS": "-Wall",
+                "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
                 "CMAKE_BUILD_TYPE":"Release"
             }
         },
@@ -21,7 +24,19 @@
             "name": "linux-x86_64",
             "inherits": "base",
             "displayName": "Linux 64b",
-            "description": "Build for Linux 64b"
+            "description": "Build for Linux 64b",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-Wall --target=x86_64-linux-gnu"
+            }
+        },
+        {
+            "name": "linux-i686",
+            "inherits": "base",
+            "displayName": "Linux 32b",
+            "description": "Build for Linux 32b",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-Wall --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu"
+            }
         },
         {
             "name": "windows-x86_64",
@@ -35,6 +50,28 @@
             "inherits": "base",
             "displayName": "macOS 64b",
             "description": "Build for macOS 64b"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "linux-x86_64",
+            "configurePreset": "linux-x86_64",
+            "jobs": 2
+        },
+        {
+            "name": "linux-i686",
+            "configurePreset": "linux-i686",
+            "jobs": 2
+        },
+        {
+            "name": "windows-x86_64",
+            "configurePreset": "windows-x86_64",
+            "jobs": 2
+        },
+        {
+            "name": "macos-x86_64",
+            "configurePreset": "macos-x86_64",
+            "jobs": 2
         }
     ]
 }

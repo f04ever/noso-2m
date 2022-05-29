@@ -23,33 +23,17 @@ jobs:
     - name: Build Linux x86_64
       shell: bash
       run: |
-        mkdir -p build && \
-        cd build && \
-        cmake --preset=linux-x86_64 .. && \
-        cmake --build linux-x86_64 --clean-first && \
-        mv linux-x86_64/noso-2m noso-2m-x86_64-linux && \
+        cmake --preset linux-x86_64 . && \
+        cmake --build --preset linux-x86_64 --clean-first && \
+        mv build/linux-x86_64/noso-2m noso-2m-x86_64-linux && \
         file noso-2m-x86_64-linux
-
-  build-windows:
-    name: Build Windows
-    runs-on: windows-latest
-    steps:
-    - name: Checkout source
-      uses: actions/checkout@v2
-#    - name: Setup clang
-#      uses: egor-tensin/setup-clang@v1
-#      with:
-#        version: latest
-#        platform: x64
-    - name: Build Windows x86_64
+    - name: Build Linux i686
       shell: bash
       run: |
-        mkdir -p build && \
-        cd build && \
-        cmake --preset=windows-x86_64 .. && \
-        cmake --build windows-x86_64 --clean-first && \
-        mv windows-x86_64/noso-2m.exe noso-2m-x86_64-win64.exe && \
-        file noso-2m-x86_64-win64.exe
+        cmake --preset linux-i686 . && \
+        cmake --build --preset linux-i686 --clean-first && \
+        mv build/linux-i686/noso-2m noso-2m-i686-linux && \
+        file noso-2m-i686-linux
 
   build-macos:
     name: Build macOS
@@ -65,13 +49,30 @@ jobs:
     - name: Build macOS darwin
       shell: bash
       run: |
-        mkdir -p build && \
-        cd build && \
-        cmake --preset=macos-x86_64 .. && \
-        cmake --build macos-x86_64 --clean-first && \
-        mv macos-x86_64/noso-2m noso-2m-darwin && \
+        cmake --preset=macos-x86_64 . && \
+        cmake --build --preset=macos-x86_64 --clean-first && \
+        mv build/macos-x86_64/noso-2m noso-2m-darwin && \
         strip -x noso-2m-darwin && \
         file noso-2m-darwin
+
+#  build-windows:
+#    name: Build Windows
+#    runs-on: windows-latest
+#    steps:
+#    - name: Checkout source
+#      uses: actions/checkout@v2
+#    - name: Setup clang
+#      uses: egor-tensin/setup-clang@v1
+#      with:
+#        version: latest
+#        platform: x64
+#    - name: Build Windows x86_64
+#      shell: bash
+#      run: |
+#        cmake --preset=windows-x86_64 . && \
+#        cmake --build --preset=windows-x86_64 --clean-first && \
+#        mv build/windows-x86_64/noso-2m.exe noso-2m-x86_64-win64.exe && \
+#        file noso-2m-x86_64-win64.exe
 
   release-linux:
     if: contains(github.ref, '/tags/')
@@ -82,42 +83,42 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v2
       - name: Package artifacts
+        shell: bash
         run: |
           tag=${{ github.event.ref }}
           tag=${tag#"refs/tags/"}
-          cp ubuntu-latest/README.md README.md
-          #
-          cp ubuntu-latest/noso-2m-linux-i686 noso-2m
-          chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-i686.tar.gz noso-2m README.md
-          #
-          cp ubuntu-latest/noso-2m-linux-x86_64 noso-2m
-          chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-x86_64.tar.gz noso-2m README.md
-          #
-          cp ubuntu-latest/noso-2m-linux-armv7a noso-2m
-          chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-armv7a.tar.gz noso-2m README.md
-          #
-          cp ubuntu-latest/noso-2m-linux-aarch64 noso-2m
-          chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-linux-aarch64.tar.gz noso-2m README.md
-          #
-          cp ubuntu-latest/noso-2m-android-armv7a noso-2m
-          chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-android-armv7a.tar.gz noso-2m README.md
-          #
-          cp ubuntu-latest/noso-2m-android-aarch64 noso-2m
-          chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-android-aarch64.tar.gz noso-2m README.md
-        shell: bash
-      - name: Upload artifacts
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            noso-2m-*.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          cp ubuntu-latest/README.md README.md
+#          #
+#          cp ubuntu-latest/noso-2m-linux-i686 noso-2m
+#          chmod +x noso-2m
+#          tar -zcvf noso-2m-${tag}-linux-i686.tar.gz noso-2m README.md
+#          #
+#          cp ubuntu-latest/noso-2m-linux-x86_64 noso-2m
+#          chmod +x noso-2m
+#          tar -zcvf noso-2m-${tag}-linux-x86_64.tar.gz noso-2m README.md
+#          #
+#          cp ubuntu-latest/noso-2m-linux-armv7a noso-2m
+#          chmod +x noso-2m
+#          tar -zcvf noso-2m-${tag}-linux-armv7a.tar.gz noso-2m README.md
+#          #
+#          cp ubuntu-latest/noso-2m-linux-aarch64 noso-2m
+#          chmod +x noso-2m
+#          tar -zcvf noso-2m-${tag}-linux-aarch64.tar.gz noso-2m README.md
+#          #
+#          cp ubuntu-latest/noso-2m-android-armv7a noso-2m
+#          chmod +x noso-2m
+#          tar -zcvf noso-2m-${tag}-android-armv7a.tar.gz noso-2m README.md
+#          #
+#          cp ubuntu-latest/noso-2m-android-aarch64 noso-2m
+#          chmod +x noso-2m
+#          tar -zcvf noso-2m-${tag}-android-aarch64.tar.gz noso-2m README.md
+#      - name: Upload artifacts
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          files: |
+#            noso-2m-*.tar.gz
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-macos:
     if: contains(github.ref, '/tags/')
@@ -128,50 +129,50 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v2
       - name: Package artifacts
+        shell: bash
         run: |
           tag=${{ github.event.ref }}
           tag=${tag#"refs/tags/"}
-          cp macos-latest/README.md README.md
-          cp macos-latest/noso-2m-darwin noso-2m
-          chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m README.md
-        shell: bash
-      - name: Upload artifacts
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            noso-2m-*.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          cp macos-latest/README.md README.md
+#          cp macos-latest/noso-2m-darwin noso-2m
+#          chmod +x noso-2m
+#          tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m README.md
+#      - name: Upload artifacts
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          files: |
+#            noso-2m-*.tar.gz
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  release-windows:
-    if: contains(github.ref, '/tags/')
-    name: Release windows-latest
-    runs-on: windows-latest
-    needs: [build-windows]
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v2
-      - name: Package artifacts
-        run: |
-          tag=${{ github.event.ref }}
-          tag=${tag#"refs/tags/"}
-          cp windows-latest/README.md README.md
-          #
-          cp windows-latest/noso-2m-x86_64.exe noso-2m.exe
-          cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
-          cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll libform6.dll
-          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe libncurses6.dll libform6.dll README.md
-          #
-          cp windows-latest/noso-2m-i686.exe noso-2m.exe
-          cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
-          cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll libform6.dll
-          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe libncurses6.dll libform6.dll README.md
-        shell: bash
-      - name: Upload artifacts
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            noso-2m-*.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#  release-windows:
+#    if: contains(github.ref, '/tags/')
+#    name: Release windows-latest
+#    runs-on: windows-latest
+#    needs: [build-windows]
+#    steps:
+#      - name: Download artifacts
+#        uses: actions/download-artifact@v2
+#      - name: Package artifacts
+#        run: |
+#          tag=${{ github.event.ref }}
+#          tag=${tag#"refs/tags/"}
+#          cp windows-latest/README.md README.md
+#          #
+#          cp windows-latest/noso-2m-x86_64.exe noso-2m.exe
+#          cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
+#          cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libform6.dll libform6.dll
+#          7z a -tzip noso-2m-${tag}-win64-x86_64.zip noso-2m.exe libncurses6.dll libform6.dll README.md
+#          #
+#          cp windows-latest/noso-2m-i686.exe noso-2m.exe
+#          cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll
+#          cp windows-latest/mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll libform6.dll
+#          7z a -tzip noso-2m-${tag}-win32-i686.zip noso-2m.exe libncurses6.dll libform6.dll README.md
+#        shell: bash
+#      - name: Upload artifacts
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          files: |
+#            noso-2m-*.zip
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
