@@ -51,7 +51,7 @@ jobs:
       run: |
         mkdir -p build && \
         cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" .. && \
+        cmake -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022" .. && \
         cmake  --build . --clean-first --verbose && \
         mv noso-2m.exe noso-2m-x86_64-win64.exe && \
         file noso-2m-x86_64-win64.exe
