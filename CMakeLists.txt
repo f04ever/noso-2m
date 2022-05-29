@@ -37,8 +37,8 @@ SET (CMAKE_THREAD_PREFER_PTHREAD    True)
 find_package(Threads REQUIRED)
 
 ## ncurses
-SET (CURSES_NEED_NCURSES    True)
-find_package(Curses REQUIRED)
+#SET (CURSES_NEED_NCURSES    True)
+#find_package(Curses REQUIRED)
 
 # add the executable
 add_executable(noso-2m md5-c.cpp noso-2m.cpp)
@@ -68,7 +68,8 @@ target_link_libraries(noso-2m PUBLIC
   pthread
 #  c++
 #  c++abi
-  "${CURSES_LIBRARIES}"
+  ncurses
+#  "${CURSES_LIBRARIES}"
 #  form
 #  termcap
 )
