@@ -31,7 +31,11 @@ jobs:
       shell: bash
       run: |
         sudo apt-get -y install g++-10-i686-linux-gnu && \
-        wget http://de.archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libncurses-dev_6.2-0ubuntu2_i386.deb && \
+        wget http://ftp.debian.org/debian/pool/main/l/llvm-toolchain-12/libc++-12-dev_12.0.1-20+b1_i386.deb && \
+        dpkg-deb -x libc++-12-dev_12.0.1-20+b1_i386.deb clang+llvm-12.0.1-i386-linux-gnu && \
+        wget http://ftp.debian.org/debian/pool/main/l/llvm-toolchain-12/libc++abi-12-dev_12.0.1-20+b1_i386.deb && \
+        dpkg-deb -x libc++abi-12-dev_12.0.1-20+b1_i386.deb clang+llvm-12.0.1-i386-linux-gnu && \
+        wget http://archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libncurses-dev_6.2-0ubuntu2_i386.deb && \
         dpkg-deb -x libncurses-dev_6.2-0ubuntu2_i386.deb libncurses-dev_6.2-0ubuntu2_i386 && \
         cmake --preset linux-i686 . && \
         cmake --build --preset linux-i686 --clean-first && \
