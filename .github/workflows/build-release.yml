@@ -30,6 +30,9 @@ jobs:
     - name: Build Linux i686
       shell: bash
       run: |
+        sudo apt-get -y install g++-10-i686-linux-gnu && \
+        wget http://de.archive.ubuntu.com/ubuntu/pool/main/n/ncurses/libncurses-dev_6.2-0ubuntu2_i386.deb && \
+        dpkg-deb -x libncurses-dev_6.2-0ubuntu2_i386.deb libncurses-dev_6.2-0ubuntu2_i386 && \
         cmake --preset linux-i686 . && \
         cmake --build --preset linux-i686 --clean-first && \
         mv build/linux-i686/noso-2m noso-2m-i686-linux && \
