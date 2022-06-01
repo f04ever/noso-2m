@@ -134,6 +134,29 @@ private:
  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99, 100,
 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
     };
+    static char * _ito9a( std::uint32_t n, char * buff ) {
+              n = n % 1'000'000'000;
+        buff[0] = n /  100'000'000 + '0';
+              n = n %  100'000'000;
+        buff[1] = n /   10'000'000 + '0';
+              n = n %   10'000'000;
+        buff[2] = n /    1'000'000 + '0';
+              n = n %    1'000'000;
+        buff[3] = n /     1'00'000 + '0';
+              n = n %     1'00'000;
+        buff[4] = n /       10'000 + '0';
+              n = n %       10'000;
+        buff[5] = n /        1'000 + '0';
+              n = n %        1'000;
+        buff[6] = n /          100 + '0';
+              n = n %          100;
+        buff[7] = n /           10 + '0';
+              n = n %           10;
+        // buff[8] = n /            1 + '0';
+        buff[8] = n                + '0';
+        buff[9] = '\0';
+        return buff;
+    }
     inline void _hash() {
         int row, col, row1;
         for( row = 1; row < 129; row++ ) {
@@ -222,7 +245,7 @@ public:
         assert( std::strlen( prefix ) == 9
                && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
         std::memcpy( m_base, prefix, 9 );
-        std::sprintf( m_base + 9, "%09d", 0 );
+        CNosoHasher::_ito9a( 0, m_base + 9 );
         assert( std::strlen( m_base ) == 18 );
         int addr_len = 30 + (address[30] ? 1 : 0);
         std::memcpy( m_stat[0], m_base, 9 );
@@ -239,7 +262,7 @@ public:
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
     }
     const char* GetBase( std::uint32_t counter ) {
-        std::sprintf( m_base + 9, "%09d", counter );
+        CNosoHasher::_ito9a( counter, m_base + 9 );
         assert( std::strlen( m_base ) == 18 );
         std::memcpy( m_stat[0] + 9, m_base + 9, 9 );
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
