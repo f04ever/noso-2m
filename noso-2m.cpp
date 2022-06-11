@@ -110,7 +110,7 @@ private:
  0,   0,   0,   0,   0,   0,   0,   0,   1,   2,
  3,   4,   5,   6,   7,   8,   9,   0,   0,   0,
  0,   0,   0,   0,  10,  11,  12,  13,  14,  15, };
-    constexpr static std::uint16_t nosohash_chars_table[505] {
+    constexpr static const std::uint16_t nosohash_chars_table[505] {
   0,
   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
   0,   0,   0,   0,   0,   0,   0,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,
@@ -134,6 +134,29 @@ private:
  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99, 100,
 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
     };
+    static char * _ito9a( std::uint32_t n, char * buff ) {
+              n = n % 1'000'000'000;
+        buff[0] = n /  100'000'000 + '0';
+              n = n %  100'000'000;
+        buff[1] = n /   10'000'000 + '0';
+              n = n %   10'000'000;
+        buff[2] = n /    1'000'000 + '0';
+              n = n %    1'000'000;
+        buff[3] = n /     1'00'000 + '0';
+              n = n %     1'00'000;
+        buff[4] = n /       10'000 + '0';
+              n = n %       10'000;
+        buff[5] = n /        1'000 + '0';
+              n = n %        1'000;
+        buff[6] = n /          100 + '0';
+              n = n %          100;
+        buff[7] = n /           10 + '0';
+              n = n %           10;
+        // buff[8] = n /            1 + '0';
+        buff[8] = n                + '0';
+        buff[9] = '\0';
+        return buff;
+    }
     inline void _hash() {
         int row, col, row1;
         for( row = 1; row < 129; row++ ) {
@@ -222,7 +245,7 @@ public:
         assert( std::strlen( prefix ) == 9
                && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
         std::memcpy( m_base, prefix, 9 );
-        std::sprintf( m_base + 9, "%09d", 0 );
+        CNosoHasher::_ito9a( 0, m_base + 9 );
         assert( std::strlen( m_base ) == 18 );
         int addr_len = 30 + (address[30] ? 1 : 0);
         std::memcpy( m_stat[0], m_base, 9 );
@@ -239,7 +262,7 @@ public:
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
     }
     const char* GetBase( std::uint32_t counter ) {
-        std::sprintf( m_base + 9, "%09d", counter );
+        CNosoHasher::_ito9a( counter, m_base + 9 );
         assert( std::strlen( m_base ) == 18 );
         std::memcpy( m_stat[0] + 9, m_base + 9, 9 );
         assert( std::none_of( m_stat[0], m_stat[0] + 128, []( int c ){ return 33 > c || c > 126; } ) );
@@ -631,8 +654,8 @@ struct CSolsSetCompare {
 
 class CMineThread {
 public:
-    std::uint32_t m_miner_id;
-    std::uint32_t m_thread_id;
+    std::uint32_t const m_miner_id;
+    std::uint32_t const m_thread_id;
 protected:
     char m_address[32];
     char m_prefix[10];
@@ -1408,8 +1431,9 @@ static std::shared_ptr<CTextUI> _TEXTUI { CTextUI::GetInstance() };
 #define NOSO_TUI_OutputActiWinTillBalance( param )  _TEXTUI->OutputActiWinTillBalance( (param) )
 #define NOSO_TUI_OutputActiWinTillPayment( param )  _TEXTUI->OutputActiWinTillPayment( (param) )
 #define NOSO_TUI_OutputActiWinMiningSource( param ) _TEXTUI->OutputActiWinMiningSource( (param) )
-static std::ofstream _NOSO_LOGGING_OFS( DEFAULT_LOGGING_FILENAME );
+static std::ofstream _NOSO_LOGGING_OFS;
 static LogFile _NOSO_LOGGING_LOGSTREAM( _NOSO_LOGGING_OFS );
+#define NOSO_LOG_INIT() _NOSO_LOGGING_OFS.open( DEFAULT_LOGGING_FILENAME )
 #else // OF #ifndef NO_TEXTUI
 #define NOSO_TUI_StartTUI()         ((void)0)
 #define NOSO_TUI_WaitKeyPress()     ((void)0)
@@ -1434,6 +1458,7 @@ static LogFile _NOSO_LOGGING_LOGSTREAM( _NOSO_LOGGING_OFS );
 #define NOSO_TUI_OutputActiWinTillPayment( param )  ((void)0)
 #define NOSO_TUI_OutputActiWinMiningSource( param ) ((void)0)
 static LogFile _NOSO_LOGGING_LOGSTREAM( std::cout );
+#define NOSO_LOG_INIT() ((void)0)
 #endif // OF #ifndef NO_TEXTUI ... #else
 #define _LOG_FATAL LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::FATAL >()
 #define _LOG_ERROR LogEntry<LogFile>( _NOSO_LOGGING_LOGSTREAM ).GetStream< LogLevel::ERROR >()
@@ -1483,6 +1508,7 @@ int main( int argc, char *argv[] ) {
         NOSO_STDOUT << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
         std::exit( EXIT_SUCCESS );
     }
+    NOSO_LOG_INIT();
     NOSO_LOG_INFO << "noso-2m - A miner for Nosocryptocurrency Protocol-2" << std::endl;
     NOSO_LOG_INFO << "f04ever (c) 2022 https://github.com/f04ever/noso-2m" << std::endl;
     NOSO_LOG_INFO << "version " << NOSO_2M_VERSION_MAJOR << "." << NOSO_2M_VERSION_MINOR << "." << NOSO_2M_VERSION_PATCH << std::endl;
@@ -1575,13 +1601,17 @@ int main( int argc, char *argv[] ) {
             NOSO_TUI_OutputHistPad( msg.c_str() );
             throw std::bad_exception();
         }
-        std::string sel_address { opt_address != DEFAULT_MINER_ADDRESS ? opt_address
-            : cfg_address.length() > 0 ? cfg_address : opt_address };
-        std::string sel_pools { opt_pools != DEFAULT_POOL_URL_LIST ? opt_pools
-            : cfg_pools.length() > 0 ? cfg_pools : opt_pools };
+        std::string sel_address {
+            opt_address != DEFAULT_MINER_ADDRESS ? opt_address
+                : cfg_address.length() > 0 ? cfg_address : DEFAULT_MINER_ADDRESS };
+        std::string sel_pools {
+            opt_pools != DEFAULT_POOL_URL_LIST ? opt_pools
+                : cfg_pools.length() > 0 ? cfg_pools : DEFAULT_POOL_URL_LIST };
         std::strcpy( g_miner_address, sel_address.c_str() );
-        g_miner_id = opt_minerid > 0 ? opt_minerid : cfg_minerid >= 0 ? cfg_minerid : opt_minerid;
-        g_threads_count = opt_threads > 2 ? opt_threads: cfg_threads > 2 ? cfg_threads : opt_threads;
+        g_miner_id = opt_minerid > DEFAULT_MINER_ID ? opt_minerid
+            : cfg_minerid >= DEFAULT_MINER_ID ? cfg_minerid : DEFAULT_MINER_ID;
+        g_threads_count = opt_threads > DEFAULT_THREADS_COUNT ? opt_threads
+            : cfg_threads > DEFAULT_THREADS_COUNT ? cfg_threads : DEFAULT_THREADS_COUNT;
         g_mining_pools = parse_pools_argv( sel_pools );
         g_solo_mining = opt_solo > 0 ? true : cfg_solo;
     } catch( const std::bad_exception& e) {
