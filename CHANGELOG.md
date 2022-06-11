@@ -1,3 +1,10 @@
+Version 0.2.4
+
+- Improve hashrate
+- Logging
+- TextUI
+- Bugfixes
+
 Version 0.2.3
 
 - Support config file

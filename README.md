@@ -83,25 +83,25 @@ From version 0.2.4, need library NCURSES for the text UI. NCURSES is provided al
 
 - Currently `noso-2m` is compatiple with C++14/17/20. So, clang version 3.4 or later, or gcc version 6.1 or later. Recommend to build `noso-2m` with `c++20`.
 
-- Can replace `c++20` in the build commands below by `c++17` for older versions of clang, gcc, or Windows Build Tools
+- Can replace `c++20` in the build commands below by `c++14` or `c++17` for older versions of clang, gcc, or Windows Build Tools
 
 Simple command for download source code and build `noso-2m` as below:
 
 ### On Linux, MacOS, or Android (Termux)
 
-`clang++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG --stdlib=libc++ -fuse-ld=lld -lpthread -lc++abi -lncurses -lform -ltermcap`
+`clang++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG --stdlib=libc++ -fuse-ld=lld -lpthread -lc++abi -lncurses -lform -ltermcap`
 
 Or use gcc,
 
-`g++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG -lpthread -lncurses -lform -ltermcap`
+`g++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG -lpthread -lncurses -lform -ltermcap`
 
 ### On Windows
 
-`clang++ noso-2m.cpp md5-c.cpp -o noso-2m.exe -std=c++20 -O2 -DNDEBUG -lWs2_32.lib`
+`clang++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m.exe -std=c++20 -O2 -DNDEBUG -lWs2_32.lib`
 
 Or use clang compatible driver mode for Microsoft Build Tools
 
-`clang-cl noso-2m.cpp md5-c.cpp /o noso-2m.exe /std:c++20 /O2 /EHsc /DNDEBUG /link Ws2_32.lib`
+`clang-cl noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp /o noso-2m.exe /std:c++20 /O2 /EHsc /DNDEBUG /link Ws2_32.lib`
 
 ## Donations
 
