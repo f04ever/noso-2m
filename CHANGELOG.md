@@ -1,3 +1,17 @@
+Version 0.2.5 - on main branch
+
+- New function for fastly converting integer to string during hashing, so improve hashrate
+- Split the origin big source code file noso-2m.cpp into multiple source files as this is important for further developments.
+- Bugfixes
+
+
+Version 0.2.4
+
+- Improve hashrate
+- Logging
+- TextUI
+- Bugfixes
+
 Version 0.2.3
 
 - Support config file
