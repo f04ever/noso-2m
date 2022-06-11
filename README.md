@@ -117,30 +117,30 @@ On Windows, it requires clang and Build Tools for Visual Studio.
 
 - Currently `noso-2m` is compatiple with C++14/17/20. So, clang version 3.4 or later, or gcc version 6.1 or later. We recommend building `noso-2m` with `c++20`.
 
-- You can replace `c++20` in the build command below with `c++17` in case you have an older version of clang, gcc, or Windows Build Tools.
+- You can replace `c++20` in the build command below with `c++14` or `c++17` in case you have an older version of clang, gcc, or Windows Build Tools.
 
 ### Building on Linux, MacOS, or Android (Termux)
 
 ```console
-$ clang++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG --stdlib=libc++ -fuse-ld=lld -lpthread -lc++abi -lncurses -lform -ltermcap
+$ clang++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG --stdlib=libc++ -fuse-ld=lld -lpthread -lc++ -lc++abi -lncurses -lform -ltermcap
 ```
 
 Or use gcc,
 
 ```console
-$ g++ noso-2m.cpp md5-c.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG -lpthread -lncurses -lform -ltermcap
+$ g++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG -lpthread -lncurses -lform -ltermcap
 ```
 
 ### Building on Windows
 
 ```console
-> clang++ noso-2m.cpp md5-c.cpp -o noso-2m.exe -std=c++20 -O2 -DNDEBUG -lWs2_32.lib
+> clang++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m.exe -std=c++20 -O2 -DNDEBUG -lWs2_32.lib
 ```
 
 Or use clang compatible driver mode for Microsoft Build Tools
 
 ```console
-> clang-cl noso-2m.cpp md5-c.cpp /o noso-2m.exe /std:c++20 /O2 /EHsc /DNDEBUG /link Ws2_32.lib
+> clang-cl noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp /o noso-2m.exe /std:c++20 /O2 /EHsc /DNDEBUG /link Ws2_32.lib
 ```
 
 ## Donations
