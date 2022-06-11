@@ -12,11 +12,11 @@ A miner for Nosocryptocurrency Protocol-2.
 
 `noso-2m` is developed using C/C++, compatible with standards C++17/20. It is expected to be buildable and executable on a wide range of hardware architectures (Intel, AMD, arm, aarch64) and operating systems (Linux, macOS, Android (Termux), and Windows).
 
-From version 0.2.4, noso-2m supports a simple text UI that expects to make new users getting started with noso-2m easier. A logging file `noso-2m.log` is provided as well for advanced users. 
+From version 0.2.4, noso-2m supports a simple text UI that expects to make new users getting started with noso-2m easier. A logging file `noso-2m.log` is provided as well for advanced users.
 
 A command line provides information during mining:
-- Use command `help` to list all the commands and their meaning. 
-- The command `pools` shows information of pools listed in config file or provided when run the `noso-2m` program. 
+- Use command `help` to list all the commands and their meaning.
+- The command `pools` shows information of pools listed in config file or provided when run the `noso-2m` program.
 - The command `threads` displays Hashrate information for all threads, only after one block has passed.
 
 > **NOTE**: On Microsoft Windows, don't try to resize the console window since an issue from the `ncurses` library causes text to distort (does not affect the mining jobs).
@@ -76,7 +76,7 @@ $ ./noso-2m -a WALLETADDRESS -t THREADCOUNT 2>errors.txt
 
     - `noso-2m` has 2 inbuilt shortcuts for pools: `f04ever` and `devnoso`. When using the short-cuts one can ommit `POOL-IP-ADDRESS` and `POOL-PORT`.
 
-    - An example: 
+    - An example:
         ```console
         $ ./noso-2m -a N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS -i 1000 -t 8 --pools="f04ever:209.126.80.203:8082;devnoso:45.146.252.103:8082"
         ```
