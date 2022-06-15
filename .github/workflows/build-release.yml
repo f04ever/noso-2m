@@ -40,18 +40,20 @@ jobs:
           -L$(pwd)/clang+llvm-12.0.1-i386-linux-gnu/usr/lib/llvm-12/lib \
           -I$(pwd)/libncurses-dev_6.2-0ubuntu2_i386/usr/include \
           -L$(pwd)/libncurses-dev_6.2-0ubuntu2_i386/usr/lib/i386-linux-gnu \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-i686 \
+          noso-2m.cpp inet.cpp comm.cpp utils.cpp tools.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+          -o noso-2m-linux-i686 \
           -std=c++20 -Ofast -DNDEBUG \
-          --stdlib=libc++ -fuse-ld=lld \
+          --stdlib=libc++ -flto -fuse-ld=lld \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
           -static -s
         file noso-2m-linux-i686
         #
         clang++-12 \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-x86_64 \
+          noso-2m.cpp inet.cpp comm.cpp utils.cpp tools.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+          -o noso-2m-linux-x86_64 \
           -std=c++20 -Ofast -DNDEBUG \
-          --stdlib=libc++ -fuse-ld=lld \
+          --stdlib=libc++ -flto -fuse-ld=lld \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
           -static -s
@@ -61,9 +63,10 @@ jobs:
           -L$(pwd)/clang+llvm-12.0.1-armv7a-linux-gnueabihf/lib \
           -I$(pwd)/libncurses-dev_6.2-0ubuntu2_armhf/usr/include \
           -L$(pwd)/libncurses-dev_6.2-0ubuntu2_armhf/usr/lib/arm-linux-gnueabihf \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-armv7a \
+          noso-2m.cpp inet.cpp comm.cpp utils.cpp tools.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+          -o noso-2m-linux-armv7a \
           -std=c++20 -Ofast -DNDEBUG \
-          --stdlib=libc++ -fuse-ld=lld \
+          --stdlib=libc++ -flto -fuse-ld=lld \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
           -static -s
@@ -73,9 +76,10 @@ jobs:
           -L$(pwd)/clang+llvm-12.0.1-aarch64-linux-gnu/lib \
           -I$(pwd)/libncurses-dev_6.2-0ubuntu2_arm64/usr/include \
           -L$(pwd)/libncurses-dev_6.2-0ubuntu2_arm64/usr/lib/aarch64-linux-gnu \
-          noso-2m.cpp md5-c.cpp -o noso-2m-linux-aarch64 \
+          noso-2m.cpp inet.cpp comm.cpp utils.cpp tools.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+          -o noso-2m-linux-aarch64 \
           -std=c++20 -Ofast -DNDEBUG \
-          --stdlib=libc++ -fuse-ld=lld \
+          --stdlib=libc++ -flto -fuse-ld=lld \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
           -static -s
@@ -107,7 +111,8 @@ jobs:
           -I$(pwd)/armv7a-linux-androideabi-ncurses/include \
           -I$(pwd)/armv7a-linux-androideabi-ncurses/include/ncurses \
           -L$(pwd)/armv7a-linux-androideabi-ncurses/lib \
-          noso-2m.cpp md5-c.cpp -o noso-2m-android-armv7a \
+          noso-2m.cpp inet.cpp comm.cpp utils.cpp tools.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+          -o noso-2m-android-armv7a \
           -std=c++20 -Ofast -DNDEBUG \
           -lncurses -lform \
           -static -s
@@ -117,7 +122,8 @@ jobs:
           -I$(pwd)/aarch64-linux-android-ncurses/include \
           -I$(pwd)/aarch64-linux-android-ncurses/include/ncurses \
           -L$(pwd)/aarch64-linux-android-ncurses/lib \
-          noso-2m.cpp md5-c.cpp -o noso-2m-android-aarch64 \
+          noso-2m.cpp inet.cpp comm.cpp utils.cpp tools.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+          -o noso-2m-android-aarch64 \
           -std=c++20 -Ofast -DNDEBUG \
           -lncurses -lform \
           -static -s
@@ -157,7 +163,8 @@ jobs:
           -Imingw-w64-clang-x86_64-ncurses-6_3\\include\\ncurses \
           mingw-w64-clang-x86_64-ncurses-6_3\\lib\\libncurses.dll.a \
           mingw-w64-clang-x86_64-ncurses-6_3\\lib\\libform.dll.a \
-          noso-2m.cpp md5-c.cpp -o noso-2m-x86_64.exe \
+          noso-2m.cpp inet.cpp comm.cpp utils.cpp tools.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+          -o noso-2m-x86_64.exe \
           -std=c++20 -Ofast -DNOGDI -DNDEBUG \
           -Wl,-machine:x64 -nostdlib -lWs2_32.lib -lmsvcrt
       shell: bash
@@ -183,7 +190,8 @@ jobs:
     - name: Build source
       run: |
         clang++ \
-          noso-2m.cpp md5-c.cpp -o noso-2m-darwin \
+          noso-2m.cpp inet.cpp comm.cpp utils.cpp tools.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+          -o noso-2m-darwin \
           -std=c++20 -Ofast -DNDEBUG \
           -lncurses -lform -ltermcap
         strip -x noso-2m-darwin
