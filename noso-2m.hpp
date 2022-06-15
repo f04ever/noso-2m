@@ -2,7 +2,7 @@
 #define __NOSO2M_HPP__
 #define NOSO_2M_VERSION_MAJOR 0
 #define NOSO_2M_VERSION_MINOR 2
-#define NOSO_2M_VERSION_PATCH 4
+#define NOSO_2M_VERSION_PATCH 5
 #define NOSO_2M_VERSION_CTEXT (\
              std::to_string(NOSO_2M_VERSION_MAJOR)\
         +"."+std::to_string(NOSO_2M_VERSION_MINOR)\
