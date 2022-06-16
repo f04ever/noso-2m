@@ -548,7 +548,7 @@ public:
         this->ResetHeadPad();
         this->OutputHeadPad( "noso-2m - A miner for Nosocryptocurrency Protocol-2" );
         this->OutputHeadPad( "f04ever (c) 2022 https://github.com/f04ever/noso-2m" );
-        this->OutputHeadPad( NOSO_2M_VERSION_VTEXT );
+        this->OutputHeadPad( (std::string("version ") + NOSO_2M_VERSION).c_str() );
         this->OutputHeadPad( "--" );
         this->OutputHeadWin();
     }

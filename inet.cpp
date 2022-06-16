@@ -213,7 +213,7 @@ int CPoolInet::RequestSource( const char address[32], char *buffer, std::size_t 
     assert( buffer && buffsize > 0 );
     assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
     // SOURCE {address} {MinerName}
-    std::snprintf( buffer, buffsize, "SOURCE %s noso-2m-v%s\n", address, NOSO_2M_VERSION_CTEXT );
+    std::snprintf( buffer, buffsize, "SOURCE %s noso-2m-v%s\n", address, NOSO_2M_VERSION );
     return this->ExecCommand( buffer, buffsize );
 }
 
@@ -223,6 +223,6 @@ int CPoolInet::SubmitSolution( std::uint32_t blck_no, const char base[19], const
     assert( std::strlen( base ) == 18
             && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
     // SHARE {Address} {Hash} {MinerName}
-    std::snprintf( buffer, buffsize, "SHARE %s %s noso-2m-v%s %d\n", address, base, NOSO_2M_VERSION_CTEXT, blck_no );
+    std::snprintf( buffer, buffsize, "SHARE %s %s noso-2m-v%s %d\n", address, base, NOSO_2M_VERSION, blck_no );
     return this->ExecCommand( buffer, buffsize );
 }

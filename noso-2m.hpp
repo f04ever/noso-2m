@@ -1,19 +1,6 @@
 #ifndef __NOSO2M_HPP__
 #define __NOSO2M_HPP__
-#define NOSO_2M_VERSION_MAJOR 0
-#define NOSO_2M_VERSION_MINOR 2
-#define NOSO_2M_VERSION_PATCH 4
-#define NOSO_2M_VERSION_CTEXT (\
-             std::to_string(NOSO_2M_VERSION_MAJOR)\
-        +"."+std::to_string(NOSO_2M_VERSION_MINOR)\
-        +"."+std::to_string(NOSO_2M_VERSION_PATCH)\
-    ).c_str()
-#define NOSO_2M_VERSION_VTEXT (\
-             std::string("version")\
-        +" "+std::to_string(NOSO_2M_VERSION_MAJOR)\
-        +"."+std::to_string(NOSO_2M_VERSION_MINOR)\
-        +"."+std::to_string(NOSO_2M_VERSION_PATCH)\
-    ).c_str()
+#define NOSO_2M_VERSION "0.2.5"
 #define DEFAULT_CONFIG_FILENAME "noso-2m.cfg"
 #define DEFAULT_LOGGING_FILENAME "noso-2m.log"
 #define DEFAULT_POOL_URL_LIST "f04ever;devnoso"

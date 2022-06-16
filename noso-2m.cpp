@@ -70,13 +70,13 @@ int main( int argc, char *argv[] ) {
         std::exit( EXIT_SUCCESS );
     }
     if ( parsed_options.count( "version" ) ) {
-        NOSO_STDOUT << "version " << NOSO_2M_VERSION_CTEXT << std::endl;
+        NOSO_STDOUT << "version " << NOSO_2M_VERSION << std::endl;
         std::exit( EXIT_SUCCESS );
     }
     NOSO_LOG_INIT();
     NOSO_LOG_INFO << "noso-2m - A miner for Nosocryptocurrency Protocol-2" << std::endl;
     NOSO_LOG_INFO << "f04ever (c) 2022 https://github.com/f04ever/noso-2m" << std::endl;
-    NOSO_LOG_INFO << "version " << NOSO_2M_VERSION_CTEXT << std::endl;
+    NOSO_LOG_INFO << "version " << NOSO_2M_VERSION << std::endl;
     NOSO_LOG_INFO << "--" << std::endl;
     try {
         NOSO_TUI_StartTUI();
