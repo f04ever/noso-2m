@@ -96,6 +96,7 @@ jobs:
         ./configure \
           --host=armv7a-linux-androideabi \
           --prefix=$(pwd)/../armv7a-linux-androideabi-ncurses \
+          --datadir=/data/data/com.termux/files/usr/share/terminfo \
           --without-manpages --without-progs --without-tack --without-tests 2>&1 > /dev/null
         make 2>&1 > /dev/null
         make install 2>&1 > /dev/null
@@ -104,6 +105,7 @@ jobs:
         ./configure \
           --host=aarch64-linux-android \
           --prefix=$(pwd)/../aarch64-linux-android-ncurses \
+          --datadir=/data/data/com.termux/files/usr/share/terminfo \
           --without-manpages --without-progs --without-tack --without-tests 2>&1 > /dev/null
         make 2>&1 > /dev/null
         make install 2>&1 > /dev/null
