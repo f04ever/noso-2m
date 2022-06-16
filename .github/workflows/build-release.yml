@@ -118,8 +118,7 @@ jobs:
           -o noso-2m-android-armv7a \
           -std=c++20 -Ofast -DNDEBUG \
           -lncurses -lform \
-          -s
-          # -static -s
+          -static -s
         file noso-2m-android-armv7a
         #
         android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang++ \
@@ -130,8 +129,7 @@ jobs:
           -o noso-2m-android-aarch64 \
           -std=c++20 -Ofast -DNDEBUG \
           -lncurses -lform \
-          -s
-          # -static -s
+          -static -s
         file noso-2m-android-aarch64
       shell: bash
     - name: Upload artifacs
