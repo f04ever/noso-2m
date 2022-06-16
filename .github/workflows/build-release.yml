@@ -1,7 +1,7 @@
 name: build
 on:
   push:
-    branches: [ main, devel ]
+    branches: [ main ]
     tags:
       - "*"
 jobs:
@@ -44,7 +44,7 @@ jobs:
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-linux-i686 \
           -std=c++20 -Ofast -DNDEBUG \
-          --stdlib=libc++ -flto -fuse-ld=lld-12 \
+          --stdlib=libc++ -fuse-ld=lld-12 \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
           -static -s
@@ -54,7 +54,7 @@ jobs:
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-linux-x86_64 \
           -std=c++20 -Ofast -DNDEBUG \
-          --stdlib=libc++ -flto -fuse-ld=lld-12 \
+          --stdlib=libc++ -fuse-ld=lld-12 \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
           -static -s
@@ -67,7 +67,7 @@ jobs:
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-linux-armv7a \
           -std=c++20 -Ofast -DNDEBUG \
-          --stdlib=libc++ -flto -fuse-ld=lld-12 \
+          --stdlib=libc++ -fuse-ld=lld-12 \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
           -static -s
@@ -80,7 +80,7 @@ jobs:
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-linux-aarch64 \
           -std=c++20 -Ofast -DNDEBUG \
-          --stdlib=libc++ -flto -fuse-ld=lld-12 \
+          --stdlib=libc++ -fuse-ld=lld-12 \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
           -static -s
@@ -96,6 +96,7 @@ jobs:
         ./configure \
           --host=armv7a-linux-androideabi \
           --prefix=$(pwd)/../armv7a-linux-androideabi-ncurses \
+          --with-terminfo-dirs="/etc/terminfo:/lib/terminfo:/usr/share/terminfo:/usr/etc/terminfo:/usr/lib/terminfo:/data/data/com.termux/files/usr/share/terminfo" \
           --without-manpages --without-progs --without-tack --without-tests 2>&1 > /dev/null
         make 2>&1 > /dev/null
         make install 2>&1 > /dev/null
@@ -104,6 +105,7 @@ jobs:
         ./configure \
           --host=aarch64-linux-android \
           --prefix=$(pwd)/../aarch64-linux-android-ncurses \
+          --with-terminfo-dirs="/etc/terminfo:/lib/terminfo:/usr/share/terminfo:/usr/etc/terminfo:/usr/lib/terminfo:/data/data/com.termux/files/usr/share/terminfo" \
           --without-manpages --without-progs --without-tack --without-tests 2>&1 > /dev/null
         make 2>&1 > /dev/null
         make install 2>&1 > /dev/null
