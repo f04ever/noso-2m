@@ -7,7 +7,7 @@
 #include "noso-2m.hpp"
 
 int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string, std::string>> const & mining_pools ) {
-    char inet_buffer[INET_BUFFER_SIZE];
+    char inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     char msg[200];
     std::snprintf( msg, 200, "POOL INFORMATION" );
     NOSO_TUI_OutputInfoPad( msg );
@@ -18,7 +18,7 @@ int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string
     std::for_each( std::cbegin( mining_pools ), std::cend( mining_pools ),
                   [&, idx = 0]( std::tuple<std::string, std::string, std::string> const & pool ) mutable {
                       CPoolInet inet { std::get<0>( pool ), std::get<1>( pool ), std::get<2>( pool ), DEFAULT_POOL_INET_TIMEOSEC };
-                      const int rsize { inet.RequestPoolInfo( inet_buffer, INET_BUFFER_SIZE ) };
+                      const int rsize { inet.RequestPoolInfo( inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
                       if ( rsize <= 0 ) {
                           NOSO_LOG_DEBUG
                               << "CUtils::ShowPoolInformation Poor connecting with pool "

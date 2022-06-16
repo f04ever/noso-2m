@@ -408,7 +408,7 @@ std::time_t CCommThread::RequestTimestamp() {
                 && itor != m_mining_nodes.end();
             itor = std::next( itor ) ) {
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
-        int rsize { inet.RequestTimestamp( m_inet_buffer, INET_BUFFER_SIZE ) };
+        int rsize { inet.RequestTimestamp( m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
             NOSO_LOG_DEBUG
                 << "CCommThread::RequestTimestamp Poor connecting with node "
@@ -443,7 +443,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
                 && itor != m_mining_nodes.end();
             itor = std::next( itor ) ) {
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
-        int rsize { inet.RequestSource( m_inet_buffer, INET_BUFFER_SIZE ) };
+        int rsize { inet.RequestSource( m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
             NOSO_LOG_DEBUG
                 << "CCommThread::RequestNodeSources Poor connecting with node "
@@ -469,8 +469,8 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
 }
 
 std::shared_ptr<CNodeTarget> CCommThread::GetNodeTargetConsensus() {
-    std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->RequestNodeSources( CONSENSUS_NODES_COUNT );
-    if ( status_of_nodes.size() < CONSENSUS_NODES_COUNT ) return nullptr;
+    std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->RequestNodeSources( DEFAULT_CONSENSUS_NODES_COUNT );
+    if ( status_of_nodes.size() < DEFAULT_CONSENSUS_NODES_COUNT ) return nullptr;
     const auto max_freq = []( const auto &freq ) {
         return std::max_element(
             std::begin( freq ), std::end( freq ),
@@ -505,7 +505,7 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
     assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
     auto pool { m_mining_pools[m_mining_pools_id] };
     CPoolInet inet { std::get<0>( pool ), std::get<1>( pool ), std::get<2>( pool ), DEFAULT_POOL_INET_TIMEOSEC };
-    int rsize { inet.RequestSource( address, m_inet_buffer, INET_BUFFER_SIZE ) };
+    int rsize { inet.RequestSource( address, m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
     if ( rsize <= 0 ) {
         NOSO_LOG_DEBUG
             << "CCommThread::RequestPoolTarget Poor connecting with pool "
@@ -589,7 +589,7 @@ std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetFailover() {
                 NOSO_TUI_OutputStatWin();
             }
         }
-        std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( tries_count * 1'000 * INET_CIRCLE_SECONDS ) ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( tries_count * 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
         pool_target = this->RequestPoolTarget( g_miner_address );
         ++tries_count;
     }
@@ -602,7 +602,7 @@ std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
     if ( g_solo_mining ) target = this->GetNodeTargetConsensus();
     else target = this->GetPoolTargetFailover();
     while ( g_still_running && ( target == nullptr || ( target !=nullptr && target->lb_hash == prev_lb_hash ) ) ) {
-        std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * INET_CIRCLE_SECONDS ) ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
         if ( g_solo_mining ) target = this->GetNodeTargetConsensus();
         else target = this->GetPoolTargetFailover();
     }
@@ -620,7 +620,7 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
                 && itor != m_mining_nodes.end();
             itor = std::next( itor ) ) {
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
-        int rsize { inet.SubmitSolution( blck, base, address, m_inet_buffer, INET_BUFFER_SIZE ) };
+        int rsize { inet.SubmitSolution( blck, base, address, m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
             NOSO_LOG_DEBUG
                 << "CCommThread::SubmitSoloSolution Poor connecting with node "
@@ -670,7 +670,7 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
             g_still_running
                 && tries_count < max_tries_count;
             ++tries_count ) {
-        int rsize { inet.SubmitSolution( blck_no, base, address, m_inet_buffer, INET_BUFFER_SIZE ) };
+        int rsize { inet.SubmitSolution( blck_no, base, address, m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
             NOSO_LOG_DEBUG
                 << "CCommThread::SubmitPoolSolution Poor connecting with pool "
@@ -697,7 +697,7 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
             NOSO_TUI_OutputStatPad( "An unrecognised response from pool!" );
         }
         NOSO_TUI_OutputStatWin();
-        std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * INET_CIRCLE_SECONDS ) ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
     }
     return ( -1 );
 }
@@ -772,7 +772,7 @@ void CCommThread::Communicate() {
             NOSO_TUI_OutputStatPad( "Wait next block..." );
             NOSO_TUI_OutputStatWin();
             do {
-                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * INET_CIRCLE_SECONDS ) ) );
+                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
             } while ( g_still_running && ( NOSO_BLOCK_AGE < NOSO_BLOCK_AGE_TARGET_SAFE || 585 < NOSO_BLOCK_AGE ) );
             if ( !g_still_running ) break;
         }
@@ -791,8 +791,8 @@ void CCommThread::Communicate() {
                     this->SubmitSolution( solution, target );
             }
             std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
-            if ( elapsed_submit.count() < INET_CIRCLE_SECONDS ) {
-                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * INET_CIRCLE_SECONDS ) ) );
+            if ( elapsed_submit.count() < DEFAULT_INET_CIRCLE_SECONDS ) {
+                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
             }
         }
         this->CloseMiningBlock( std::chrono::steady_clock::now() - begin_blck );

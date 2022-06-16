@@ -73,7 +73,7 @@ private:
     std::map<std::string  , int> m_freq_mn_diff;
     std::map<std::time_t  , int> m_freq_lb_time;
     std::map<std::string  , int> m_freq_lb_addr;
-    char m_inet_buffer[INET_BUFFER_SIZE];
+    char m_inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     CCommThread();
     void CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck );
     void ResetMiningBlock();
