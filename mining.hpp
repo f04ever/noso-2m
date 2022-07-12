@@ -3,6 +3,8 @@
 #include <cassert>
 #include <condition_variable>
 
+#include "hashing.hpp"
+
 struct CSolution {
     std::uint32_t blck;
     std::string base;
@@ -73,6 +75,7 @@ public:
     std::uint32_t const m_miner_id;
     std::uint32_t const m_thread_id;
 protected:
+    CNosoHasher m_hasher;
     char m_address[32];
     char m_prefix[10];
     std::uint32_t m_blck_no { 0 };

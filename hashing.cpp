@@ -174,13 +174,11 @@ void CNosoHasher::_diff( char const target[33] ) {
     assert( std::strlen( m_diff ) == 32 );
 }
 
-CNosoHasher::CNosoHasher( char const prefix[10], char const address[32] ) {
+void CNosoHasher::Init( char const prefix[10], char const address[32] ) {
     assert( std::strlen( prefix ) == 9
             && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
     this->_init( prefix, address );
-    assert( std::strlen( m_base ) == 18
-            && std::strlen( m_hash ) == 32
-            && std::strlen( m_diff ) == 32 );
+    assert( std::strlen( m_base ) == 18 );
 }
 
 char const * CNosoHasher::GetBase( std::uint32_t counter ) {

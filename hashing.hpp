@@ -53,7 +53,8 @@ class CNosoHasher {
     void _md5d();
     void _diff( char const target[33] );
 public:
-    CNosoHasher( char const prefix[10], char const address[32] );
+    CNosoHasher() = default;
+    void Init( char const prefix[10], char const address[32] );
     char const * GetBase( std::uint32_t counter );
     char const * GetHash();
     char const * GetDiff( char const target[33] );
