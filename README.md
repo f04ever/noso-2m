@@ -56,6 +56,8 @@ $ ./noso-2m -a WALLETADDRESS -t THREADCOUNT 2>errors.txt
 
 - Arguments loading from the config file will override the options provided on the command line.
 
+*** NOTE: pool devnoso has been removed (temporally) as it was offline
+
 - By default, `noso-2m` mines in `pool mode`, and does failover between two pools: the `f04ever` pool and the `devnoso` pool.
 
 - You can provide custom pool addresses on the command line by using option `--pools="POOL-URL-LIST"` (opening and closing quotation marks (`"`) are mandatory if having more than one pool URLs provided)

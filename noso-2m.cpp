@@ -28,7 +28,7 @@ std::vector<std::tuple<std::string, std::string>> const g_default_nodes {
 extern
 std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools {
         { "f04ever", "209.126.80.203", "8082" },
-        { "devnoso", "45.146.252.103", "8082" }
+        /* { "devnoso", "45.146.252.103", "8082" }, */
     };
 bool g_solo_mining { false };
 bool g_still_running { true };
