@@ -1,4 +1,11 @@
-Version 0.2.5 - on main branch
+Version 0.2.6
+
+- Update seed nodes
+- New hashing algo to improve mining hashrate and reduce memory usage
+- Fixed terminfo path that causes xterm-256color error on termux
+- Minor refining
+
+Version 0.2.5
 
 - New function for fastly converting integer to string during hashing, so improve hashrate
 - Split the origin big source code file noso-2m.cpp into multiple source files as this is important for further developments.
