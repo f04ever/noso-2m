@@ -46,9 +46,9 @@ void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
     m_mutex_blck_no.lock();
     if ( m_prefix != thread_prefix
         || m_address != target->address ) {
-        m_hasher.Init( m_prefix, m_address );
         std::strcpy( m_prefix, thread_prefix.c_str() );
         std::strcpy( m_address, target->address.c_str() );
+        m_hasher.Init( m_prefix, m_address );
     }
     std::strcpy( m_lb_hash, target->lb_hash.c_str() );
     std::strcpy( m_mn_diff, target->mn_diff.c_str() );
