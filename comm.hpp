@@ -61,7 +61,8 @@ private:
     std::vector<std::tuple<std::string, std::string>> m_mining_nodes;
     std::vector<std::tuple<std::string, std::string, std::string>>& m_mining_pools;
     std::uint32_t m_mining_pools_id;
-    std::multiset<std::shared_ptr<CSolution>, CSolsSetCompare> m_solutions;
+    std::multiset<std::shared_ptr<CSolution>, CSolsSetCompare> m_solo_solutions;
+    std::vector<std::shared_ptr<CSolution>> m_pool_solutions;
     std::uint64_t m_last_block_hashes_count { 0 };
     double m_last_block_elapsed_secs { 0. };
     double m_last_block_hashrate { 0. };

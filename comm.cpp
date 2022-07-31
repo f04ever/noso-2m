@@ -371,14 +371,16 @@ void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolut
 
 void CCommThread::AddSolution( const std::shared_ptr<CSolution>& solution ) {
     m_mutex_solutions.lock();
-    m_solutions.insert( solution );
+    if ( g_solo_mining ) m_solo_solutions.insert( solution );
+    else m_pool_solutions.push_back( solution );
     m_mutex_solutions.unlock();
 }
 
 inline
 void CCommThread::ClearSolutions() {
     m_mutex_solutions.lock();
-    m_solutions.clear();
+    if ( g_solo_mining ) m_solo_solutions.clear();
+    else m_pool_solutions.clear();
     m_mutex_solutions.unlock();
 }
 
@@ -386,10 +388,10 @@ inline
 const std::shared_ptr<CSolution> CCommThread::BestSolution() {
     std::shared_ptr<CSolution> best_solution { nullptr };
     m_mutex_solutions.lock();
-    if ( m_solutions.begin() != m_solutions.end() ) {
-        auto itor_best_solution = m_solutions.begin();
+    if ( m_solo_solutions.begin() != m_solo_solutions.end() ) {
+        auto itor_best_solution = m_solo_solutions.begin();
         best_solution = *itor_best_solution;
-        m_solutions.clear();
+        m_solo_solutions.clear();
     }
     m_mutex_solutions.unlock();
     return best_solution;
@@ -399,10 +401,9 @@ inline
 const std::shared_ptr<CSolution> CCommThread::GoodSolution() {
     std::shared_ptr<CSolution> good_solution { nullptr };
     m_mutex_solutions.lock();
-    if ( m_solutions.begin() != m_solutions.end() ) {
-        auto itor_good_solution = m_solutions.begin();
-        good_solution = *itor_good_solution;
-        m_solutions.erase( itor_good_solution );
+    if ( m_pool_solutions.begin() != m_pool_solutions.end() ) {
+        good_solution = m_pool_solutions.back();
+        m_pool_solutions.pop_back();
     }
     m_mutex_solutions.unlock();
     return good_solution;
