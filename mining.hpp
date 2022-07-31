@@ -88,14 +88,9 @@ protected:
     mutable std::mutex m_mutex_summary;
     mutable std::condition_variable m_condv_summary;
 public:
-    CMineThread( std::uint32_t miner_id, std::uint32_t thread_id )
-        :   m_miner_id { miner_id }, m_thread_id { thread_id } {
-    }
+    CMineThread( std::uint32_t miner_id, std::uint32_t thread_id );
     virtual ~CMineThread() = default;
-    void CleanupSyncState() {
-        m_condv_blck_no.notify_one();
-        m_condv_summary.notify_one();
-    }
+    void CleanupSyncState();
     void WaitTarget();
     void DoneTarget();
     void NewTarget( const std::shared_ptr<CTarget> &target );

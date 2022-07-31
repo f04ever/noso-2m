@@ -12,7 +12,7 @@
 #include "output.hpp"
 #include "noso-2m.hpp"
 
- int inet_init() {
+int inet_init() {
     #ifdef _WIN32
     WSADATA wsaData;
     return WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != NO_ERROR ? -1 : 0;
@@ -26,7 +26,8 @@ void inet_cleanup() {
     #endif
 }
 
-inline void inet_close_socket( int sockfd ) {
+inline
+void inet_close_socket( int sockfd ) {
     #ifdef _WIN32
     closesocket( sockfd );
     #else
@@ -34,7 +35,8 @@ inline void inet_close_socket( int sockfd ) {
     #endif
 }
 
-inline int inet_set_nonblock( int sockfd ) {
+inline
+int inet_set_nonblock( int sockfd ) {
     #ifdef _WIN32
     u_long mode = 1;
     if ( ioctlsocket( sockfd, FIONBIO, &mode ) != NO_ERROR ) return -1;
@@ -46,7 +48,8 @@ inline int inet_set_nonblock( int sockfd ) {
     return sockfd;
 }
 
-inline int inet_socket( struct addrinfo *serv_info, int timeosec ) {
+inline
+int inet_socket( struct addrinfo *serv_info, int timeosec ) {
     struct addrinfo *psi = serv_info;
     struct timeval timeout {
         .tv_sec = timeosec,
@@ -98,7 +101,8 @@ inline int inet_socket( struct addrinfo *serv_info, int timeosec ) {
     return -1;
 }
 
-inline int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
+inline
+int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
@@ -113,7 +117,8 @@ inline int inet_send( int sockfd, int timeosec, const char *message, size_t size
     return slen;
 }
 
-inline int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
+inline
+int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
@@ -129,7 +134,8 @@ inline int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) 
     return rlen;
 }
 
-inline int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize ) {
+inline
+int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *buffer, size_t buffsize ) {
     int sockfd = inet_socket( serv_info, timeosec );
     if ( sockfd < 0 ) return sockfd;
     int rlen = 0;
@@ -140,11 +146,13 @@ inline int inet_command( struct addrinfo *serv_info, uint32_t timeosec, char *bu
     return rlen;
 }
 
-inline CInet::CInet( const std::string &host, const std::string &port, int timeosec )
+inline
+CInet::CInet( const std::string &host, const std::string &port, int timeosec )
     :   m_host { host }, m_port { port }, m_timeosec( timeosec ) {
 }
 
-inline struct addrinfo * CInet::InitService() {
+inline
+struct addrinfo * CInet::InitService() {
     struct addrinfo hints, *serv_info;
     std::memset( &hints, 0, sizeof( hints ) );
     hints.ai_family = AF_INET;
@@ -159,13 +167,15 @@ inline struct addrinfo * CInet::InitService() {
     return serv_info;
 }
 
-inline void CInet::CleanService( struct addrinfo * serv_info ) {
+inline
+void CInet::CleanService( struct addrinfo * serv_info ) {
     if ( serv_info == NULL ) return;
     freeaddrinfo( serv_info );
     serv_info = NULL;
 }
 
-inline int CInet::ExecCommand( char *buffer, std::size_t buffsize ) {
+inline
+int CInet::ExecCommand( char *buffer, std::size_t buffsize ) {
     assert( buffer && buffsize > 0 );
     struct addrinfo * serv_info = this->InitService();
     if ( serv_info == NULL ) return -1;

@@ -6,6 +6,15 @@
 extern bool g_still_running;
 extern bool g_solo_mining;
 
+CMineThread::CMineThread( std::uint32_t miner_id, std::uint32_t thread_id )
+    :   m_miner_id { miner_id }, m_thread_id { thread_id } {
+}
+
+void CMineThread::CleanupSyncState() {
+    m_condv_blck_no.notify_one();
+    m_condv_summary.notify_one();
+}
+
 void CMineThread::SetBlockSummary( std::uint32_t hashes_count, double duration ) {
     m_mutex_summary.lock();
     m_block_mining_duration = duration;
@@ -25,12 +34,14 @@ std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
     return summary;
 }
 
+inline
 void CMineThread::WaitTarget() {
     std::unique_lock<std::mutex> unique_lock_blck_no( m_mutex_blck_no );
     m_condv_blck_no.wait( unique_lock_blck_no, [&]() { return !g_still_running || m_blck_no > 0; } );
     unique_lock_blck_no.unlock();
 }
 
+inline
 void CMineThread::DoneTarget() {
     std::unique_lock<std::mutex> unique_lock_blck_no( m_mutex_blck_no );
     m_blck_no = 0;

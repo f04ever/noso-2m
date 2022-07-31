@@ -7,15 +7,18 @@
 #include "util.hpp"
 #include "output.hpp"
 
-inline void next_status_token( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
+inline
+void next_status_token( char sep, size_t &p_pos, size_t &c_pos, const std::string &status ) {
     p_pos = c_pos;
     c_pos = status.find( sep, c_pos + 1 );
 };
 
-inline std::string extract_status_token( size_t p_pos, size_t c_pos, const std::string& status ) {
+inline
+std::string extract_status_token( size_t p_pos, size_t c_pos, const std::string& status ) {
     return status.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : ( c_pos - p_pos - 1 ) );
 };
 
+inline
 CNodeStatus::CNodeStatus( const char *ns_line ) {
     assert( ns_line != nullptr && std::strlen( ns_line ) > 0 );
     std::string status { ns_line };
@@ -94,6 +97,7 @@ CPoolInfo::CPoolInfo( const char *pi ) {
     this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
 }
 
+inline
 CPoolStatus::CPoolStatus( const char *ps_line ) {
     assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
     std::string status { ps_line };
@@ -178,6 +182,7 @@ std::shared_ptr<CCommThread> CCommThread::GetInstance() {
     return singleton;
 }
 
+inline
 void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck ) {
     m_last_block_hashes_count = 0;
     m_last_block_elapsed_secs = elapsed_blck.count();
@@ -193,6 +198,7 @@ void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed
     m_last_block_hashrate = m_last_block_hashes_count / m_last_block_elapsed_secs;
 }
 
+inline
 void CCommThread::ResetMiningBlock() {
     m_accepted_solutions_count = 0;
     m_rejected_solutions_count = 0;
@@ -200,6 +206,7 @@ void CCommThread::ResetMiningBlock() {
     this->ClearSolutions();
 };
 
+inline
 void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) {
     char msg[100];
     if ( m_last_block_hashrate > 0 ) {
@@ -280,6 +287,7 @@ void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) 
     NOSO_TUI_OutputStatWin();
 }
 
+inline
 void CCommThread::_ReportTargetSummary( const std::shared_ptr<CTarget>& target ) {
     char msg[100];
     std::snprintf( msg, 100, "---------------------------------------------------" );
@@ -312,6 +320,7 @@ void CCommThread::_ReportTargetSummary( const std::shared_ptr<CTarget>& target )
     NOSO_TUI_OutputActiWinDefault();
 };
 
+inline
 void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolution> &solution ) {
     char msg[100];
     if      ( code == 1 ) {
@@ -366,12 +375,14 @@ void CCommThread::AddSolution( const std::shared_ptr<CSolution>& solution ) {
     m_mutex_solutions.unlock();
 }
 
+inline
 void CCommThread::ClearSolutions() {
     m_mutex_solutions.lock();
     m_solutions.clear();
     m_mutex_solutions.unlock();
 }
 
+inline
 const std::shared_ptr<CSolution> CCommThread::BestSolution() {
     std::shared_ptr<CSolution> best_solution { nullptr };
     m_mutex_solutions.lock();
@@ -384,6 +395,7 @@ const std::shared_ptr<CSolution> CCommThread::BestSolution() {
     return best_solution;
 }
 
+inline
 const std::shared_ptr<CSolution> CCommThread::GoodSolution() {
     std::shared_ptr<CSolution> good_solution { nullptr };
     m_mutex_solutions.lock();
@@ -396,6 +408,7 @@ const std::shared_ptr<CSolution> CCommThread::GoodSolution() {
     return good_solution;
 }
 
+inline
 std::shared_ptr<CSolution> CCommThread::GetSolution() {
     return g_solo_mining ? this->BestSolution() : this->GoodSolution();
 }
@@ -432,6 +445,7 @@ std::time_t CCommThread::RequestTimestamp() {
     return std::time_t( -1 );
 }
 
+inline
 std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::size_t min_nodes_count ) {
     std::vector<std::shared_ptr<CNodeStatus>> sources;
     if ( m_mining_nodes.size() < min_nodes_count ) return sources;
@@ -468,6 +482,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
     return sources;
 }
 
+inline
 std::shared_ptr<CNodeTarget> CCommThread::GetNodeTargetConsensus() {
     std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->RequestNodeSources( DEFAULT_CONSENSUS_NODES_COUNT );
     if ( status_of_nodes.size() < DEFAULT_CONSENSUS_NODES_COUNT ) return nullptr;
@@ -501,6 +516,7 @@ std::shared_ptr<CNodeTarget> CCommThread::GetNodeTargetConsensus() {
     return target;
 }
 
+inline
 std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[32] ) {
     assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
     auto pool { m_mining_pools[m_mining_pools_id] };
@@ -544,6 +560,7 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
     return nullptr;
 }
 
+inline
 std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetFailover() {
     static const int max_tries_count { 5 };
     bool first_fail { true };
@@ -596,6 +613,7 @@ std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetFailover() {
     return pool_target;
 }
 
+inline
 std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
     assert( std::strlen( prev_lb_hash ) == 32 );
     std::shared_ptr<CTarget> target { nullptr };
@@ -609,6 +627,7 @@ std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
     return target;
 }
 
+inline
 int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
                                     const char address[32], char new_mn_diff[33] ) {
     assert( std::strlen( base ) == 18
@@ -660,6 +679,7 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
     return ( -1 );
 }
 
+inline
 int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19], const char address[32] ) {
     assert( std::strlen( base ) == 18
             && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
@@ -702,6 +722,7 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
     return ( -1 );
 }
 
+inline
 void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target ) {
     int code { 0 };
     if ( g_solo_mining ) {

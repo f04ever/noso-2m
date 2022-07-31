@@ -75,6 +75,16 @@ private:
     std::map<std::string  , int> m_freq_lb_addr;
     char m_inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     CCommThread();
+    const std::shared_ptr<CSolution> BestSolution();
+    const std::shared_ptr<CSolution> GoodSolution();
+    std::shared_ptr<CSolution> GetSolution();
+    void ClearSolutions();
+    std::vector<std::shared_ptr<CNodeStatus>> RequestNodeSources( std::size_t min_nodes_count );
+    std::shared_ptr<CNodeTarget> GetNodeTargetConsensus();
+    std::shared_ptr<CPoolTarget> RequestPoolTarget( const char address[32] );
+    std::shared_ptr<CPoolTarget> GetPoolTargetFailover();
+    int SubmitSoloSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] );
+    int SubmitPoolSolution( std::uint32_t blck_no, const char base[19], const char address[32] );
     void CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck );
     void ResetMiningBlock();
     void _ReportMiningTarget( const std::shared_ptr<CTarget>& target );
@@ -87,18 +97,8 @@ public:
     CCommThread& operator=( CCommThread&& ) = delete; // Move assignment prohibited
     static std::shared_ptr<CCommThread> GetInstance();
     void AddSolution( const std::shared_ptr<CSolution>& solution );
-    void ClearSolutions();
-    const std::shared_ptr<CSolution> BestSolution();
-    const std::shared_ptr<CSolution> GoodSolution();
-    std::shared_ptr<CSolution> GetSolution();
     std::time_t RequestTimestamp();
-    std::vector<std::shared_ptr<CNodeStatus>> RequestNodeSources( std::size_t min_nodes_count );
-    std::shared_ptr<CNodeTarget> GetNodeTargetConsensus();
-    std::shared_ptr<CPoolTarget> RequestPoolTarget( const char address[32] );
-    std::shared_ptr<CPoolTarget> GetPoolTargetFailover();
     std::shared_ptr<CTarget> GetTarget( const char prev_lb_hash[32] );
-    int SubmitSoloSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] );
-    int SubmitPoolSolution( std::uint32_t blck_no, const char base[19], const char address[32] );
     void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };
