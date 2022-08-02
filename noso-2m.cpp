@@ -119,10 +119,12 @@ int main( int argc, char *argv[] ) {
     NOSO_TUI_OutputHistWin();
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
-        std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
-        if ( mainnet_timestamp < 0 ) throw std::runtime_error( "Can not check mainnet's timestamp!" );
-        else if ( NOSO_TIMESTAMP - mainnet_timestamp > DEFAULT_TIMESTAMP_DIFFERENCES )
-            throw std::runtime_error( "Your machine's time is different from mainnet. Synchronize clock!" );
+        if ( g_solo_mining ) {
+            std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
+            if ( mainnet_timestamp < 0 ) throw std::runtime_error( "Can not check mainnet's timestamp!" );
+            else if ( NOSO_TIMESTAMP - mainnet_timestamp > DEFAULT_TIMESTAMP_DIFFERENCES )
+                throw std::runtime_error( "Your machine's time is different from mainnet. Synchronize clock!" );
+        }
         for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
             g_mine_objects.push_back( std::make_shared<CMineThread>( g_miner_id, thread_id ) );
         std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );
