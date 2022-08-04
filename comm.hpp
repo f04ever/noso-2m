@@ -76,6 +76,12 @@ private:
     std::map<std::string  , int> m_freq_lb_addr;
     char m_inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     CCommThread();
+    std::vector<std::tuple<std::string, std::string>> const & GetDefaultNodes();
+    static std::vector<std::tuple<std::string, std::string>> LoadHintNodes();
+    static bool SaveHintNodes( std::vector<std::tuple<std::string, std::string>> const &nodes );
+    static std::vector<std::tuple<std::string, std::string>> GetValidators(
+            std::vector<std::tuple<std::string, std::string>> const &hints );
+    void UpdateMiningNodesInSoloModeIfNeed();
     const std::shared_ptr<CSolution> BestSolution();
     const std::shared_ptr<CSolution> GoodSolution();
     std::shared_ptr<CSolution> GetSolution();
@@ -97,6 +103,7 @@ public:
     void operator=( const CCommThread& ) = delete; // Assignment prohibited
     CCommThread& operator=( CCommThread&& ) = delete; // Move assignment prohibited
     static std::shared_ptr<CCommThread> GetInstance();
+    std::vector<std::tuple<std::string, std::string>> const & GetMiningNodes();
     void AddSolution( const std::shared_ptr<CSolution>& solution );
     std::time_t RequestTimestamp();
     std::shared_ptr<CTarget> GetTarget( const char prev_lb_hash[32] );

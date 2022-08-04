@@ -194,6 +194,12 @@ int CNodeInet::RequestTimestamp( char *buffer, std::size_t buffsize ) {
     return this->ExecCommand( buffer, buffsize );
 }
 
+int CNodeInet::RequestMNList( char *buffer, std::size_t buffsize ) {
+    assert( buffer && buffsize > 0 );
+    std::strcpy( buffer, "NSLMNS\n" );
+    return this->ExecCommand( buffer, buffsize );
+}
+
 int CNodeInet::RequestSource( char *buffer, std::size_t buffsize ) {
     assert( buffer && buffsize > 0 );
     std::strcpy( buffer, "NODESTATUS\n" );

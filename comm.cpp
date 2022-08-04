@@ -1,3 +1,4 @@
+#include <regex>
 #include <thread>
 #include <iomanip>
 #include <cstring>
@@ -173,13 +174,185 @@ extern bool g_still_running;
 extern bool g_solo_mining;
 
 CCommThread::CCommThread()
-    :   m_mining_nodes { g_default_nodes },
-        m_mining_pools { g_mining_pools }, m_mining_pools_id { 0 } {
+    :    m_mining_pools { g_mining_pools }, m_mining_pools_id { 0 } {
+    this->UpdateMiningNodesInSoloModeIfNeed();
+}
+
+inline
+std::vector<std::tuple<std::string, std::string>> const & CCommThread::GetDefaultNodes() {
+    // TODO: load default nodes from mainnet.cfg when it is implemented
+    return g_default_nodes;
+}
+
+inline
+bool CCommThread::SaveHintNodes( std::vector<std::tuple<std::string, std::string>> const &nodes ) {
+    std::ofstream nodes_ostream( "hint_nodes.txt" );
+    if( !nodes_ostream.good() ) {
+        std::string msg { "Failed to save hint nodes to file 'hint_nodes.txt'!" };
+        NOSO_LOG_ERROR << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        NOSO_TUI_OutputHistWin();
+        return false;
+    }
+    for( auto node : nodes ) {
+        nodes_ostream << std::get<0>( node ) << ":" << std::get<1>( node ) << std::endl;
+    }
+    std::string msg { "Saved hint nodes to file 'hint_nodes.txt'" };
+    NOSO_LOG_INFO << msg << std::endl;
+    return true;
+}
+
+inline
+std::vector<std::tuple<std::string, std::string>> CCommThread::LoadHintNodes() {
+    std::vector<std::tuple<std::string, std::string>> nodes;
+    std::ifstream nodes_istream( "hint_nodes.txt" );
+    if( !nodes_istream.good() ) {
+        std::string msg { "Hint nodes file 'hint_nodes.txt' not found!" };
+        NOSO_LOG_WARN << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "Trying with default hint nodes.";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        NOSO_TUI_OutputHistWin();
+    } else {
+        std::string msg { "Load hint nodes from file 'hint_nodes.txt'" };
+        NOSO_LOG_INFO << msg << std::endl;
+        std::regex const re { // IP-ADDRESS:PORT
+                "^"
+                "("
+                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])"
+                ")"
+                "\\:"
+                "("
+                    "6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-5]{0,5}|[0-9]{1,4}"
+                ")"
+                "$" };
+        std::smatch sm;
+        for_each(
+                std::istream_iterator<std::string>{ nodes_istream },
+                std::istream_iterator<std::string>{},
+                [&]( auto const &line ) {
+                    if( std::regex_match( line, sm, re ) ) {
+                        std::string const host { sm[1] };
+                        std::string const port { sm[6] };
+                        nodes.push_back( { host, port } );
+                    }
+                } );
+    }
+    return nodes;
+}
+
+inline
+std::vector<std::tuple<std::string, std::string>> CCommThread::GetValidators(
+        std::vector<std::tuple<std::string, std::string>> const &hints ) {
+    std::vector<std::tuple<std::string, std::string>> nodes;
+    std::size_t const NSLMNS_INET_BUFFER_SIZE { 32'000 }; // appro. max 500 * 64 bytes per MN
+    char inet_buffer[NSLMNS_INET_BUFFER_SIZE];
+    for (   auto itor = hints.begin();
+            g_still_running
+                && itor != hints.end();
+            itor = std::next( itor ) ) {
+        CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
+        int rsize { inet.RequestMNList( inet_buffer, NSLMNS_INET_BUFFER_SIZE ) };
+        if ( rsize <= 0 ) {
+            NOSO_LOG_DEBUG
+                << "sync_nodes <- CNodeInet::RequestMNList Poor connecting with node "
+                << inet.m_host << ":" << inet.m_port
+                << std::endl;
+            NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with a node!" );
+        } else {
+            std::regex const re {
+                    "("
+                        "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                        "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                        "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
+                        "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])"
+                    ")"
+                    ";"
+                    "("
+                        "6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-5]{0,5}|[0-9]{1,4}"
+                    ")"
+                    "\\:"
+                    "N[0-9A-Za-z]{29,30}"
+                    "\\:"
+                    "([0-9]{1,})" };
+            std::string mn_list { inet_buffer };
+            std::vector<std::tuple<std::string, std::string, std::uint32_t>> validators;
+            try {
+                std::for_each(
+                        std::sregex_iterator { mn_list.begin(), mn_list.end(), re },
+                        std::sregex_iterator {},
+                        [&]( auto const &sm0 ) {
+                            std::string host { sm0[1].str() };
+                            std::string port { sm0[6].str() };
+                            std::string ages { sm0[7].str() };
+                            validators.push_back( { host, port, std::stol( ages ) } );
+                        } );
+            } catch ( const std::exception &e ) {
+                NOSO_LOG_DEBUG
+                    << "CCommThread::GetValidators Unrecognised response from node "
+                    << inet.m_host << ":" << inet.m_port
+                    << "[" << inet_buffer << "](size=" << rsize << ")" << e.what()
+                    << std::endl;
+                NOSO_TUI_OutputStatPad( "An unrecognised response from a node!" );
+                continue;
+            }
+            std::sort( validators.begin(), validators.end(),
+                    []( auto const &a, auto const &b ){
+                        return std::get<2>( a ) > std::get<2>( b );
+                    } );
+            std::size_t validators_count { validators.size() / 10 + 3 };
+            auto const &validators_begin = validators.begin();
+            std::for_each( validators_begin, validators_begin + validators_count,
+                    [&]( auto const &a ) {
+                        nodes.push_back( { std::get<0>( a ), std::get<1>( a ) } );
+                    } );
+            if ( nodes.size() > 0 ) break;
+        }
+        NOSO_TUI_OutputStatWin();
+    }
+    return nodes;
+}
+
+inline
+void CCommThread::UpdateMiningNodesInSoloModeIfNeed() {
+    if( !g_solo_mining ) return;
+    if( m_mining_nodes.size() < DEFAULT_CONSENSUS_NODES_COUNT ) {
+        std::vector<std::tuple<std::string, std::string>> hints;
+        if ( m_mining_nodes.size() <= 0 ) {
+            hints = CCommThread::LoadHintNodes();
+            if ( hints.size() <= 0 ) hints = this->GetDefaultNodes();
+            if ( hints.size() <= 0 ) hints.push_back( { "localhost", "8080" } );
+        } else {
+            hints = m_mining_nodes;
+        }
+        std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
+        m_mining_nodes = CCommThread::GetValidators( hints );
+        std::stringstream msg;
+        msg << "Do mining randomly on nodes:";
+        NOSO_LOG_INFO << msg.str() << std::endl;
+        NOSO_TUI_OutputHistPad( msg.str().c_str() );
+        for ( auto node : m_mining_nodes ) {
+            msg.str( std::string() );
+            msg << "- " << std::get<0>( node ) << ":" << std::get<1>( node );
+            NOSO_LOG_INFO << msg.str() << std::endl;
+            NOSO_TUI_OutputHistPad( msg.str().c_str() );
+        }
+        NOSO_TUI_OutputHistWin();
+        CCommThread::SaveHintNodes( m_mining_nodes );
+    }
 }
 
 std::shared_ptr<CCommThread> CCommThread::GetInstance() {
     static std::shared_ptr<CCommThread> singleton { new CCommThread() };
     return singleton;
+}
+
+std::vector<std::tuple<std::string, std::string>> const & CCommThread::GetMiningNodes() {
+    return m_mining_nodes;
 }
 
 inline
@@ -417,6 +590,8 @@ std::shared_ptr<CSolution> CCommThread::GetSolution() {
 std::time_t CCommThread::RequestTimestamp() {
     if ( m_mining_nodes.size() <= 0 ) return std::time_t( -1 );
     std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
+    std::time_t ret_time { -1 };
+    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
     for (   auto itor = m_mining_nodes.begin();
             g_still_running
                 && itor != m_mining_nodes.end();
@@ -424,6 +599,7 @@ std::time_t CCommThread::RequestTimestamp() {
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.RequestTimestamp( m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
+            bad_mining_nodes.push_back( itor );
             NOSO_LOG_DEBUG
                 << "CCommThread::RequestTimestamp Poor connecting with node "
                 << inet.m_host << ":" << inet.m_port
@@ -431,8 +607,10 @@ std::time_t CCommThread::RequestTimestamp() {
             NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with a node!" );
         } else {
             try {
-                return std::time_t( std::atol( m_inet_buffer ) );
+                ret_time = std::time_t( std::atol( m_inet_buffer ) );
+                break;
             } catch ( const std::exception &e ) {
+                bad_mining_nodes.push_back( itor );
                 NOSO_LOG_DEBUG
                     << "CCommThread::RequestTimestamp Unrecognised response from node "
                     << inet.m_host << ":" << inet.m_port
@@ -443,7 +621,9 @@ std::time_t CCommThread::RequestTimestamp() {
         }
         NOSO_TUI_OutputStatWin();
     }
-    return std::time_t( -1 );
+    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
+            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
+    return ret_time;
 }
 
 inline
@@ -452,6 +632,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
     if ( m_mining_nodes.size() < min_nodes_count ) return sources;
     std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
     std::size_t nodes_count { 0 };
+    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
     for (   auto itor = m_mining_nodes.begin();
             g_still_running
                 && nodes_count < min_nodes_count
@@ -460,6 +641,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.RequestSource( m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
+            bad_mining_nodes.push_back( itor );
             NOSO_LOG_DEBUG
                 << "CCommThread::RequestNodeSources Poor connecting with node "
                 << inet.m_host << ":" << inet.m_port
@@ -470,6 +652,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
                 sources.push_back( std::make_shared<CNodeStatus>( m_inet_buffer ) );
                 nodes_count ++;
             } catch ( const std::exception &e ) {
+                bad_mining_nodes.push_back( itor );
                 NOSO_LOG_DEBUG
                     << "CCommThread::RequestNodeSources Unrecognised response from node "
                     << inet.m_host << ":" << inet.m_port
@@ -480,6 +663,8 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
         }
         NOSO_TUI_OutputStatWin();
     }
+    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
+            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
     return sources;
 }
 
@@ -635,6 +820,8 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
             && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
     if ( m_mining_nodes.size() <= 0 ) return ( -1 );
     std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
+    int ret_code { -1 };
+    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
     for (   auto itor = m_mining_nodes.begin();
             g_still_running
                 && itor != m_mining_nodes.end();
@@ -642,6 +829,7 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.SubmitSolution( blck, base, address, m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
+            bad_mining_nodes.push_back( itor );
             NOSO_LOG_DEBUG
                 << "CCommThread::SubmitSoloSolution Poor connecting with node "
                 << inet.m_host << ":" << inet.m_port
@@ -657,7 +845,8 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
                 // len=(40+2)~[False Diff(32) Code#(1)\r\n]
                 std::strncpy( new_mn_diff, m_inet_buffer + 6, 32 );
                 new_mn_diff[32] = '\0';
-                return m_inet_buffer[39] - '0';
+                ret_code  = m_inet_buffer[39] - '0';
+                break;
             }
             else if ( rsize >= 72
                         && std::strncmp( m_inet_buffer, "True ", 5 ) == 0
@@ -665,9 +854,11 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
                 // len=(70+2)~[True Diff(32) Hash(32)\r\n]
                 std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
                 new_mn_diff[32] = '\0';
-                return 0;
+                ret_code = 0;
+                break;
             }
             // } catch ( const std::exception &e ) {}
+            bad_mining_nodes.push_back( itor );
             NOSO_LOG_DEBUG
                 << "CCommThread::SubmitSoloSolution Unrecognised response from node "
                 << inet.m_host << ":" << inet.m_port
@@ -677,7 +868,9 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
         }
         NOSO_TUI_OutputStatWin();
     }
-    return ( -1 );
+    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
+            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
+    return ret_code;
 }
 
 inline
@@ -687,6 +880,7 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
     static const int max_tries_count { 5 };
     auto pool { m_mining_pools[m_mining_pools_id] };
     CPoolInet inet { std::get<0>( pool ), std::get<1>( pool ), std::get<2>( pool ), DEFAULT_POOL_INET_TIMEOSEC };
+    int ret_code { -1 };
     for (   int tries_count = 0;
             g_still_running
                 && tries_count < max_tries_count;
@@ -703,12 +897,16 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
             // try {
             // m_inet_buffer ~ len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
             if (        rsize >= 6
-                            && std::strncmp( m_inet_buffer, "True", 4 ) == 0 )
-                return ( 0 );
+                            && std::strncmp( m_inet_buffer, "True", 4 ) == 0 ) {
+                ret_code = 0;
+                break;
+            }
             else if (   rsize >= 9
                             && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
-                            && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' )
-                return ( m_inet_buffer[6] - '0' );
+                            && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) {
+                ret_code = m_inet_buffer[6] - '0';
+                break;
+            }
             // } catch ( const std::exception &e ) {}
             NOSO_LOG_DEBUG
                 << "CCommThread::SubmitPoolSolution Unrecognised response from pool "
@@ -720,7 +918,7 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
         NOSO_TUI_OutputStatWin();
         std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
     }
-    return ( -1 );
+    return ret_code;
 }
 
 inline
@@ -730,19 +928,21 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
         target->mn_diff = solution->diff;
         char new_mn_diff[33] { NOSO_MAX_DIFF };
         code = this->SubmitSoloSolution( solution->blck, solution->base.c_str(), g_miner_address, new_mn_diff );
-        if ( target->mn_diff > new_mn_diff ) {
-            target->mn_diff = new_mn_diff;
-            NOSO_TUI_OutputActiWinMiningDiff( target->mn_diff.substr( 0, 32 ) );
-        }
-        if ( code == 6 ) {
-            if ( solution->diff < new_mn_diff ) this->AddSolution( solution );
-            NOSO_LOG_DEBUG
-                << " WAITBLCK"
-                << ")base[" << solution->base
-                << "]hash[" << solution->hash
-                << "]Network building block!"
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "A submission while network building block! The solution will be re-submited." );
+        if ( code >= 0 ) {
+            if ( target->mn_diff > new_mn_diff ) {
+                target->mn_diff = new_mn_diff;
+                NOSO_TUI_OutputActiWinMiningDiff( target->mn_diff.substr( 0, 32 ) );
+            }
+            if ( code == 6 ) {
+                if ( solution->diff < new_mn_diff ) this->AddSolution( solution );
+                NOSO_LOG_DEBUG
+                    << " WAITBLCK"
+                    << ")base[" << solution->base
+                    << "]hash[" << solution->hash
+                    << "]Network building block!"
+                    << std::endl;
+                NOSO_TUI_OutputStatPad( "A submission while network building block! The solution will be re-submited." );
+            }
         }
     } else {
         code = this->SubmitPoolSolution( solution->blck, solution->base.c_str(), g_miner_address );
@@ -799,9 +999,10 @@ void CCommThread::Communicate() {
             if ( !g_still_running ) break;
         }
         NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 1 : 6;
+        this->UpdateMiningNodesInSoloModeIfNeed();
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
+        if ( !g_still_running || target == nullptr ) break;
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
-        if ( !g_still_running ) break;
         begin_blck = std::chrono::steady_clock::now();
         for ( auto const & mo : g_mine_objects ) mo->NewTarget( target );
         this->_ReportMiningTarget( target );
@@ -812,6 +1013,7 @@ void CCommThread::Communicate() {
                 if ( solution != nullptr && solution->diff < target->mn_diff )
                     this->SubmitSolution( solution, target );
             }
+            this->UpdateMiningNodesInSoloModeIfNeed();
             std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
             if ( elapsed_submit.count() < DEFAULT_INET_CIRCLE_SECONDS ) {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
@@ -824,4 +1026,3 @@ void CCommThread::Communicate() {
     for ( auto &obj : g_mine_objects ) obj->CleanupSyncState();
     for ( auto &thr : g_mine_threads ) thr.join();
 }
-
