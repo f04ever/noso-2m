@@ -1,8 +1,8 @@
-#include <cassert>
-#include <cstring>
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+#include <cassert>
+#include <cstring>
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
