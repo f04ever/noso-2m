@@ -1,9 +1,12 @@
 Version 0.2.6
 
-- Update seed nodes
-- New hashing algo to improve mining hashrate and reduce memory usage
-- Fixed terminfo path that causes xterm-256color error on termux
-- Minor refining
+- Dynamic mining nodes in solo mode instead of seed nodes
+- No more timestamp checking in solo mode
+- Improve hashrate by new hashing algo, and mining improvement.
+- Mining algo improvement
+- Fixed terminfo path that causes xterm-256color error on android/termux
+- Other bugs fixed and refining
+- Remove pool devnoso from config as it was offline
 
 Version 0.2.5
 
