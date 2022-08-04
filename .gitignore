@@ -3,6 +3,7 @@ noso-2m
 compile_commands.json
 compile_flags.txt
 cache
+build
 *.log
 .DS_Store
 
@@ -44,3 +45,5 @@ cache
 *.dSYM.zip
 *.dSYM
 
+
+hint_nodes.txt

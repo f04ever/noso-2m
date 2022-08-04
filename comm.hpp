@@ -1,5 +1,8 @@
 #ifndef __NOSO2M_COMM_HPP__
 #define __NOSO2M_COMM_HPP__
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <map>
 #include <set>
 #include <mutex>
@@ -61,7 +64,8 @@ private:
     std::vector<std::tuple<std::string, std::string>> m_mining_nodes;
     std::vector<std::tuple<std::string, std::string, std::string>>& m_mining_pools;
     std::uint32_t m_mining_pools_id;
-    std::multiset<std::shared_ptr<CSolution>, CSolsSetCompare> m_solutions;
+    std::multiset<std::shared_ptr<CSolution>, CSolsSetCompare> m_solo_solutions;
+    std::vector<std::shared_ptr<CSolution>> m_pool_solutions;
     std::uint64_t m_last_block_hashes_count { 0 };
     double m_last_block_elapsed_secs { 0. };
     double m_last_block_hashrate { 0. };
@@ -73,8 +77,24 @@ private:
     std::map<std::string  , int> m_freq_mn_diff;
     std::map<std::time_t  , int> m_freq_lb_time;
     std::map<std::string  , int> m_freq_lb_addr;
-    char m_inet_buffer[INET_BUFFER_SIZE];
+    char m_inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     CCommThread();
+    std::vector<std::tuple<std::string, std::string>> const & GetDefaultNodes();
+    static std::vector<std::tuple<std::string, std::string>> LoadHintNodes();
+    static bool SaveHintNodes( std::vector<std::tuple<std::string, std::string>> const &nodes );
+    static std::vector<std::tuple<std::string, std::string>> GetValidators(
+            std::vector<std::tuple<std::string, std::string>> const &hints );
+    void UpdateMiningNodesInSoloModeIfNeed();
+    const std::shared_ptr<CSolution> BestSolution();
+    const std::shared_ptr<CSolution> GoodSolution();
+    std::shared_ptr<CSolution> GetSolution();
+    void ClearSolutions();
+    std::vector<std::shared_ptr<CNodeStatus>> RequestNodeSources( std::size_t min_nodes_count );
+    std::shared_ptr<CNodeTarget> GetNodeTargetConsensus();
+    std::shared_ptr<CPoolTarget> RequestPoolTarget( const char address[32] );
+    std::shared_ptr<CPoolTarget> GetPoolTargetFailover();
+    int SubmitSoloSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] );
+    int SubmitPoolSolution( std::uint32_t blck_no, const char base[19], const char address[32] );
     void CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck );
     void ResetMiningBlock();
     void _ReportMiningTarget( const std::shared_ptr<CTarget>& target );
@@ -86,19 +106,10 @@ public:
     void operator=( const CCommThread& ) = delete; // Assignment prohibited
     CCommThread& operator=( CCommThread&& ) = delete; // Move assignment prohibited
     static std::shared_ptr<CCommThread> GetInstance();
+    std::vector<std::tuple<std::string, std::string>> const & GetMiningNodes();
     void AddSolution( const std::shared_ptr<CSolution>& solution );
-    void ClearSolutions();
-    const std::shared_ptr<CSolution> BestSolution();
-    const std::shared_ptr<CSolution> GoodSolution();
-    std::shared_ptr<CSolution> GetSolution();
     std::time_t RequestTimestamp();
-    std::vector<std::shared_ptr<CNodeStatus>> RequestNodeSources( std::size_t min_nodes_count );
-    std::shared_ptr<CNodeTarget> GetNodeTargetConsensus();
-    std::shared_ptr<CPoolTarget> RequestPoolTarget( const char address[32] );
-    std::shared_ptr<CPoolTarget> GetPoolTargetFailover();
     std::shared_ptr<CTarget> GetTarget( const char prev_lb_hash[32] );
-    int SubmitSoloSolution( std::uint32_t blck, const char base[19], const char address[32], char new_mn_diff[33] );
-    int SubmitPoolSolution( std::uint32_t blck_no, const char base[19], const char address[32] );
     void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };

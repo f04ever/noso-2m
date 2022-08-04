@@ -1,5 +1,8 @@
 #ifndef __NOSO2M_TEXTUI_HPP__
 #define __NOSO2M_TEXTUI_HPP__
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <mutex>
 #include <thread>
 #include <chrono>
@@ -7,6 +10,7 @@
 #include <ncurses.h>
 #include "util.hpp"
 #include "tool.hpp"
+#include "comm.hpp"
 #include "noso-2m.hpp"
 
 #ifndef KEY_ESC
@@ -268,12 +272,17 @@ private:
             this->OutputInfoPad( "Supported commands:" );
             this->OutputInfoPad( "" );
             this->OutputInfoPad( "  threads - Show hashrate per thread last mining block" );
-            this->OutputInfoPad( "  pools   - Show pool information of configured pools" );
+            this->OutputInfoPad( "  pools   - Show information of configured pools" );
+            this->OutputInfoPad( "  nodes   - Show current mining nodes" );
             this->OutputInfoPad( "  help    - Show this list of supported commands" );
             this->OutputInfoPad( "  exit    - Exit noso-2m, same as Ctrl+C" );
             this->OutputInfoPad( "" );
             this->OutputInfoPad( "--" );
             this->OutputInfoWin();
+        } else if ( iequal( "nodes",    cmdstr ) ) {
+            this->OutputStatPad( "Showing nodes information" );
+            this->OutputStatWin();
+            CTools::ShowNodeInformation( CCommThread::GetInstance()->GetMiningNodes() );
         } else if ( iequal( "pools",    cmdstr ) ) {
             this->OutputStatPad( "Showing pools information" );
             this->OutputStatWin();
@@ -548,7 +557,7 @@ public:
         this->ResetHeadPad();
         this->OutputHeadPad( "noso-2m - A miner for Nosocryptocurrency Protocol-2" );
         this->OutputHeadPad( "f04ever (c) 2022 https://github.com/f04ever/noso-2m" );
-        this->OutputHeadPad( NOSO_2M_VERSION_VTEXT );
+        this->OutputHeadPad( (std::string("version ") + NOSO_2M_VERSION).c_str() );
         this->OutputHeadPad( "--" );
         this->OutputHeadWin();
     }

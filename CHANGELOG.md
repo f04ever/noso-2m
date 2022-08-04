@@ -1,4 +1,14 @@
-Version 0.2.5 - on main branch
+Version 0.2.6
+
+- Dynamic mining nodes in solo mode instead of seed nodes
+- No more timestamp checking in solo mode
+- Improve hashrate by new hashing algo, and mining improvement.
+- Mining algo improvement
+- Fixed terminfo path that causes xterm-256color error on android/termux
+- Other bugs fixed and refining
+- Remove pool devnoso from config as it was offline
+
+Version 0.2.5
 
 - New function for fastly converting integer to string during hashing, so improve hashrate
 - Split the origin big source code file noso-2m.cpp into multiple source files as this is important for further developments.

@@ -1,5 +1,8 @@
 #ifndef __NOSO2M_UTIL_HPP__
 #define __NOSO2M_UTIL_HPP__
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <string>
 
 std::string lpad( std::string const & s, std::size_t n, char c );

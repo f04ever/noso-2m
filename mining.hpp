@@ -1,7 +1,12 @@
 #ifndef __NOSO2M__MINING_HPP__
 #define __NOSO2M__MINING_HPP__
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <cassert>
 #include <condition_variable>
+
+#include "hashing.hpp"
 
 struct CSolution {
     std::uint32_t blck;
@@ -73,6 +78,7 @@ public:
     std::uint32_t const m_miner_id;
     std::uint32_t const m_thread_id;
 protected:
+    CNosoHasher m_hasher;
     char m_address[32];
     char m_prefix[10];
     std::uint32_t m_blck_no { 0 };
@@ -85,14 +91,9 @@ protected:
     mutable std::mutex m_mutex_summary;
     mutable std::condition_variable m_condv_summary;
 public:
-    CMineThread( std::uint32_t miner_id, std::uint32_t thread_id )
-        :   m_miner_id { miner_id }, m_thread_id { thread_id } {
-    }
+    CMineThread( std::uint32_t miner_id, std::uint32_t thread_id );
     virtual ~CMineThread() = default;
-    void CleanupSyncState() {
-        m_condv_blck_no.notify_one();
-        m_condv_summary.notify_one();
-    }
+    void CleanupSyncState();
     void WaitTarget();
     void DoneTarget();
     void NewTarget( const std::shared_ptr<CTarget> &target );

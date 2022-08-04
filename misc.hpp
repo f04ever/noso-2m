@@ -1,5 +1,8 @@
 #ifndef __NOSO2M_MISC_HPP__
 #define __NOSO2M_MISC_HPP__
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <tuple>
 #include <vector>
 #include <string>

@@ -18,21 +18,20 @@
 
 extern
 std::vector<std::tuple<std::string, std::string>> const g_default_nodes {
-        { "45.146.252.103"  ,   "8080" },
         { "109.230.238.240" ,   "8080" },
-        { "194.156.88.117"  ,   "8080" },
-        { "23.94.21.83"     ,   "8080" },
-        { "107.175.59.177"  ,   "8080" },
-        { "107.172.193.176" ,   "8080" },
-        { "107.175.194.151" ,   "8080" },
-        { "192.3.73.184"    ,   "8080" },
-        { "107.175.24.151"  ,   "8080" },
-        { "107.174.137.27"  ,   "8080" },
+        { "149.57.235.14"   ,   "8080" },
+        { "149.57.226.244"  ,   "8080" },
+        { "81.22.38.101"    ,   "8080" },
+        { "66.151.117.247"  ,   "8080" },
+        { "149.57.229.81"   ,   "8080" },
+        { "149.57.242.211"  ,   "8080" },
+        { "149.57.138.12"   ,   "8080" },
+        { "159.196.1.198"   ,   "8080" },
+        { "101.100.138.125" ,   "8080" },
     }; // seed nodes
 extern
 std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools {
         { "f04ever", "209.126.80.203", "8082" },
-        { "devnoso", "45.146.252.103", "8082" }
     };
 bool g_solo_mining { false };
 bool g_still_running { true };
@@ -70,13 +69,13 @@ int main( int argc, char *argv[] ) {
         std::exit( EXIT_SUCCESS );
     }
     if ( parsed_options.count( "version" ) ) {
-        NOSO_STDOUT << "version " << NOSO_2M_VERSION_CTEXT << std::endl;
+        NOSO_STDOUT << "version " << NOSO_2M_VERSION << std::endl;
         std::exit( EXIT_SUCCESS );
     }
     NOSO_LOG_INIT();
     NOSO_LOG_INFO << "noso-2m - A miner for Nosocryptocurrency Protocol-2" << std::endl;
     NOSO_LOG_INFO << "f04ever (c) 2022 https://github.com/f04ever/noso-2m" << std::endl;
-    NOSO_LOG_INFO << "version " << NOSO_2M_VERSION_CTEXT << std::endl;
+    NOSO_LOG_INFO << "version " << NOSO_2M_VERSION << std::endl;
     NOSO_LOG_INFO << "--" << std::endl;
     try {
         NOSO_TUI_StartTUI();
@@ -123,10 +122,22 @@ int main( int argc, char *argv[] ) {
     NOSO_TUI_OutputHistWin();
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
-        std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
-        if ( mainnet_timestamp < 0 ) throw std::runtime_error( "Can not check mainnet's timestamp!" );
-        else if ( NOSO_TIMESTAMP - mainnet_timestamp > DEFAULT_TIMESTAMP_DIFFERENCES )
-            throw std::runtime_error( "Your machine's time is different from mainnet. Synchronize clock!" );
+        if ( g_solo_mining ) {
+            std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
+            if ( mainnet_timestamp == std::time_t( -1 ) ) {
+                throw std::runtime_error( "Can not check mainnet's timestamp!" );
+            }
+            else {
+                std::time_t computer_timestamp { static_cast<time_t>( NOSO_TIMESTAMP ) };
+                long timestamp_difference = std::abs( computer_timestamp - mainnet_timestamp );
+                if ( timestamp_difference > DEFAULT_TIMESTAMP_DIFFERENCES ) {
+                    msg = "Your machine's time is different ("
+                        + std::to_string( timestamp_difference )
+                        + ") from mainnet. Synchronize clock!";
+                    throw std::runtime_error( msg );
+                }
+            }
+        }
         for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
             g_mine_objects.push_back( std::make_shared<CMineThread>( g_miner_id, thread_id ) );
         std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );

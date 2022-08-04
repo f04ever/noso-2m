@@ -1,5 +1,8 @@
 #ifndef __NOSO2M_INET_HPP__
 #define __NOSO2M_INET_HPP__
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <string>
 
 int inet_init();
@@ -22,6 +25,7 @@ class CNodeInet : public CInet {
 public:
     CNodeInet( const std::string &host, const std::string &port , int timeosec );
     int RequestTimestamp( char *buffer, std::size_t buffsize );
+    int RequestMNList( char *buffer, std::size_t buffsize );
     int RequestSource( char *buffer, std::size_t buffsize );
     int SubmitSolution( std::uint32_t blck, const char base[19], const char address[32],
                         char *buffer, std::size_t buffsize );

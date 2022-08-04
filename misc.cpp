@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <regex>
 #include "misc.hpp"
 #include "output.hpp"
@@ -9,21 +12,25 @@ extern std::uint32_t g_miner_id;
 extern std::uint32_t g_threads_count;
 extern std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools;
 
-inline bool is_valid_address( std::string const & address ) {
+inline
+bool is_valid_address( std::string const & address ) {
     if ( address.length() < 30 || address.length() > 31 ) return false;
     return true;
 }
 
-inline bool is_valid_minerid( std::uint32_t minerid ) {
+inline
+bool is_valid_minerid( std::uint32_t minerid ) {
     if ( minerid < 0 || minerid > 8100 ) return false;
     return true;
 }
 
-inline bool is_valid_threads( std::uint32_t count ) {
+inline
+bool is_valid_threads( std::uint32_t count ) {
     if ( count < 2 ) return false;
     return true;
 }
 
+inline
 std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( std::string const & poolstr ) {
     const std::regex re_pool1 { ";|[[:space:]]" };
     const std::regex re_pool2 {
@@ -102,7 +109,8 @@ mining_options_t
         .minerid = -1,
     };
 
-inline void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
+inline
+void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
     try {
         g_arg_options.address = parsed_options["address"].as<std::string>();
         if ( !is_valid_address( g_arg_options.address ) )
@@ -123,7 +131,8 @@ inline void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
     }
 }
 
-inline void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
+inline
+void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
     g_cfg_options.filename = parsed_options["config"].as<std::string>();
     std::ifstream cfg_istream( g_cfg_options.filename );
     if( !cfg_istream.good() ) {
