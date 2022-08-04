@@ -103,6 +103,7 @@ public:
     void operator=( const CCommThread& ) = delete; // Assignment prohibited
     CCommThread& operator=( CCommThread&& ) = delete; // Move assignment prohibited
     static std::shared_ptr<CCommThread> GetInstance();
+    std::vector<std::tuple<std::string, std::string>> const & GetMiningNodes();
     void AddSolution( const std::shared_ptr<CSolution>& solution );
     std::time_t RequestTimestamp();
     std::shared_ptr<CTarget> GetTarget( const char prev_lb_hash[32] );

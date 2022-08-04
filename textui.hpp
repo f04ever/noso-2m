@@ -7,6 +7,7 @@
 #include <ncurses.h>
 #include "util.hpp"
 #include "tool.hpp"
+#include "comm.hpp"
 #include "noso-2m.hpp"
 
 #ifndef KEY_ESC
@@ -268,12 +269,17 @@ private:
             this->OutputInfoPad( "Supported commands:" );
             this->OutputInfoPad( "" );
             this->OutputInfoPad( "  threads - Show hashrate per thread last mining block" );
-            this->OutputInfoPad( "  pools   - Show pool information of configured pools" );
+            this->OutputInfoPad( "  pools   - Show information of configured pools" );
+            this->OutputInfoPad( "  nodes   - Show current mining nodes" );
             this->OutputInfoPad( "  help    - Show this list of supported commands" );
             this->OutputInfoPad( "  exit    - Exit noso-2m, same as Ctrl+C" );
             this->OutputInfoPad( "" );
             this->OutputInfoPad( "--" );
             this->OutputInfoWin();
+        } else if ( iequal( "nodes",    cmdstr ) ) {
+            this->OutputStatPad( "Showing nodes information" );
+            this->OutputStatWin();
+            CTools::ShowNodeInformation( CCommThread::GetInstance()->GetMiningNodes() );
         } else if ( iequal( "pools",    cmdstr ) ) {
             this->OutputStatPad( "Showing pools information" );
             this->OutputStatWin();

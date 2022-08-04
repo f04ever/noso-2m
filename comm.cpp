@@ -351,6 +351,10 @@ std::shared_ptr<CCommThread> CCommThread::GetInstance() {
     return singleton;
 }
 
+std::vector<std::tuple<std::string, std::string>> const & CCommThread::GetMiningNodes() {
+    return m_mining_nodes;
+}
+
 inline
 void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck ) {
     m_last_block_hashes_count = 0;
