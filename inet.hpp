@@ -1,5 +1,8 @@
 #ifndef __NOSO2M_INET_HPP__
 #define __NOSO2M_INET_HPP__
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <string>
 
 int inet_init();

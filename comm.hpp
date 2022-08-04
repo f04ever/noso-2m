@@ -1,5 +1,8 @@
 #ifndef __NOSO2M_COMM_HPP__
 #define __NOSO2M_COMM_HPP__
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <map>
 #include <set>
 #include <mutex>
