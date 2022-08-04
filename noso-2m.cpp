@@ -124,7 +124,7 @@ int main( int argc, char *argv[] ) {
                 throw std::runtime_error( "Can not check mainnet's timestamp!" );
             }
             else {
-                std::time_t computer_timestamp { NOSO_TIMESTAMP };
+                std::time_t computer_timestamp { static_cast<time_t>( NOSO_TIMESTAMP ) };
                 long timestamp_difference = std::abs( computer_timestamp - mainnet_timestamp );
                 if ( timestamp_difference > DEFAULT_TIMESTAMP_DIFFERENCES ) {
                     msg = "Your machine's time is different ("
