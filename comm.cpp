@@ -417,6 +417,7 @@ std::shared_ptr<CSolution> CCommThread::GetSolution() {
 std::time_t CCommThread::RequestTimestamp() {
     if ( m_mining_nodes.size() <= 0 ) return std::time_t( -1 );
     std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
+    std::time_t ret_time { -1 };
     for (   auto itor = m_mining_nodes.begin();
             g_still_running
                 && itor != m_mining_nodes.end();
@@ -431,7 +432,8 @@ std::time_t CCommThread::RequestTimestamp() {
             NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with a node!" );
         } else {
             try {
-                return std::time_t( std::atol( m_inet_buffer ) );
+                ret_time = std::time_t( std::atol( m_inet_buffer ) );
+                break;
             } catch ( const std::exception &e ) {
                 NOSO_LOG_DEBUG
                     << "CCommThread::RequestTimestamp Unrecognised response from node "
@@ -443,7 +445,7 @@ std::time_t CCommThread::RequestTimestamp() {
         }
         NOSO_TUI_OutputStatWin();
     }
-    return std::time_t( -1 );
+    return ret_time;
 }
 
 inline
@@ -635,6 +637,7 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
             && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
     if ( m_mining_nodes.size() <= 0 ) return ( -1 );
     std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
+    int ret_code { -1 };
     for (   auto itor = m_mining_nodes.begin();
             g_still_running
                 && itor != m_mining_nodes.end();
@@ -657,7 +660,8 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
                 // len=(40+2)~[False Diff(32) Code#(1)\r\n]
                 std::strncpy( new_mn_diff, m_inet_buffer + 6, 32 );
                 new_mn_diff[32] = '\0';
-                return m_inet_buffer[39] - '0';
+                ret_code  = m_inet_buffer[39] - '0';
+                break;
             }
             else if ( rsize >= 72
                         && std::strncmp( m_inet_buffer, "True ", 5 ) == 0
@@ -665,7 +669,8 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
                 // len=(70+2)~[True Diff(32) Hash(32)\r\n]
                 std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
                 new_mn_diff[32] = '\0';
-                return 0;
+                ret_code = 0;
+                break;
             }
             // } catch ( const std::exception &e ) {}
             NOSO_LOG_DEBUG
@@ -677,7 +682,7 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
         }
         NOSO_TUI_OutputStatWin();
     }
-    return ( -1 );
+    return ret_code;
 }
 
 inline
@@ -687,6 +692,7 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
     static const int max_tries_count { 5 };
     auto pool { m_mining_pools[m_mining_pools_id] };
     CPoolInet inet { std::get<0>( pool ), std::get<1>( pool ), std::get<2>( pool ), DEFAULT_POOL_INET_TIMEOSEC };
+    int ret_code { -1 };
     for (   int tries_count = 0;
             g_still_running
                 && tries_count < max_tries_count;
@@ -703,12 +709,16 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
             // try {
             // m_inet_buffer ~ len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
             if (        rsize >= 6
-                            && std::strncmp( m_inet_buffer, "True", 4 ) == 0 )
-                return ( 0 );
+                            && std::strncmp( m_inet_buffer, "True", 4 ) == 0 ) {
+                ret_code = 0;
+                break;
+            }
             else if (   rsize >= 9
                             && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
-                            && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' )
-                return ( m_inet_buffer[6] - '0' );
+                            && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) {
+                ret_code = m_inet_buffer[6] - '0';
+                break;
+            }
             // } catch ( const std::exception &e ) {}
             NOSO_LOG_DEBUG
                 << "CCommThread::SubmitPoolSolution Unrecognised response from pool "
@@ -720,7 +730,7 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
         NOSO_TUI_OutputStatWin();
         std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
     }
-    return ( -1 );
+    return ret_code;
 }
 
 inline
