@@ -755,19 +755,21 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
         target->mn_diff = solution->diff;
         char new_mn_diff[33] { NOSO_MAX_DIFF };
         code = this->SubmitSoloSolution( solution->blck, solution->base.c_str(), g_miner_address, new_mn_diff );
-        if ( target->mn_diff > new_mn_diff ) {
-            target->mn_diff = new_mn_diff;
-            NOSO_TUI_OutputActiWinMiningDiff( target->mn_diff.substr( 0, 32 ) );
-        }
-        if ( code == 6 ) {
-            if ( solution->diff < new_mn_diff ) this->AddSolution( solution );
-            NOSO_LOG_DEBUG
-                << " WAITBLCK"
-                << ")base[" << solution->base
-                << "]hash[" << solution->hash
-                << "]Network building block!"
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "A submission while network building block! The solution will be re-submited." );
+        if ( code >= 0 ) {
+            if ( target->mn_diff > new_mn_diff ) {
+                target->mn_diff = new_mn_diff;
+                NOSO_TUI_OutputActiWinMiningDiff( target->mn_diff.substr( 0, 32 ) );
+            }
+            if ( code == 6 ) {
+                if ( solution->diff < new_mn_diff ) this->AddSolution( solution );
+                NOSO_LOG_DEBUG
+                    << " WAITBLCK"
+                    << ")base[" << solution->base
+                    << "]hash[" << solution->hash
+                    << "]Network building block!"
+                    << std::endl;
+                NOSO_TUI_OutputStatPad( "A submission while network building block! The solution will be re-submited." );
+            }
         }
     } else {
         code = this->SubmitPoolSolution( solution->blck, solution->base.c_str(), g_miner_address );
@@ -825,8 +827,8 @@ void CCommThread::Communicate() {
         }
         NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 1 : 6;
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
+        if ( !g_still_running || target == nullptr ) break;
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
-        if ( !g_still_running ) break;
         begin_blck = std::chrono::steady_clock::now();
         for ( auto const & mo : g_mine_objects ) mo->NewTarget( target );
         this->_ReportMiningTarget( target );
@@ -849,4 +851,3 @@ void CCommThread::Communicate() {
     for ( auto &obj : g_mine_objects ) obj->CleanupSyncState();
     for ( auto &thr : g_mine_threads ) thr.join();
 }
-
