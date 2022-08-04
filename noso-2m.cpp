@@ -121,9 +121,19 @@ int main( int argc, char *argv[] ) {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
         if ( g_solo_mining ) {
             std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
-            if ( mainnet_timestamp < 0 ) throw std::runtime_error( "Can not check mainnet's timestamp!" );
-            else if ( NOSO_TIMESTAMP - mainnet_timestamp > DEFAULT_TIMESTAMP_DIFFERENCES )
-                throw std::runtime_error( "Your machine's time is different from mainnet. Synchronize clock!" );
+            if ( mainnet_timestamp == std::time_t( -1 ) ) {
+                throw std::runtime_error( "Can not check mainnet's timestamp!" );
+            }
+            else {
+                std::time_t computer_timestamp { NOSO_TIMESTAMP };
+                long timestamp_difference = std::abs( computer_timestamp - mainnet_timestamp );
+                if ( timestamp_difference > DEFAULT_TIMESTAMP_DIFFERENCES ) {
+                    msg = "Your machine's time is different ("
+                        + std::to_string( timestamp_difference )
+                        + ") from mainnet. Synchronize clock!";
+                    throw std::runtime_error( msg );
+                }
+            }
         }
         for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
             g_mine_objects.push_back( std::make_shared<CMineThread>( g_miner_id, thread_id ) );
