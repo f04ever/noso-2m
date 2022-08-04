@@ -45,3 +45,5 @@ build
 *.dSYM.zip
 *.dSYM
 
+
+hint_nodes.txt
