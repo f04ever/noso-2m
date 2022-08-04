@@ -252,7 +252,8 @@ std::vector<std::tuple<std::string, std::string>> CCommThread::GetValidators(
     std::size_t const NSLMNS_INET_BUFFER_SIZE { 32'000 }; // appro. max 500 * 64 bytes per MN
     char inet_buffer[NSLMNS_INET_BUFFER_SIZE];
     for (   auto itor = hints.begin();
-            itor != hints.end();
+            g_still_running
+                && itor != hints.end();
             itor = std::next( itor ) ) {
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.RequestMNList( inet_buffer, NSLMNS_INET_BUFFER_SIZE ) };
