@@ -418,6 +418,7 @@ std::time_t CCommThread::RequestTimestamp() {
     if ( m_mining_nodes.size() <= 0 ) return std::time_t( -1 );
     std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
     std::time_t ret_time { -1 };
+    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
     for (   auto itor = m_mining_nodes.begin();
             g_still_running
                 && itor != m_mining_nodes.end();
@@ -425,6 +426,7 @@ std::time_t CCommThread::RequestTimestamp() {
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.RequestTimestamp( m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
+            bad_mining_nodes.push_back( itor );
             NOSO_LOG_DEBUG
                 << "CCommThread::RequestTimestamp Poor connecting with node "
                 << inet.m_host << ":" << inet.m_port
@@ -435,6 +437,7 @@ std::time_t CCommThread::RequestTimestamp() {
                 ret_time = std::time_t( std::atol( m_inet_buffer ) );
                 break;
             } catch ( const std::exception &e ) {
+                bad_mining_nodes.push_back( itor );
                 NOSO_LOG_DEBUG
                     << "CCommThread::RequestTimestamp Unrecognised response from node "
                     << inet.m_host << ":" << inet.m_port
@@ -445,6 +448,8 @@ std::time_t CCommThread::RequestTimestamp() {
         }
         NOSO_TUI_OutputStatWin();
     }
+    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
+            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
     return ret_time;
 }
 
@@ -454,6 +459,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
     if ( m_mining_nodes.size() < min_nodes_count ) return sources;
     std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
     std::size_t nodes_count { 0 };
+    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
     for (   auto itor = m_mining_nodes.begin();
             g_still_running
                 && nodes_count < min_nodes_count
@@ -462,6 +468,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.RequestSource( m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
+            bad_mining_nodes.push_back( itor );
             NOSO_LOG_DEBUG
                 << "CCommThread::RequestNodeSources Poor connecting with node "
                 << inet.m_host << ":" << inet.m_port
@@ -472,6 +479,7 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
                 sources.push_back( std::make_shared<CNodeStatus>( m_inet_buffer ) );
                 nodes_count ++;
             } catch ( const std::exception &e ) {
+                bad_mining_nodes.push_back( itor );
                 NOSO_LOG_DEBUG
                     << "CCommThread::RequestNodeSources Unrecognised response from node "
                     << inet.m_host << ":" << inet.m_port
@@ -482,6 +490,8 @@ std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::
         }
         NOSO_TUI_OutputStatWin();
     }
+    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
+            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
     return sources;
 }
 
@@ -638,6 +648,7 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
     if ( m_mining_nodes.size() <= 0 ) return ( -1 );
     std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
     int ret_code { -1 };
+    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
     for (   auto itor = m_mining_nodes.begin();
             g_still_running
                 && itor != m_mining_nodes.end();
@@ -645,6 +656,7 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.SubmitSolution( blck, base, address, m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
+            bad_mining_nodes.push_back( itor );
             NOSO_LOG_DEBUG
                 << "CCommThread::SubmitSoloSolution Poor connecting with node "
                 << inet.m_host << ":" << inet.m_port
@@ -673,6 +685,7 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
                 break;
             }
             // } catch ( const std::exception &e ) {}
+            bad_mining_nodes.push_back( itor );
             NOSO_LOG_DEBUG
                 << "CCommThread::SubmitSoloSolution Unrecognised response from node "
                 << inet.m_host << ":" << inet.m_port
@@ -682,6 +695,8 @@ int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
         }
         NOSO_TUI_OutputStatWin();
     }
+    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
+            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
     return ret_code;
 }
 
