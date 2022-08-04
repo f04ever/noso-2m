@@ -9,7 +9,7 @@
 
 #define DEFAULT_CONFIG_FILENAME         "noso-2m.cfg"
 #define DEFAULT_LOGGING_FILENAME        "noso-2m.log"
-#define DEFAULT_POOL_URL_LIST           "f04ever" /* "f04ever;devnoso" */
+#define DEFAULT_POOL_URL_LIST           "f04ever"
 #define DEFAULT_MINER_ADDRESS           "N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS"
 
 #define DEFAULT_MINER_ID                0
