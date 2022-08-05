@@ -18,20 +18,22 @@
 struct CNodeStatus {
     // std::uint32_t peer;
     std::uint32_t blck_no;
-    // std::uint32_t pending;
+    std::uint32_t pending;
     // std::uint32_t delta;
-    // std::string branch;
+    std::string branche;
     // std::string version;
     // std::time_t utctime;
-    // std::string mn_hash;
+    std::string mn_hash;
     // std::uint32_t mn_count;
     std::string lb_hash;
     std::string mn_diff;
     std::time_t lb_time;
     std::string lb_addr;
-    // std::uint32_t check_count;
-    // std::uint64_t lb_pows;
-    // std::string lb_diff;
+    std::uint32_t check_n;
+    std::uint64_t lb_pows;
+    std::string lb_diff;
+    std::string sum_hash;
+    std::string gvt_hash;
     CNodeStatus( const char *ns_line );
 };
 

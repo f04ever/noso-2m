@@ -32,7 +32,8 @@ CNodeStatus::CNodeStatus( const char *ns_line ) {
     size_t p_pos = -1, c_pos = -1;
     //NODESTATUS 1{Peers} 2{LastBlock} 3{Pendings} 4{Delta} 5{headers} 6{version} 7{UTCTime} 8{MNsHash} 9{MNscount}
     //           10{LasBlockHash} 11{BestHashDiff} 12{LastBlockTimeEnd} 13{LBMiner} 14{ChecksCount} 15{LastBlockPoW}
-    //           16{LastBlockDiff}
+    //           16{LastBlockDiff} 17{summary} 18{GVTs}
+    //
     // 0{NODESTATUS}
     next_status_token( ' ', p_pos, c_pos, status );
     // std::string nodestatus = extract_status_token( p_pos, c_pos, status );
@@ -44,13 +45,15 @@ CNodeStatus::CNodeStatus( const char *ns_line ) {
     this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 3{pending}
     next_status_token( ' ', p_pos, c_pos, status );
-    // this->pending = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    this->pending = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 4{delta}
     next_status_token( ' ', p_pos, c_pos, status );
     // this->delta = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 5{header/branch}
+    // 5{header/branche}
     next_status_token( ' ', p_pos, c_pos, status );
-    // this->branch = extract_status_token( p_pos, c_pos, status );
+    this->branche = extract_status_token( p_pos, c_pos, status );
+    if ( this->branche.length() != 5 )
+        throw std::out_of_range( "Wrong receiving branche[" + this->branche + "]" );
     // 6{version}
     next_status_token( ' ', p_pos, c_pos, status );
     // this->version = extract_status_token( p_pos, c_pos, status );
@@ -59,35 +62,52 @@ CNodeStatus::CNodeStatus( const char *ns_line ) {
     // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 8{mn_hash}
     next_status_token( ' ', p_pos, c_pos, status );
-    // this->mn_hash = extract_status_token( p_pos, c_pos, status );
+    this->mn_hash = extract_status_token( p_pos, c_pos, status );
+    if ( this->mn_hash.length() != 5 )
+        throw std::out_of_range( "Wrong receiving mn_hash[" + this->mn_hash + "]" );
     // 9{mn_count}
     next_status_token( ' ', p_pos, c_pos, status );
     // this->mn_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 10{lb_hash}
     next_status_token( ' ', p_pos, c_pos, status );
     this->lb_hash = extract_status_token( p_pos, c_pos, status );
-    if ( this->lb_hash.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_hash" );
+    if ( this->lb_hash.length() != 32 )
+        throw std::out_of_range( "Wrong receiving lb_hash[" + this->lb_hash + "]" );
     // 11{bh_diff/mn_diff}
     next_status_token( ' ', p_pos, c_pos, status );
     this->mn_diff = extract_status_token( p_pos, c_pos, status );
-    if ( this->mn_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving mn_diff" );
+    if ( this->mn_diff.length() != 32 )
+        throw std::out_of_range( "Wrong receiving mn_diff[" + this->mn_diff + "]" );
     // 12{lb_time}
     next_status_token( ' ', p_pos, c_pos, status );
     this->lb_time = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 13{lb_addr}
     next_status_token( ' ', p_pos, c_pos, status );
     this->lb_addr = extract_status_token( p_pos, c_pos, status );
-    if ( this->lb_addr.length() != 30 && this->lb_addr.length() != 31 ) throw std::out_of_range( "Wrong receiving lb_addr" );
-    // 14{check_count}
-    // next_status_token( ' ', p_pos, c_pos, status );
-    // this->check_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    if ( this->lb_addr.length() != 30 && this->lb_addr.length() != 31 )
+        throw std::out_of_range( "Wrong receiving lb_addr[" + this->lb_addr + "]" );
+    // 14{check_n}
+    next_status_token( ' ', p_pos, c_pos, status );
+    // this->check_n = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 15{lb_pows}
-    // next_status_token( ' ', p_pos, c_pos, status );
-    // this->lb_pows = std::stoull( extract_status_token( p_pos, c_pos, status ) );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->lb_pows = std::stoull( extract_status_token( p_pos, c_pos, status ) );
     // 16{lb_diff}
-    // next_status_token( ' ', p_pos, c_pos, status );
-    // this->lb_diff = extract_status_token( p_pos, c_pos, status );
-    // if ( this->lb_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_diff" );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->lb_diff = extract_status_token( p_pos, c_pos, status );
+    if ( this->lb_diff.length() != 32 ) {
+        throw std::out_of_range( "Wrong receiving lb_diff[" + this->lb_diff + "]" );
+    }
+    // 17{sum_hash}
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->sum_hash = extract_status_token( p_pos, c_pos, status );
+    if ( this->sum_hash.length() != 5 )
+        throw std::out_of_range( "Wrong receiving sum_hash[" + this->sum_hash + "]" );
+    // 18{gvt_hash}
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->gvt_hash = extract_status_token( p_pos, c_pos, status );
+    if ( this->gvt_hash.length() != 5 )
+        throw std::out_of_range( "Wrong receiving gvt_hash[" + this->gvt_hash + "]" );
 }
 
 CPoolInfo::CPoolInfo( const char *pi ) {
