@@ -109,9 +109,9 @@ CPoolStatus::CPoolStatus( const char *ps_line ) {
     std::string status { ps_line };
     status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
     size_t p_pos = -1, c_pos = -1;
-    // {0}OK 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber}
-    // 6{MinerBalance} 7{BlocksTillPayment} 8{LastPayInfo} 9{LastBlockPoolHashrate}
-    // 10{MainNetHashrate} 11{PoolFee}
+    // 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber} 6{MinerBalance}
+    // 7{TillPayment} 8{LastPayInfo} 9{LastBlockPoolHashrate} {10}MainnetHashRate {11}PoolFee 12{PoolUTCTime}
+    //
     // 0{OK}
     next_status_token( ' ', p_pos, c_pos, status );
     // std::string status = extract_status_token( p_pos, c_pos, status );
@@ -152,6 +152,10 @@ CPoolStatus::CPoolStatus( const char *ps_line ) {
     // 11{pool_fee}
     next_status_token( ' ', p_pos, c_pos, status );
     this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    // 12{utctime}
+    next_status_token( ' ', p_pos, c_pos, status );
+    // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    //
     // 8{payment_info}
     if ( payment_info.length() > 0 ) {
         // 8{LastPayInfo} = Block:ammount:orderID
