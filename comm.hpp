@@ -79,10 +79,15 @@ private:
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
     std::map<std::uint32_t, int> m_freq_blck_no;
+    std::map<std::uint32_t, int> m_freq_pending;
+    std::map<std::string  , int> m_freq_branche;
     std::map<std::string  , int> m_freq_lb_hash;
     std::map<std::string  , int> m_freq_mn_diff;
     std::map<std::time_t  , int> m_freq_lb_time;
     std::map<std::string  , int> m_freq_lb_addr;
+    std::map<std::uint64_t, int> m_freq_lb_pows;
+    std::map<std::string  , int> m_freq_lb_diff;
+    std::map<std::string  , int> m_freq_mn_hash;
     char m_inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     CCommThread();
     std::vector<std::tuple<std::string, std::string>> const & GetDefaultNodes();

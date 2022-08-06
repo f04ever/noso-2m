@@ -709,16 +709,26 @@ std::shared_ptr<CNodeTarget> CCommThread::GetNodeTargetConsensus() {
                 return p1.second < p2.second; } )->first;
     };
     m_freq_blck_no.clear();
+    m_freq_pending.clear();
+    m_freq_branche.clear();
     m_freq_lb_hash.clear();
     m_freq_mn_diff.clear();
     m_freq_lb_time.clear();
     m_freq_lb_addr.clear();
+    m_freq_lb_pows.clear();
+    m_freq_lb_diff.clear();
+    m_freq_mn_hash.clear();
     for( auto ns : status_of_nodes ) {
         ++m_freq_blck_no [ns->blck_no];
+        ++m_freq_pending [ns->pending];
+        ++m_freq_branche [ns->branche];
         ++m_freq_lb_hash [ns->lb_hash];
         ++m_freq_mn_diff [ns->mn_diff];
         ++m_freq_lb_time [ns->lb_time];
         ++m_freq_lb_addr [ns->lb_addr];
+        ++m_freq_lb_pows [ns->lb_pows];
+        ++m_freq_lb_diff [ns->lb_diff];
+        ++m_freq_mn_hash [ns->mn_hash];
     }
     std::shared_ptr<CNodeTarget> target {
         std::make_shared<CNodeTarget>(
