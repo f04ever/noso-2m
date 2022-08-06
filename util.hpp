@@ -14,4 +14,6 @@ bool iequal( std::string const & s1, std::string const & s2 );
 char hashrate_pretty_unit( std::uint64_t count );
 double hashrate_pretty_value( std::uint64_t count );
 
+std::string Md5String( std::string const &input );
+
 #endif // __NOSO2M_UTIL_HPP__

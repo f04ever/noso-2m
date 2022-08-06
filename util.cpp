@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+#include "md5-c.hpp"
 #include "util.hpp"
 
 std::string lpad( std::string const & s, std::size_t n, char c ) {
@@ -49,8 +50,6 @@ double hashrate_pretty_value( std::uint64_t count ) {
         : ( count / 1'000'000'000'000.0 ) < 1'000 ? ( count /     1'000'000'000'000.0 ) /* Tera */
         :                                           ( count / 1'000'000'000'000'000.0 ) /* Peta */;
 };
-<<<<<<< HEAD
-=======
 
 std::string Md5String( std::string const &input ) {
     constexpr static
@@ -94,4 +93,3 @@ std::string Md5String( std::string const &input ) {
             hex_dec2char_table[ctx.digest[15] >>  4],
             hex_dec2char_table[ctx.digest[15] & 0xF], };
 }
->>>>>>> 5cc25c0 (a clean up)
