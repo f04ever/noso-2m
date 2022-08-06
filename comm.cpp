@@ -26,7 +26,7 @@ std::string extract_status_token( size_t p_pos, size_t c_pos, const std::string&
 
 inline
 CNodeStatus::CNodeStatus( const char *ns_line ) {
-    assert( ns_line != nullptr && std::strlen( ns_line ) > 0 );
+    assert( ns_line != nullptr && std::strlen( ns_line ) > 2 );
     std::string status { ns_line };
     status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
     size_t p_pos = -1, c_pos = -1;
@@ -91,7 +91,7 @@ CNodeStatus::CNodeStatus( const char *ns_line ) {
 }
 
 CPoolInfo::CPoolInfo( const char *pi ) {
-    assert( pi != nullptr && std::strlen( pi ) > 0 );
+    assert( pi != nullptr && std::strlen( pi ) > 2 );
     std::string status { pi };
     status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
     size_t p_pos = -1, c_pos = -1;
@@ -105,7 +105,7 @@ CPoolInfo::CPoolInfo( const char *pi ) {
 
 inline
 CPoolStatus::CPoolStatus( const char *ps_line ) {
-    assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
+    assert( ps_line != nullptr && std::strlen( ps_line ) > 2 );
     std::string status { ps_line };
     status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
     size_t p_pos = -1, c_pos = -1;
