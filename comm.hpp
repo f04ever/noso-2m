@@ -87,7 +87,7 @@ private:
     static bool SaveHintNodes( std::vector<std::tuple<std::string, std::string>> const &nodes );
     static std::vector<std::tuple<std::string, std::string>> GetValidators(
             std::vector<std::tuple<std::string, std::string>> const &hints );
-    void UpdateMiningNodesInSoloModeIfNeed();
+    void UpdateMiningNodes();
     const std::shared_ptr<CSolution> BestSolution();
     const std::shared_ptr<CSolution> GoodSolution();
     std::shared_ptr<CSolution> GetSolution();

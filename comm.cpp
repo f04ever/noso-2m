@@ -180,7 +180,7 @@ extern bool g_solo_mining;
 
 CCommThread::CCommThread()
     :    m_mining_pools { g_mining_pools }, m_mining_pools_id { 0 } {
-    this->UpdateMiningNodesInSoloModeIfNeed();
+    this->UpdateMiningNodes();
 }
 
 inline
@@ -325,8 +325,7 @@ std::vector<std::tuple<std::string, std::string>> CCommThread::GetValidators(
 }
 
 inline
-void CCommThread::UpdateMiningNodesInSoloModeIfNeed() {
-    if( !g_solo_mining ) return;
+void CCommThread::UpdateMiningNodes() {
     if( m_mining_nodes.size() < DEFAULT_CONSENSUS_NODES_COUNT ) {
         std::vector<std::tuple<std::string, std::string>> hints;
         if ( m_mining_nodes.size() <= 0 ) {
@@ -1006,7 +1005,7 @@ void CCommThread::Communicate() {
             if ( !g_still_running ) break;
         }
         NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 1 : 6;
-        this->UpdateMiningNodesInSoloModeIfNeed();
+        if( g_solo_mining ) this->UpdateMiningNodes();
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         if ( !g_still_running || target == nullptr ) break;
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
@@ -1020,7 +1019,7 @@ void CCommThread::Communicate() {
                 if ( solution != nullptr && solution->diff < target->mn_diff )
                     this->SubmitSolution( solution, target );
             }
-            this->UpdateMiningNodesInSoloModeIfNeed();
+            if( g_solo_mining ) this->UpdateMiningNodes();
             std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
             if ( elapsed_submit.count() < DEFAULT_INET_CIRCLE_SECONDS ) {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );

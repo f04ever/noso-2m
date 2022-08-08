@@ -125,20 +125,18 @@ int main( int argc, char *argv[] ) {
     NOSO_TUI_OutputHistWin();
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
-        if ( g_solo_mining ) {
-            std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
-            if ( mainnet_timestamp == std::time_t( -1 ) ) {
-                throw std::runtime_error( "Can not check mainnet's timestamp!" );
-            }
-            else {
-                std::time_t computer_timestamp { static_cast<time_t>( NOSO_TIMESTAMP ) };
-                long timestamp_difference = std::abs( computer_timestamp - mainnet_timestamp );
-                if ( timestamp_difference > DEFAULT_TIMESTAMP_DIFFERENCES ) {
-                    msg = "Your machine's time is different ("
-                        + std::to_string( timestamp_difference )
-                        + ") from mainnet. Synchronize clock!";
-                    throw std::runtime_error( msg );
-                }
+        std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
+        if ( mainnet_timestamp == std::time_t( -1 ) ) {
+            throw std::runtime_error( "Can not check mainnet's timestamp!" );
+        }
+        else {
+            std::time_t computer_timestamp { static_cast<time_t>( NOSO_TIMESTAMP ) };
+            long timestamp_difference = std::abs( computer_timestamp - mainnet_timestamp );
+            if ( timestamp_difference > DEFAULT_TIMESTAMP_DIFFERENCES ) {
+                msg = "Your machine's time is different ("
+                    + std::to_string( timestamp_difference )
+                    + ") from mainnet. Synchronize clock!";
+                throw std::runtime_error( msg );
             }
         }
         for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
