@@ -1,6 +1,7 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <cassert>
 #include <cstring>
 #ifdef _WIN32
@@ -11,6 +12,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 #endif // _WIN32
+
 #include "inet.hpp"
 #include "output.hpp"
 #include "noso-2m.hpp"

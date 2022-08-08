@@ -1,11 +1,13 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <regex>
 #include <thread>
 #include <iomanip>
 #include <cstring>
 #include <algorithm>
+
 #include "inet.hpp"
 #include "comm.hpp"
 #include "util.hpp"
@@ -260,6 +262,8 @@ std::vector<std::tuple<std::string, std::string>> CCommThread::GetValidators(
             itor = std::next( itor ) ) {
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.RequestMNList( inet_buffer, NSLMNS_INET_BUFFER_SIZE ) };
+                // auto ns { std::make_shared<CNodeStatus>( m_inet_buffer ) };
+                // assert( ns->mn_hash == Md5String( ns->).substr(5) )
         if ( rsize <= 0 ) {
             NOSO_LOG_DEBUG
                 << "sync_nodes <- CNodeInet::RequestMNList Poor connecting with node "

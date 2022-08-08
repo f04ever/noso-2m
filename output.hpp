@@ -1,10 +1,13 @@
 #ifndef __NOSO2M_OUTPUT_HPP__
 #define __NOSO2M_OUTPUT_HPP__
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <fstream>
 #include <iostream>
+
 #include "logging.hpp"
 #include "textui.hpp"
 #include "noso-2m.hpp"
@@ -75,4 +78,5 @@ static CLogFile _NOSO_LOGGING_LOGSTREAM( std::cout );
 #define NOSO_LOG_ERROR _LOG_ERROR << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << ")"
 #define NOSO_LOG_FATAL _LOG_FATAL << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << ")"
 #define NOSO_LOG_DEBUG _LOG_DEBUG << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << ")"
+
 #endif // __NOSO2M_OUTPUT_HPP__

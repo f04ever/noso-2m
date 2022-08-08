@@ -1,14 +1,17 @@
 #ifndef __NOSO2M_COMM_HPP__
 #define __NOSO2M_COMM_HPP__
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <map>
 #include <set>
 #include <mutex>
 #include <random>
 #include <string>
 #include <cassert>
+
 #include "noso-2m.hpp"
 #include "mining.hpp"
 
@@ -113,4 +116,5 @@ public:
     void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };
+
 #endif // __NOSO2M_COMM_HPP__

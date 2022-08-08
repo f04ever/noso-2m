@@ -1,8 +1,10 @@
 #ifndef __NOSO2M_LOGGING_HPP__
 #define __NOSO2M_LOGGING_HPP__
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -48,4 +50,5 @@ public:
         m_ost << msg << std::flush;
     }
 };
+
 #endif // __NOSO2M_LOGGING_HPP__

@@ -1,8 +1,10 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <mutex>
 #include <cstring>
+
 #include "mining.hpp"
 #include "noso-2m.hpp"
 

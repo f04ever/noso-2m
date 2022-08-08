@@ -1,7 +1,9 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <cstring>
+
 #include "hashing.hpp"
 
 constexpr char const CNosoHasher::hex_dec2char_table[];
@@ -215,4 +217,3 @@ std::string nosohash_prefix( int num ) {
         NOSOHASH_HASHEABLE_CHARS[ num / NOSOHASH_HASHEABLE_COUNT ],
         NOSOHASH_HASHEABLE_CHARS[ num % NOSOHASH_HASHEABLE_COUNT ], };
 }
-

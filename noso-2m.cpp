@@ -1,12 +1,15 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <tuple>
 #include <vector>
 #include <string>
 #include <thread>
 #include <signal.h>
+
 #include "cxxopts.hpp"
+
 #include "noso-2m.hpp"
 #include "inet.hpp"
 #include "misc.hpp"
