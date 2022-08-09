@@ -362,7 +362,7 @@ void CCommThread::UpdateMiningNodes() {
         std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
         m_mining_nodes = CCommThread::GetValidators( hints );
         std::stringstream msg;
-        msg << "Do mining randomly on nodes:";
+        msg << "Validator nodes:";
         NOSO_LOG_INFO << msg.str() << std::endl;
         NOSO_TUI_OutputHistPad( msg.str().c_str() );
         for ( auto node : m_mining_nodes ) {
