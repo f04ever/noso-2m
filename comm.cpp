@@ -1038,7 +1038,7 @@ void CCommThread::Communicate() {
             } while ( g_still_running && ( NOSO_BLOCK_AGE < NOSO_BLOCK_AGE_TARGET_SAFE || 585 < NOSO_BLOCK_AGE ) );
             if ( !g_still_running ) break;
         }
-        NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 1 : 6;
+        NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 5 : 10;
         if( g_solo_mining ) this->UpdateMiningNodes();
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         if ( !g_still_running || target == nullptr ) break;
