@@ -36,9 +36,9 @@ int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string
     char msg[200];
     std::snprintf( msg, 200, "POOL INFORMATION" );
     NOSO_TUI_OutputInfoPad( msg );
-    std::snprintf( msg, 200, "     | pool name    | pool host            | fee(%%) | miners | hashrate " );
+    std::snprintf( msg, 200, "     | pool name    | pool host            | fee(%%) | miners | hashrate | hashrate " );
     NOSO_TUI_OutputInfoPad( msg );
-    std::snprintf( msg, 200, "------------------------------------------------------------------------" );
+    std::snprintf( msg, 200, "-----------------------------------------------------------------------------------" );
     NOSO_TUI_OutputInfoPad( msg );
     std::for_each( std::cbegin( mining_pools ), std::cend( mining_pools ),
                   [&, idx = 0]( std::tuple<std::string, std::string, std::string> const & pool ) mutable {
@@ -54,15 +54,17 @@ int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string
                       } else {
                           try {
                               auto info { std::make_shared<CPoolInfo>( inet_buffer ) };
-                              std::snprintf( msg, 200, " %3u | %-12s | %-20s | %6.02f | %6u | %7.02f%c ",
+                              std::snprintf( msg, 200, " %3u | %-12s | %-20s | %6.02f | %6u | %7.02f%c | %7.02f%c ",
                                             idx, inet.m_name.substr( 0, 12 ).c_str(),
                                             ( inet.m_host + ":" + inet.m_port ).substr( 0, 20 ).c_str(),
                                             info->pool_fee / 100.0, info->pool_miners,
                                             hashrate_pretty_value( info->pool_hashrate ),
-                                            hashrate_pretty_unit( info->pool_hashrate ) );
+                                            hashrate_pretty_unit( info->pool_hashrate ),
+                                            hashrate_pretty_value( info->mnet_hashrate ),
+                                            hashrate_pretty_unit( info->mnet_hashrate ) );
                           }
                           catch ( const std::exception &e ) {
-                              std::snprintf( msg, 200, " %3u | %-12s | %-20s |    N/A |    N/A |      N/A ",
+                              std::snprintf( msg, 200, " %3u | %-12s | %-20s |    N/A |    N/A |      N/A |      N/A ",
                                             idx, inet.m_name.substr( 0, 12 ).c_str(),
                                             ( inet.m_host + ":" + inet.m_port ).substr( 0, 20 ).c_str() );
                               NOSO_LOG_DEBUG

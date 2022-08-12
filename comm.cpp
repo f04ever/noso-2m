@@ -121,6 +121,8 @@ CPoolInfo::CPoolInfo( const char *pi ) {
     this->pool_hashrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
     next_status_token( ' ', p_pos, c_pos, status );
     this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->mnet_hashrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
 }
 
 inline

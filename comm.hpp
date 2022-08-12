@@ -41,6 +41,7 @@ struct CPoolInfo {
     std::uint32_t pool_miners;
     std::uint64_t pool_hashrate;
     std::uint32_t pool_fee;
+    std::uint64_t mnet_hashrate;
     CPoolInfo( const char *pi );
 };
 
