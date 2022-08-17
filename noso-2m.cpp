@@ -34,7 +34,7 @@ std::vector<std::tuple<std::string, std::string>> const g_default_nodes {
     }; // seed nodes
 extern
 std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools {
-        { "f04ever", "209.126.80.203", "8082" },
+        { "f04ever", "f04ever.com", "8082" },
     };
 bool g_solo_mining { false };
 bool g_still_running { true };
