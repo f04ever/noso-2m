@@ -36,7 +36,7 @@ int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string
     char msg[200];
     std::snprintf( msg, 200, "POOL INFORMATION" );
     NOSO_TUI_OutputInfoPad( msg );
-    std::snprintf( msg, 200, "     | pool name    | pool host            | fee(%%) | miners | hashrate | hashrate " );
+    std::snprintf( msg, 200, "     | pool name    | pool host            | fee(%%) | miners | poolrate | mnetrate " );
     NOSO_TUI_OutputInfoPad( msg );
     std::snprintf( msg, 200, "-----------------------------------------------------------------------------------" );
     NOSO_TUI_OutputInfoPad( msg );
