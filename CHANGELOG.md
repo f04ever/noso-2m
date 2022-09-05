@@ -1,8 +1,8 @@
 Version 0.2.7
 
 - Update new pool status/info handling
-- Make node concensus more safer
-- Bring back time checking at starting as it is necessary for window timing 
+- Make stronger node concensus (safer)
+- Bring back time checking at starting as it is necessary for window timing
 - pool f04ever now uses domain f04ever.com
 
 Version 0.2.6
