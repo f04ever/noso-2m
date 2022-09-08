@@ -5,6 +5,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
+#include <atomic>
 #include <cassert>
 #include <condition_variable>
 
@@ -79,6 +80,7 @@ class CMineThread {
 public:
     std::uint32_t const m_miner_id;
     std::uint32_t const m_thread_id;
+    std::atomic<short> m_exited { 0 };
 protected:
     CNosoHasher m_hasher;
     char m_address[32];

@@ -76,6 +76,7 @@ private:
     std::uint64_t m_last_block_hashes_count { 0 };
     double m_last_block_elapsed_secs { 0. };
     double m_last_block_hashrate { 0. };
+    short m_last_mining_threads { 0 };
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
