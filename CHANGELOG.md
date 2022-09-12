@@ -1,9 +1,11 @@
 Version 0.2.7
 
+- Add notice when mining to default address
 - Update new pool status/info handling
 - Make stronger node concensus (safer)
 - Bring back time checking at starting as it is necessary for window timing
 - pool f04ever now uses domain f04ever.com
+- Other bugs fixed and refining
 
 Version 0.2.6
 
