@@ -392,7 +392,6 @@ void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed
     m_last_block_hashes_count = 0;
     m_last_block_elapsed_secs = elapsed_blck.count();
     g_last_block_thread_hashrates.clear();
-    int num_threads { 0 };
     for_each( g_mine_objects.begin(), g_mine_objects.end(),
             [&]( auto const & object ) {
                 if ( object->m_exited < 2 ) {
@@ -403,12 +402,10 @@ void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed
                     g_last_block_thread_hashrates.push_back(
                              std::make_tuple( object->m_thread_id, thread_hashrate ) );
                     m_last_block_hashes_count += thread_hashes;
-                    num_threads++;
                  } else if ( object->m_exited == 1 ) { // has just exited
                      object->m_exited = 2; // exited and did summaries the last one
                  }
              } );
-    m_last_mining_threads = num_threads;
     m_last_block_hashrate = m_last_block_hashes_count / m_last_block_elapsed_secs;
 }
 
