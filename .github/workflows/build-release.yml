@@ -143,7 +143,7 @@ jobs:
         name: 'ubuntu-latest'
         path: |
           README.md
-          noso-2m.cfg
+          noso-2m-SAMPLE.cfg
           noso-2m-linux-i686
           noso-2m-linux-x86_64
           noso-2m-linux-armv7a
@@ -183,7 +183,7 @@ jobs:
         name: 'windows-latest'
         path: |
           README.md
-          noso-2m.cfg
+          noso-2m-SAMPLE.cfg
           mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll
           mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll
           noso-2m-i686.exe
@@ -213,7 +213,7 @@ jobs:
         name: 'macos-latest'
         path: |
           README.md
-          noso-2m.cfg
+          noso-2m-SAMPLE.cfg
           noso-2m-darwin
   release-linux:
     if: contains(github.ref, '/tags/')
