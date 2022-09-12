@@ -122,6 +122,35 @@ int main( int argc, char *argv[] ) {
             NOSO_TUI_OutputHistPad( msg.c_str() );
         }
     }
+    if ( std::strcmp( g_miner_address, DEFAULT_MINER_ADDRESS ) == 0 ) {
+        msg = "";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = std::string( "YOU ARE MINING TO " ) + g_miner_address;
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "This address is the default of miner noso-2m.";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "Mine to this address is to donate noso-2m's author.";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "If this is not your intention, do correct noso-2m's";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "options you are providing by the command arguments,";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "or/and in the config file.";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "Happy mining!";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+    }
+    msg = "";
+    NOSO_LOG_INFO << msg << std::endl;
+    NOSO_TUI_OutputHistPad( msg.c_str() );
     NOSO_TUI_OutputHistWin();
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
