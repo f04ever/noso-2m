@@ -1,11 +1,14 @@
 #ifndef __NOSO2M_MISC_HPP__
 #define __NOSO2M_MISC_HPP__
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <tuple>
 #include <vector>
 #include <string>
+
 #include "cxxopts.hpp"
 
 bool is_valid_address( std::string const & address );
@@ -26,4 +29,5 @@ struct mining_options_t {
 void process_options( cxxopts::ParseResult const & parsed_options );
 void process_arg_options( cxxopts::ParseResult const & parsed_options );
 void process_cfg_options( cxxopts::ParseResult const & parsed_options );
+
 #endif // __NOSO2M_MISC_HPP__

@@ -1,11 +1,14 @@
 #ifndef __NOSO2M_HASHING__HPP__
 #define __NOSO2M_HASHING__HPP__
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <cassert>
 #include <string>
 #include <algorithm>
+
 #include "md5-c.hpp"
 
 class CNosoHasher {
@@ -64,4 +67,5 @@ public:
 };
 
 std::string nosohash_prefix( int num );
+
 #endif // __NOSO2M_HASHING__HPP__

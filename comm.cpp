@@ -1,11 +1,13 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <regex>
 #include <thread>
 #include <iomanip>
 #include <cstring>
 #include <algorithm>
+
 #include "inet.hpp"
 #include "comm.hpp"
 #include "util.hpp"
@@ -24,13 +26,14 @@ std::string extract_status_token( size_t p_pos, size_t c_pos, const std::string&
 
 inline
 CNodeStatus::CNodeStatus( const char *ns_line ) {
-    assert( ns_line != nullptr && std::strlen( ns_line ) > 0 );
+    assert( ns_line != nullptr && std::strlen( ns_line ) > 2 );
     std::string status { ns_line };
     status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
     size_t p_pos = -1, c_pos = -1;
     //NODESTATUS 1{Peers} 2{LastBlock} 3{Pendings} 4{Delta} 5{headers} 6{version} 7{UTCTime} 8{MNsHash} 9{MNscount}
     //           10{LasBlockHash} 11{BestHashDiff} 12{LastBlockTimeEnd} 13{LBMiner} 14{ChecksCount} 15{LastBlockPoW}
-    //           16{LastBlockDiff}
+    //           16{LastBlockDiff} 17{summary} 18{GVTs}
+    //
     // 0{NODESTATUS}
     next_status_token( ' ', p_pos, c_pos, status );
     // std::string nodestatus = extract_status_token( p_pos, c_pos, status );
@@ -42,13 +45,15 @@ CNodeStatus::CNodeStatus( const char *ns_line ) {
     this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 3{pending}
     next_status_token( ' ', p_pos, c_pos, status );
-    // this->pending = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    this->pending = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 4{delta}
     next_status_token( ' ', p_pos, c_pos, status );
     // this->delta = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 5{header/branch}
+    // 5{header/branche}
     next_status_token( ' ', p_pos, c_pos, status );
-    // this->branch = extract_status_token( p_pos, c_pos, status );
+    this->branche = extract_status_token( p_pos, c_pos, status );
+    if ( this->branche.length() != 5 )
+        throw std::out_of_range( "Wrong receiving branche[" + this->branche + "]" );
     // 6{version}
     next_status_token( ' ', p_pos, c_pos, status );
     // this->version = extract_status_token( p_pos, c_pos, status );
@@ -57,39 +62,56 @@ CNodeStatus::CNodeStatus( const char *ns_line ) {
     // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 8{mn_hash}
     next_status_token( ' ', p_pos, c_pos, status );
-    // this->mn_hash = extract_status_token( p_pos, c_pos, status );
+    this->mn_hash = extract_status_token( p_pos, c_pos, status );
+    if ( this->mn_hash.length() != 5 )
+        throw std::out_of_range( "Wrong receiving mn_hash[" + this->mn_hash + "]" );
     // 9{mn_count}
     next_status_token( ' ', p_pos, c_pos, status );
     // this->mn_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 10{lb_hash}
     next_status_token( ' ', p_pos, c_pos, status );
     this->lb_hash = extract_status_token( p_pos, c_pos, status );
-    if ( this->lb_hash.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_hash" );
+    if ( this->lb_hash.length() != 32 )
+        throw std::out_of_range( "Wrong receiving lb_hash[" + this->lb_hash + "]" );
     // 11{bh_diff/mn_diff}
     next_status_token( ' ', p_pos, c_pos, status );
     this->mn_diff = extract_status_token( p_pos, c_pos, status );
-    if ( this->mn_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving mn_diff" );
+    if ( this->mn_diff.length() != 32 )
+        throw std::out_of_range( "Wrong receiving mn_diff[" + this->mn_diff + "]" );
     // 12{lb_time}
     next_status_token( ' ', p_pos, c_pos, status );
     this->lb_time = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 13{lb_addr}
     next_status_token( ' ', p_pos, c_pos, status );
     this->lb_addr = extract_status_token( p_pos, c_pos, status );
-    if ( this->lb_addr.length() != 30 && this->lb_addr.length() != 31 ) throw std::out_of_range( "Wrong receiving lb_addr" );
-    // 14{check_count}
-    // next_status_token( ' ', p_pos, c_pos, status );
-    // this->check_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    if ( this->lb_addr.length() != 30 && this->lb_addr.length() != 31 )
+        throw std::out_of_range( "Wrong receiving lb_addr[" + this->lb_addr + "]" );
+    // 14{check_n}
+    next_status_token( ' ', p_pos, c_pos, status );
+    // this->check_n = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 15{lb_pows}
-    // next_status_token( ' ', p_pos, c_pos, status );
-    // this->lb_pows = std::stoull( extract_status_token( p_pos, c_pos, status ) );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->lb_pows = std::stoull( extract_status_token( p_pos, c_pos, status ) );
     // 16{lb_diff}
-    // next_status_token( ' ', p_pos, c_pos, status );
-    // this->lb_diff = extract_status_token( p_pos, c_pos, status );
-    // if ( this->lb_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_diff" );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->lb_diff = extract_status_token( p_pos, c_pos, status );
+    if ( this->lb_diff.length() != 32 ) {
+        throw std::out_of_range( "Wrong receiving lb_diff[" + this->lb_diff + "]" );
+    }
+    // 17{sum_hash}
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->sum_hash = extract_status_token( p_pos, c_pos, status );
+    if ( this->sum_hash.length() != 5 )
+        throw std::out_of_range( "Wrong receiving sum_hash[" + this->sum_hash + "]" );
+    // 18{gvt_hash}
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->gvt_hash = extract_status_token( p_pos, c_pos, status );
+    if ( this->gvt_hash.length() != 5 )
+        throw std::out_of_range( "Wrong receiving gvt_hash[" + this->gvt_hash + "]" );
 }
 
 CPoolInfo::CPoolInfo( const char *pi ) {
-    assert( pi != nullptr && std::strlen( pi ) > 0 );
+    assert( pi != nullptr && std::strlen( pi ) > 2 );
     std::string status { pi };
     status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
     size_t p_pos = -1, c_pos = -1;
@@ -99,17 +121,19 @@ CPoolInfo::CPoolInfo( const char *pi ) {
     this->pool_hashrate = std::stoull( extract_status_token( p_pos, c_pos, status ) );
     next_status_token( ' ', p_pos, c_pos, status );
     this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->mnet_hashrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
 }
 
 inline
 CPoolStatus::CPoolStatus( const char *ps_line ) {
-    assert( ps_line != nullptr && std::strlen( ps_line ) > 0 );
+    assert( ps_line != nullptr && std::strlen( ps_line ) > 2 );
     std::string status { ps_line };
     status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
     size_t p_pos = -1, c_pos = -1;
-    // {0}OK 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber}
-    // 6{MinerBalance} 7{BlocksTillPayment} 8{LastPayInfo} 9{LastBlockPoolHashrate}
-    // 10{MainNetHashrate} 11{PoolFee}
+    // 1{MinerPrefix} 2{MinerAddress} 3{PoolMinDiff} 4{LBHash} 5{LBNumber} 6{MinerBalance}
+    // 7{TillPayment} 8{LastPayInfo} 9{LastBlockPoolHashrate} {10}MainnetHashRate {11}PoolFee 12{PoolUTCTime}
+    //
     // 0{OK}
     next_status_token( ' ', p_pos, c_pos, status );
     // std::string status = extract_status_token( p_pos, c_pos, status );
@@ -150,6 +174,10 @@ CPoolStatus::CPoolStatus( const char *ps_line ) {
     // 11{pool_fee}
     next_status_token( ' ', p_pos, c_pos, status );
     this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    // 12{utctime}
+    next_status_token( ' ', p_pos, c_pos, status );
+    // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    //
     // 8{payment_info}
     if ( payment_info.length() > 0 ) {
         // 8{LastPayInfo} = Block:ammount:orderID
@@ -178,7 +206,7 @@ extern bool g_solo_mining;
 
 CCommThread::CCommThread()
     :    m_mining_pools { g_mining_pools }, m_mining_pools_id { 0 } {
-    this->UpdateMiningNodesInSoloModeIfNeed();
+    this->UpdateMiningNodes();
 }
 
 inline
@@ -260,6 +288,8 @@ std::vector<std::tuple<std::string, std::string>> CCommThread::GetValidators(
             itor = std::next( itor ) ) {
         CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
         int rsize { inet.RequestMNList( inet_buffer, NSLMNS_INET_BUFFER_SIZE ) };
+                // auto ns { std::make_shared<CNodeStatus>( m_inet_buffer ) };
+                // assert( ns->mn_hash == Md5String( ns->).substr(5) )
         if ( rsize <= 0 ) {
             NOSO_LOG_DEBUG
                 << "sync_nodes <- CNodeInet::RequestMNList Poor connecting with node "
@@ -321,8 +351,7 @@ std::vector<std::tuple<std::string, std::string>> CCommThread::GetValidators(
 }
 
 inline
-void CCommThread::UpdateMiningNodesInSoloModeIfNeed() {
-    if( !g_solo_mining ) return;
+void CCommThread::UpdateMiningNodes() {
     if( m_mining_nodes.size() < DEFAULT_CONSENSUS_NODES_COUNT ) {
         std::vector<std::tuple<std::string, std::string>> hints;
         if ( m_mining_nodes.size() <= 0 ) {
@@ -335,7 +364,7 @@ void CCommThread::UpdateMiningNodesInSoloModeIfNeed() {
         std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
         m_mining_nodes = CCommThread::GetValidators( hints );
         std::stringstream msg;
-        msg << "Do mining randomly on nodes:";
+        msg << "Validator nodes:";
         NOSO_LOG_INFO << msg.str() << std::endl;
         NOSO_TUI_OutputHistPad( msg.str().c_str() );
         for ( auto node : m_mining_nodes ) {
@@ -363,13 +392,19 @@ void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed
     m_last_block_hashes_count = 0;
     m_last_block_elapsed_secs = elapsed_blck.count();
     g_last_block_thread_hashrates.clear();
-    for_each( g_mine_objects.begin(), g_mine_objects.end(), [&]( auto const & object ) {
-                 auto block_summary = object->GetBlockSummary();
-                 std::uint64_t thread_hashes { std::get<0>( block_summary ) };
-                 double thread_duration { std::get<1>( block_summary ) };
-                 double thread_hashrate { thread_hashes / thread_duration };
-                 g_last_block_thread_hashrates.push_back( std::make_tuple( object->m_thread_id, thread_hashrate ) );
-                 m_last_block_hashes_count += thread_hashes;
+    for_each( g_mine_objects.begin(), g_mine_objects.end(),
+            [&]( auto const & object ) {
+                if ( object->m_exited < 2 ) {
+                    auto block_summary = object->GetBlockSummary();
+                    std::uint64_t thread_hashes { std::get<0>( block_summary ) };
+                    double thread_duration { std::get<1>( block_summary ) };
+                    double thread_hashrate { thread_hashes / thread_duration };
+                    g_last_block_thread_hashrates.push_back(
+                             std::make_tuple( object->m_thread_id, thread_hashrate ) );
+                    m_last_block_hashes_count += thread_hashes;
+                 } else if ( object->m_exited == 1 ) { // has just exited
+                     object->m_exited = 2; // exited and did summaries the last one
+                 }
              } );
     m_last_block_hashrate = m_last_block_hashes_count / m_last_block_elapsed_secs;
 }
@@ -385,7 +420,7 @@ void CCommThread::ResetMiningBlock() {
 inline
 void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) {
     char msg[100];
-    if ( m_last_block_hashrate > 0 ) {
+    if ( m_last_block_elapsed_secs > 0 ) {
         NOSO_LOG_DEBUG
             << " Computed " << m_last_block_hashes_count << " hashes within "
             << std::fixed << std::setprecision( 2 ) << m_last_block_elapsed_secs / 60 << " minutes"
@@ -682,16 +717,26 @@ std::shared_ptr<CNodeTarget> CCommThread::GetNodeTargetConsensus() {
                 return p1.second < p2.second; } )->first;
     };
     m_freq_blck_no.clear();
+    m_freq_pending.clear();
+    m_freq_branche.clear();
     m_freq_lb_hash.clear();
     m_freq_mn_diff.clear();
     m_freq_lb_time.clear();
     m_freq_lb_addr.clear();
+    m_freq_lb_pows.clear();
+    m_freq_lb_diff.clear();
+    m_freq_mn_hash.clear();
     for( auto ns : status_of_nodes ) {
         ++m_freq_blck_no [ns->blck_no];
+        ++m_freq_pending [ns->pending];
+        ++m_freq_branche [ns->branche];
         ++m_freq_lb_hash [ns->lb_hash];
         ++m_freq_mn_diff [ns->mn_diff];
         ++m_freq_lb_time [ns->lb_time];
         ++m_freq_lb_addr [ns->lb_addr];
+        ++m_freq_lb_pows [ns->lb_pows];
+        ++m_freq_lb_diff [ns->lb_diff];
+        ++m_freq_mn_hash [ns->mn_hash];
     }
     std::shared_ptr<CNodeTarget> target {
         std::make_shared<CNodeTarget>(
@@ -1001,8 +1046,8 @@ void CCommThread::Communicate() {
             } while ( g_still_running && ( NOSO_BLOCK_AGE < NOSO_BLOCK_AGE_TARGET_SAFE || 585 < NOSO_BLOCK_AGE ) );
             if ( !g_still_running ) break;
         }
-        NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 1 : 6;
-        this->UpdateMiningNodesInSoloModeIfNeed();
+        NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 5 : 10;
+        if( g_solo_mining ) this->UpdateMiningNodes();
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         if ( !g_still_running || target == nullptr ) break;
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
@@ -1016,7 +1061,7 @@ void CCommThread::Communicate() {
                 if ( solution != nullptr && solution->diff < target->mn_diff )
                     this->SubmitSolution( solution, target );
             }
-            this->UpdateMiningNodesInSoloModeIfNeed();
+            if( g_solo_mining ) this->UpdateMiningNodes();
             std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
             if ( elapsed_submit.count() < DEFAULT_INET_CIRCLE_SECONDS ) {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );

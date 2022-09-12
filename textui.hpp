@@ -1,13 +1,16 @@
 #ifndef __NOSO2M_TEXTUI_HPP__
 #define __NOSO2M_TEXTUI_HPP__
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <mutex>
 #include <thread>
 #include <chrono>
 #include <form.h>
 #include <ncurses.h>
+
 #include "util.hpp"
 #include "tool.hpp"
 #include "comm.hpp"
@@ -59,7 +62,7 @@ private:
     const int m_page_rows { 8 };
     const int
         m_head_rows = { 5 },
-        m_acti_rows = { 4 },
+        m_acti_rows = { 5 },
         m_cmdl_rows = { 1 },
         m_stat_rows = { 1 },
         m_main_xloc = { 0 },
@@ -200,7 +203,7 @@ private:
     void OutputActiWinBlockAge() {
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
         if ( m_acti_pad->pad == NULL ) return;
-        prefresh( m_acti_pad->pad, 0, 14, m_acti_yloc + 0, m_acti_xloc + 14, m_acti_yloc + 0 + 1, m_acti_xloc + 14 + 03 );
+        prefresh( m_acti_pad->pad, 0, 14, m_acti_yloc + 1, m_acti_xloc + 14, m_acti_yloc + 0 + 1, m_acti_xloc + 14 + 03 );
     }
     void OutputCmdlWin() {
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
@@ -461,7 +464,7 @@ public:
     void OutputActiWin() {
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
         if ( m_acti_pad->pad == NULL ) return;
-        prefresh( m_acti_pad->pad, m_acti_pad->cpos, 0, m_acti_yloc, m_acti_xloc, m_acti_yloc + m_acti_rows - 1, m_acti_xloc + m_acti_cols - 1 );
+        prefresh( m_acti_pad->pad, m_acti_pad->cpos, 0, m_acti_yloc + 1, m_acti_xloc, m_acti_yloc + m_acti_rows - 1, m_acti_xloc + m_acti_cols - 1 );
     };
     void ResetActiPad() {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -479,7 +482,7 @@ public:
         mvwprintw( m_acti_pad->pad, 0, 06, "%06u", blck_no );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 0, 06, m_acti_yloc + 0, m_acti_xloc + 06, m_acti_yloc + 0 + 1, m_acti_xloc + 06 + 06 );
+        prefresh( m_acti_pad->pad, 0, 06, m_acti_yloc + 1, m_acti_xloc + 06, m_acti_yloc + 0 + 1, m_acti_xloc + 06 + 06 );
     }
     void OutputActiWinLastHash( const std::string& lb_hash ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -487,7 +490,7 @@ public:
         mvwprintw( m_acti_pad->pad, 0, 19, "%-32s", lb_hash.c_str() );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 0, 19, m_acti_yloc + 0, m_acti_xloc + 19, m_acti_yloc + 0 + 1, m_acti_xloc + 19 + 32 );
+        prefresh( m_acti_pad->pad, 0, 19, m_acti_yloc + 1, m_acti_xloc + 19, m_acti_yloc + 0 + 1, m_acti_xloc + 19 + 32 );
     }
     void OutputActiWinMiningMode( bool solo ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -495,7 +498,7 @@ public:
         mvwprintw( m_acti_pad->pad, 1, 01, "%-4s", ( solo ? "Solo" : "Pool" ) );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 1, 01, m_acti_yloc + 1, m_acti_xloc + 01, m_acti_yloc + 1 + 1, m_acti_xloc + 01 + 04 );
+        prefresh( m_acti_pad->pad, 1, 01, m_acti_yloc + 2, m_acti_xloc + 01, m_acti_yloc + 1 + 1, m_acti_xloc + 01 + 04 );
     }
     void OutputActiWinMiningSource( const std::string& source ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -503,7 +506,7 @@ public:
         mvwprintw( m_acti_pad->pad, 1, 06, "%-12s", source.c_str() );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 1, 06, m_acti_yloc + 1, m_acti_xloc + 06, m_acti_yloc + 1 + 1, m_acti_xloc + 06 + 13 );
+        prefresh( m_acti_pad->pad, 1, 06, m_acti_yloc + 2, m_acti_xloc + 06, m_acti_yloc + 1 + 1, m_acti_xloc + 06 + 13 );
     }
     void OutputActiWinMiningDiff( const std::string& diff ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -511,7 +514,7 @@ public:
         mvwprintw( m_acti_pad->pad, 1, 19, "%-32s", diff.c_str() );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 1, 19, m_acti_yloc + 1, m_acti_xloc + 19, m_acti_yloc + 1 + 1, m_acti_xloc + 19 + 32 );
+        prefresh( m_acti_pad->pad, 1, 19, m_acti_yloc + 2, m_acti_xloc + 19, m_acti_yloc + 1 + 1, m_acti_xloc + 19 + 32 );
     }
     void OutputActiWinAcceptedSol( std::uint32_t num ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -519,7 +522,7 @@ public:
         mvwprintw( m_acti_pad->pad, 2, 06, "%5u", num );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 2, 06, m_acti_yloc + 2, m_acti_xloc + 06, m_acti_yloc + 2 + 1, m_acti_xloc + 06 + 05 );
+        prefresh( m_acti_pad->pad, 2, 06, m_acti_yloc + 3, m_acti_xloc + 06, m_acti_yloc + 2 + 1, m_acti_xloc + 06 + 05 );
     }
     void OutputActiWinRejectedSol( std::uint32_t num ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -527,7 +530,7 @@ public:
         mvwprintw( m_acti_pad->pad, 2, 14, "%4u", num );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 2, 14, m_acti_yloc + 2, m_acti_xloc + 14, m_acti_yloc + 2 + 1, m_acti_xloc + 14 + 04 );
+        prefresh( m_acti_pad->pad, 2, 14, m_acti_yloc + 3, m_acti_xloc + 14, m_acti_yloc + 2 + 1, m_acti_xloc + 14 + 04 );
     }
     void OutputActiWinFailuredSol( std::uint32_t num ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -535,7 +538,7 @@ public:
         mvwprintw( m_acti_pad->pad, 2, 21, "%3u", num );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 2, 21, m_acti_yloc + 2, m_acti_xloc + 21, m_acti_yloc + 2 + 1, m_acti_xloc + 21 + 03 );
+        prefresh( m_acti_pad->pad, 2, 21, m_acti_yloc + 3, m_acti_xloc + 21, m_acti_yloc + 2 + 1, m_acti_xloc + 21 + 03 );
     }
     void OutputActiWinTillBalance( std::uint32_t balance ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -543,7 +546,7 @@ public:
         mvwprintw( m_acti_pad->pad, 2, 27, "%14.8g", balance / 100'000'000.0 );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 2, 27, m_acti_yloc + 2, m_acti_xloc + 27, m_acti_yloc + 2 + 1, m_acti_xloc + 27 + 14 );
+        prefresh( m_acti_pad->pad, 2, 27, m_acti_yloc + 3, m_acti_xloc + 27, m_acti_yloc + 2 + 1, m_acti_xloc + 27 + 14 );
     }
     void OutputActiWinTillPayment( std::uint32_t num ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
@@ -551,7 +554,7 @@ public:
         mvwprintw( m_acti_pad->pad, 2, 48, "%2u", num );
         unique_lock_acti_pad.unlock();
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 2, 48, m_acti_yloc + 2, m_acti_xloc + 48, m_acti_yloc + 2 + 1, m_acti_xloc + 48 + 02 );
+        prefresh( m_acti_pad->pad, 2, 48, m_acti_yloc + 3, m_acti_xloc + 48, m_acti_yloc + 2 + 1, m_acti_xloc + 48 + 02 );
     }
     void OutputHeadWinDefault() {
         this->ResetHeadPad();
@@ -602,4 +605,5 @@ public:
         this->OutputStatWin();
     }
 };
+
 #endif // __NOSO2M_TEXTUI_HPP__

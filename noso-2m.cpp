@@ -1,11 +1,13 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <tuple>
 #include <vector>
 #include <string>
 #include <thread>
 #include <signal.h>
+
 #include "cxxopts.hpp"
 #include "noso-2m.hpp"
 #include "inet.hpp"
@@ -31,7 +33,7 @@ std::vector<std::tuple<std::string, std::string>> const g_default_nodes {
     }; // seed nodes
 extern
 std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools {
-        { "f04ever", "209.126.80.203", "8082" },
+        { "f04ever", "f04ever.com", "8082" },
     };
 bool g_solo_mining { false };
 bool g_still_running { true };
@@ -119,23 +121,50 @@ int main( int argc, char *argv[] ) {
             NOSO_TUI_OutputHistPad( msg.c_str() );
         }
     }
+    if ( std::strcmp( g_miner_address, DEFAULT_MINER_ADDRESS ) == 0 ) {
+        msg = "";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = std::string( "YOU ARE MINING TO " ) + g_miner_address;
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "This address is the default of miner noso-2m.";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "Mine to this address is to donate noso-2m's author.";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "If this is not your intention, do correct noso-2m's";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "options you are providing by the command arguments,";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "or/and in the config file.";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "Happy mining!";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+    }
+    msg = "";
+    NOSO_LOG_INFO << msg << std::endl;
+    NOSO_TUI_OutputHistPad( msg.c_str() );
     NOSO_TUI_OutputHistWin();
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
-        if ( g_solo_mining ) {
-            std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
-            if ( mainnet_timestamp == std::time_t( -1 ) ) {
-                throw std::runtime_error( "Can not check mainnet's timestamp!" );
-            }
-            else {
-                std::time_t computer_timestamp { static_cast<time_t>( NOSO_TIMESTAMP ) };
-                long timestamp_difference = std::abs( computer_timestamp - mainnet_timestamp );
-                if ( timestamp_difference > DEFAULT_TIMESTAMP_DIFFERENCES ) {
-                    msg = "Your machine's time is different ("
-                        + std::to_string( timestamp_difference )
-                        + ") from mainnet. Synchronize clock!";
-                    throw std::runtime_error( msg );
-                }
+        std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
+        if ( mainnet_timestamp == std::time_t( -1 ) ) {
+            throw std::runtime_error( "Can not check mainnet's timestamp!" );
+        }
+        else {
+            std::time_t computer_timestamp { static_cast<time_t>( NOSO_TIMESTAMP ) };
+            long timestamp_difference = std::abs( computer_timestamp - mainnet_timestamp );
+            if ( timestamp_difference > DEFAULT_TIMESTAMP_DIFFERENCES ) {
+                msg = "Your machine's time is different ("
+                    + std::to_string( timestamp_difference )
+                    + ") from mainnet. Synchronize clock!";
+                throw std::runtime_error( msg );
             }
         }
         for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )

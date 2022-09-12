@@ -228,7 +228,7 @@ jobs:
           tag=${{ github.event.ref }}
           tag=${tag#"refs/tags/"}
           cp ubuntu-latest/README.md README.md
-          cp ubuntu-latest/noso-2m.cfg noso-2m-SAMPLE.cfg
+          cp ubuntu-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
           #
           cp ubuntu-latest/noso-2m-linux-i686 noso-2m
           chmod +x noso-2m
@@ -274,7 +274,7 @@ jobs:
           tag=${{ github.event.ref }}
           tag=${tag#"refs/tags/"}
           cp macos-latest/README.md README.md
-          cp macos-latest/noso-2m.cfg noso-2m-SAMPLE.cfg
+          cp macos-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
           cp macos-latest/noso-2m-darwin noso-2m
           chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
@@ -299,7 +299,7 @@ jobs:
           tag=${{ github.event.ref }}
           tag=${tag#"refs/tags/"}
           cp windows-latest/README.md README.md
-          cp windows-latest/noso-2m.cfg noso-2m-SAMPLE.cfg
+          cp windows-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
           #
           cp windows-latest/noso-2m-x86_64.exe noso-2m.exe
           cp windows-latest/mingw-w64-clang-x86_64-ncurses-6_3\\bin\\libncurses6.dll libncurses6.dll

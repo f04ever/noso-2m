@@ -1,8 +1,11 @@
 #ifndef __NOSO2M__MINING_HPP__
 #define __NOSO2M__MINING_HPP__
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
+#include <atomic>
 #include <cassert>
 #include <condition_variable>
 
@@ -77,6 +80,7 @@ class CMineThread {
 public:
     std::uint32_t const m_miner_id;
     std::uint32_t const m_thread_id;
+    std::atomic<short> m_exited { 0 };
 protected:
     CNosoHasher m_hasher;
     char m_address[32];
@@ -101,4 +105,5 @@ public:
     std::tuple<std::uint32_t, double> GetBlockSummary();
     virtual void Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>& ) );
 };
+
 #endif // __NOSO2M__MINING_HPP__

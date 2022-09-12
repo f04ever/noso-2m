@@ -1,34 +1,39 @@
 #ifndef __NOSO2M_COMM_HPP__
 #define __NOSO2M_COMM_HPP__
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <map>
 #include <set>
 #include <mutex>
 #include <random>
 #include <string>
 #include <cassert>
+
 #include "noso-2m.hpp"
 #include "mining.hpp"
 
 struct CNodeStatus {
     // std::uint32_t peer;
     std::uint32_t blck_no;
-    // std::uint32_t pending;
+    std::uint32_t pending;
     // std::uint32_t delta;
-    // std::string branch;
+    std::string branche;
     // std::string version;
     // std::time_t utctime;
-    // std::string mn_hash;
+    std::string mn_hash;
     // std::uint32_t mn_count;
     std::string lb_hash;
     std::string mn_diff;
     std::time_t lb_time;
     std::string lb_addr;
-    // std::uint32_t check_count;
-    // std::uint64_t lb_pows;
-    // std::string lb_diff;
+    std::uint32_t check_n;
+    std::uint64_t lb_pows;
+    std::string lb_diff;
+    std::string sum_hash;
+    std::string gvt_hash;
     CNodeStatus( const char *ns_line );
 };
 
@@ -36,6 +41,7 @@ struct CPoolInfo {
     std::uint32_t pool_miners;
     std::uint64_t pool_hashrate;
     std::uint32_t pool_fee;
+    std::uint64_t mnet_hashrate;
     CPoolInfo( const char *pi );
 };
 
@@ -53,6 +59,7 @@ struct CPoolStatus {
     std::string payment_order_id;
     std::uint64_t mnet_hashrate;
     std::uint32_t pool_fee;
+    // std::time_t utctime;
     CPoolStatus( const char *ps_line );
 };
 
@@ -73,10 +80,15 @@ private:
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
     std::map<std::uint32_t, int> m_freq_blck_no;
+    std::map<std::uint32_t, int> m_freq_pending;
+    std::map<std::string  , int> m_freq_branche;
     std::map<std::string  , int> m_freq_lb_hash;
     std::map<std::string  , int> m_freq_mn_diff;
     std::map<std::time_t  , int> m_freq_lb_time;
     std::map<std::string  , int> m_freq_lb_addr;
+    std::map<std::uint64_t, int> m_freq_lb_pows;
+    std::map<std::string  , int> m_freq_lb_diff;
+    std::map<std::string  , int> m_freq_mn_hash;
     char m_inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     CCommThread();
     std::vector<std::tuple<std::string, std::string>> const & GetDefaultNodes();
@@ -84,7 +96,7 @@ private:
     static bool SaveHintNodes( std::vector<std::tuple<std::string, std::string>> const &nodes );
     static std::vector<std::tuple<std::string, std::string>> GetValidators(
             std::vector<std::tuple<std::string, std::string>> const &hints );
-    void UpdateMiningNodesInSoloModeIfNeed();
+    void UpdateMiningNodes();
     const std::shared_ptr<CSolution> BestSolution();
     const std::shared_ptr<CSolution> GoodSolution();
     std::shared_ptr<CSolution> GetSolution();
@@ -113,4 +125,5 @@ public:
     void SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target );
     void Communicate();
 };
+
 #endif // __NOSO2M_COMM_HPP__

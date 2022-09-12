@@ -1,7 +1,9 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <regex>
+
 #include "misc.hpp"
 #include "output.hpp"
 #include "noso-2m.hpp"

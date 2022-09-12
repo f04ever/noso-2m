@@ -1,8 +1,10 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <mutex>
 #include <cstring>
+
 #include "mining.hpp"
 #include "noso-2m.hpp"
 
@@ -72,6 +74,7 @@ void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
 }
 
 void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>& ) ) {
+    m_exited = 0;
     char best_diff[33];
     while ( g_still_running ) {
         this->WaitTarget();
@@ -104,4 +107,5 @@ void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>&
         this->SetBlockSummary( hashes_counter, elapsed_mining.count() );
         this->DoneTarget();
     } // END while ( g_still_running ) {
+    m_exited = 1;
 }

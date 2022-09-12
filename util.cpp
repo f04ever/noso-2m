@@ -1,7 +1,10 @@
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
 #include <algorithm>
+
+#include "md5-c.hpp"
 #include "util.hpp"
 
 std::string lpad( std::string const & s, std::size_t n, char c ) {
@@ -47,3 +50,46 @@ double hashrate_pretty_value( std::uint64_t count ) {
         : ( count / 1'000'000'000'000.0 ) < 1'000 ? ( count /     1'000'000'000'000.0 ) /* Tera */
         :                                           ( count / 1'000'000'000'000'000.0 ) /* Peta */;
 };
+
+std::string Md5String( std::string const &input ) {
+    constexpr static
+    char const hex_dec2char_table[] {
+            '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
+    MD5Context ctx;
+    md5Init( &ctx );
+    md5Update( &ctx, (uint8_t *)input.c_str(), input.length() );
+    md5Finalize( &ctx );
+    return {
+            hex_dec2char_table[ctx.digest[ 0] >>  4],
+            hex_dec2char_table[ctx.digest[ 0] & 0xF],
+            hex_dec2char_table[ctx.digest[ 1] >>  4],
+            hex_dec2char_table[ctx.digest[ 1] & 0xF],
+            hex_dec2char_table[ctx.digest[ 2] >>  4],
+            hex_dec2char_table[ctx.digest[ 2] & 0xF],
+            hex_dec2char_table[ctx.digest[ 3] >>  4],
+            hex_dec2char_table[ctx.digest[ 3] & 0xF],
+            hex_dec2char_table[ctx.digest[ 4] >>  4],
+            hex_dec2char_table[ctx.digest[ 4] & 0xF],
+            hex_dec2char_table[ctx.digest[ 5] >>  4],
+            hex_dec2char_table[ctx.digest[ 5] & 0xF],
+            hex_dec2char_table[ctx.digest[ 6] >>  4],
+            hex_dec2char_table[ctx.digest[ 6] & 0xF],
+            hex_dec2char_table[ctx.digest[ 7] >>  4],
+            hex_dec2char_table[ctx.digest[ 7] & 0xF],
+            hex_dec2char_table[ctx.digest[ 8] >>  4],
+            hex_dec2char_table[ctx.digest[ 8] & 0xF],
+            hex_dec2char_table[ctx.digest[ 9] >>  4],
+            hex_dec2char_table[ctx.digest[ 9] & 0xF],
+            hex_dec2char_table[ctx.digest[10] >>  4],
+            hex_dec2char_table[ctx.digest[10] & 0xF],
+            hex_dec2char_table[ctx.digest[11] >>  4],
+            hex_dec2char_table[ctx.digest[11] & 0xF],
+            hex_dec2char_table[ctx.digest[12] >>  4],
+            hex_dec2char_table[ctx.digest[12] & 0xF],
+            hex_dec2char_table[ctx.digest[13] >>  4],
+            hex_dec2char_table[ctx.digest[13] & 0xF],
+            hex_dec2char_table[ctx.digest[14] >>  4],
+            hex_dec2char_table[ctx.digest[14] & 0xF],
+            hex_dec2char_table[ctx.digest[15] >>  4],
+            hex_dec2char_table[ctx.digest[15] & 0xF], };
+}

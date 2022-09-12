@@ -1,16 +1,16 @@
 #ifndef __NOSO2M_CONFIG_HPP__
 #define __NOSO2M_CONFIG_HPP__
 
-#define NOSO_2M_VERSION                 "0.2.6"
+#define NOSO_2M_VERSION                 "0.2.7"
 #define NOSO_2M_VERSION_MAJOR           0
 #define NOSO_2M_VERSION_MINOR           2
-#define NOSO_2M_VERSION_PATCH           6
+#define NOSO_2M_VERSION_PATCH           7
 #define NOSO_2M_VERSION_TWEAK           
 
 #define DEFAULT_CONFIG_FILENAME         "noso-2m.cfg"
 #define DEFAULT_LOGGING_FILENAME        "noso-2m.log"
 #define DEFAULT_POOL_URL_LIST           "f04ever"
-#define DEFAULT_MINER_ADDRESS           "N3G1HhkpXvmLcsWFXySdAxX3GZpkMFS"
+#define DEFAULT_MINER_ADDRESS           "NbGP2VXhtkJSbEtHYz2uNfKRo34YDq"
 
 #define DEFAULT_MINER_ID                0
 #define DEFAULT_THREADS_COUNT           2
