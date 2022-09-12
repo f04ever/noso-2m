@@ -423,7 +423,7 @@ void CCommThread::ResetMiningBlock() {
 inline
 void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) {
     char msg[100];
-    if ( m_last_block_hashrate > 0 ) {
+    if ( m_last_block_elapsed_secs > 0 ) {
         NOSO_LOG_DEBUG
             << " Computed " << m_last_block_hashes_count << " hashes within "
             << std::fixed << std::setprecision( 2 ) << m_last_block_elapsed_secs / 60 << " minutes"
