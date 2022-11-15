@@ -1,5 +1,10 @@
+Version 0.3.0
+
+- Disable SOLO mining
+
 Version 0.2.7
 
+- Clearer Text UI of current mining block
 - Add notice when mining to default address
 - Update new pool status/info handling
 - Make stronger node concensus (safer)
