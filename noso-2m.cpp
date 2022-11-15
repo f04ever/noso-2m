@@ -112,6 +112,24 @@ int main( int argc, char *argv[] ) {
     msg = std::string( "-    Mining mode: " ) + ( g_solo_mining ? "solo" : "pool" );
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
+    if ( g_solo_mining ) {
+        NOSO_LOG_INFO << "===================================================" << std::endl;
+        NOSO_LOG_INFO << std::endl;
+        NOSO_LOG_INFO << "SOLO MINING HAS BEEN DISABLE ON NOSO NETWORK" << std::endl;
+        NOSO_LOG_INFO << "More detail in the #ANNOUNCEMENTS on the Discord channel in Nov.08 2022" << std::endl;
+        NOSO_LOG_INFO << "https://discord.com/channels/816716075747901470/816717022812831765/1039427185078964305" << std::endl;
+        NOSO_LOG_INFO << std::endl;
+        NOSO_LOG_INFO << "===================================================" << std::endl;
+        NOSO_TUI_OutputHistPad( "===================================================" );
+        NOSO_TUI_OutputHistPad( "" );;
+        NOSO_TUI_OutputHistPad( "SOLO MINING HAS BEEN DISABLE ON NOSO NETWORK" );
+        NOSO_TUI_OutputHistPad( "More detail in the #ANNOUNCEMENTS on the Discord channel in Nov.08 2022" );
+        NOSO_TUI_OutputHistPad( "https://discord.com/channels/816716075747901470/816717022812831765/1039427185078964305" );
+        NOSO_TUI_OutputHistPad( "" );
+        NOSO_TUI_OutputHistPad( "===================================================" );
+        NOSO_TUI_WaitKeyPress();
+        std::exit( EXIT_FAILURE );
+    }
     if ( !g_solo_mining ) {
         for( auto itor = g_mining_pools.cbegin(); itor != g_mining_pools.cend(); itor = std::next( itor ) ) {
             msg = ( itor == g_mining_pools.cbegin() ? "-   Mining pools: " : "                : " )

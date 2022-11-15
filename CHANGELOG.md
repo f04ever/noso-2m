@@ -1,3 +1,7 @@
+Version 0.3.0
+
+- Disable SOLO mining
+
 Version 0.2.7
 
 - Clearer Text UI of current mining block

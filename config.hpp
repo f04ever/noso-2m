@@ -1,10 +1,10 @@
 #ifndef __NOSO2M_CONFIG_HPP__
 #define __NOSO2M_CONFIG_HPP__
 
-#define NOSO_2M_VERSION                 "0.2.7"
+#define NOSO_2M_VERSION                 "0.3.0"
 #define NOSO_2M_VERSION_MAJOR           0
-#define NOSO_2M_VERSION_MINOR           2
-#define NOSO_2M_VERSION_PATCH           7
+#define NOSO_2M_VERSION_MINOR           3
+#define NOSO_2M_VERSION_PATCH           0
 #define NOSO_2M_VERSION_TWEAK           
 
 #define DEFAULT_CONFIG_FILENAME         "noso-2m.cfg"
