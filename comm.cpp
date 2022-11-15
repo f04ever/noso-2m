@@ -576,6 +576,22 @@ void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolut
             << "]Duplicate hash submitted!"
             << std::endl;
         NOSO_TUI_OutputStatPad( "A duplicate hash submitted!" );
+    } else if ( code == 5 ) {
+        NOSO_LOG_ERROR
+            << "    ERROR"
+            << ")base[" << solution->base
+            << "]hash[" << solution->hash
+            << "]Hash with wrong diff submitted!"
+            << std::endl;
+        NOSO_TUI_OutputStatPad( "Has with wrong diff submitted!" );
+    } else if ( code == 9 ) {
+        NOSO_LOG_ERROR
+            << "    ERROR"
+            << ")base[" << solution->base
+            << "]hash[" << solution->hash
+            << "]Shares limitation reached!"
+            << std::endl;
+        NOSO_TUI_OutputStatPad( "Shares limitation reached!" );
     }
     NOSO_TUI_OutputStatWin();
 }
@@ -950,10 +966,16 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
                 break;
             }
             else if (   rsize >= 9
-                            && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
-                            && '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) {
-                ret_code = m_inet_buffer[6] - '0';
-                break;
+                            && std::strncmp( m_inet_buffer, "False ", 6 ) == 0 ) {
+                if ( '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) {
+                    ret_code = m_inet_buffer[6] - '0';
+                    break;
+                }
+                if ( rsize >= 18
+                        && std::strncmp( m_inet_buffer + 6, "SHARES_LIMIT", 12 ) == 0 ) {
+                    ret_code =  9;
+                    break;
+                }
             }
             // } catch ( const std::exception &e ) {}
             NOSO_LOG_DEBUG
