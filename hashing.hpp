@@ -69,3 +69,4 @@ public:
 std::string nosohash_prefix( int num );
 
 #endif // __NOSO2M_HASHING__HPP__
+

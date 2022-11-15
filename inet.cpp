@@ -247,3 +247,4 @@ int CPoolInet::SubmitSolution( std::uint32_t blck_no, const char base[19], const
     std::snprintf( buffer, buffsize, "SHARE %s %s noso-2m-v%s %d\n", address, base, NOSO_2M_VERSION, blck_no );
     return this->ExecCommand( buffer, buffsize );
 }
+

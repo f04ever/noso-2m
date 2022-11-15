@@ -9,3 +9,4 @@
 #define NOSO_BLOCK_AGE ( NOSO_TIMESTAMP % 600 )
 
 #endif // __NOSO2M_HPP__
+
