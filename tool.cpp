@@ -137,3 +137,4 @@ int CTools::ShowThreadHashrates( std::vector<std::tuple<std::uint32_t, double>> 
     NOSO_TUI_OutputInfoWin();
     return (0);
 }
+

@@ -217,3 +217,4 @@ std::string nosohash_prefix( int num ) {
         NOSOHASH_HASHEABLE_CHARS[ num / NOSOHASH_HASHEABLE_COUNT ],
         NOSOHASH_HASHEABLE_CHARS[ num % NOSOHASH_HASHEABLE_COUNT ], };
 }
+

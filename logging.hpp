@@ -52,3 +52,4 @@ public:
 };
 
 #endif // __NOSO2M_LOGGING_HPP__
+

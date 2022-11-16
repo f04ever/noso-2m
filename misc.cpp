@@ -206,3 +206,4 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
     g_mining_pools = parse_pools_argv( sel_pools );
     g_solo_mining = g_arg_options.solo > 0 ? true : g_cfg_options.solo;
 }
+
