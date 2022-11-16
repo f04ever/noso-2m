@@ -1055,8 +1055,9 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, st
     NOSO_TUI_OutputStatWin();
 }
 
+#define NOSO_BLOCK_AGE_TARGET_SAFE 10
+
 void CCommThread::Communicate() {
-    long NOSO_BLOCK_AGE_TARGET_SAFE { 10 };
     char prev_lb_hash[33] { NOSO_NUL_HASH };
     auto begin_blck = std::chrono::steady_clock::now();
     while ( g_still_running ) {
@@ -1068,7 +1069,6 @@ void CCommThread::Communicate() {
             } while ( g_still_running && ( NOSO_BLOCK_AGE < NOSO_BLOCK_AGE_TARGET_SAFE || 585 < NOSO_BLOCK_AGE ) );
             if ( !g_still_running ) break;
         }
-        NOSO_BLOCK_AGE_TARGET_SAFE = g_solo_mining ? 5 : 10;
         if( g_solo_mining ) this->UpdateMiningNodes();
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         if ( !g_still_running || target == nullptr ) break;
@@ -1078,11 +1078,9 @@ void CCommThread::Communicate() {
         this->_ReportMiningTarget( target );
         while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
             auto begin_submit = std::chrono::steady_clock::now();
-            if ( NOSO_BLOCK_AGE >= 10 ) {
-                std::shared_ptr<CSolution> solution = this->GetSolution();
-                if ( solution != nullptr && solution->diff < target->mn_diff )
-                    this->SubmitSolution( solution, target );
-            }
+            std::shared_ptr<CSolution> solution = this->GetSolution();
+            if ( solution != nullptr && solution->diff < target->mn_diff )
+                this->SubmitSolution( solution, target );
             if( g_solo_mining ) this->UpdateMiningNodes();
             std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
             if ( elapsed_submit.count() < DEFAULT_INET_CIRCLE_SECONDS ) {
