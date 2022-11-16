@@ -31,3 +31,4 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options );
 void process_cfg_options( cxxopts::ParseResult const & parsed_options );
 
 #endif // __NOSO2M_MISC_HPP__
+

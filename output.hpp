@@ -80,3 +80,4 @@ static CLogFile _NOSO_LOGGING_LOGSTREAM( std::cout );
 #define NOSO_LOG_DEBUG _LOG_DEBUG << "(" << std::setfill( '0' ) << std::setw( 3 ) << NOSO_BLOCK_AGE << ")"
 
 #endif // __NOSO2M_OUTPUT_HPP__
+

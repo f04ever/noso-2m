@@ -607,3 +607,4 @@ public:
 };
 
 #endif // __NOSO2M_TEXTUI_HPP__
+

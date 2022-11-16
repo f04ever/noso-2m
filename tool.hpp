@@ -16,3 +16,4 @@ public:
 };
 
 #endif // __NOSO2M_TOOL_HPP__
+

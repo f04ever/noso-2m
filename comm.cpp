@@ -1097,3 +1097,4 @@ void CCommThread::Communicate() {
     for ( auto &obj : g_mine_objects ) obj->CleanupSyncState();
     for ( auto &thr : g_mine_threads ) thr.join();
 }
+
