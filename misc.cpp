@@ -121,22 +121,19 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
         int line_no { 0 };
         std::string line_str;
         try {
-            int found_cfg { 0 };
-            while ( std::getline( cfg_istream, line_str ) && found_cfg < 5 ) {
+            while ( std::getline( cfg_istream, line_str ) ) {
                 line_no++;
                 if        ( line_str.rfind( "address ", 0 ) == 0 ) {
                     g_cfg_options.address = line_str.substr( 8 );
                     if ( !is_valid_address( g_cfg_options.address ) )
                         throw std::invalid_argument( "Invalid address config" );
-                    found_cfg++;
                 } else if ( line_str.rfind( "threads ", 0 ) == 0 ) {
                     g_cfg_options.threads = std::stoi( line_str.substr( 8 ) );
                     if ( !is_valid_threads( g_cfg_options.threads ) )
                         throw std::invalid_argument( "Invalid threads count config" );
-                    found_cfg++;
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
-                    g_cfg_options.pools = line_str.substr( 6 );
-                    found_cfg++;
+                    if ( g_cfg_options.pools.size() > 0 ) g_cfg_options.pools += ";";
+                    g_cfg_options.pools += line_str.substr( 6 );
                 }
             }
         } catch( const std::invalid_argument& e ) {
