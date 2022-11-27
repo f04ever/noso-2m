@@ -11,26 +11,6 @@
 #include "util.hpp"
 #include "output.hpp"
 
-int CTools::ShowNodeInformation( std::vector<std::tuple<std::string, std::string>> const & mining_nodes ) {
-    char msg[200];
-    std::snprintf( msg, 200, "NODES INFORMATION" );
-    NOSO_TUI_OutputInfoPad( msg );
-    std::snprintf( msg, 200, "------------------------------------------------------------------------" );
-    NOSO_TUI_OutputInfoPad( msg );
-    std::for_each(
-            std::cbegin( mining_nodes ),
-            std::cend( mining_nodes ),
-            []( auto const & node ) {
-                std::string msg { "- " + std::get<0>( node ) + ":" + std::get<1>( node ) };
-                NOSO_TUI_OutputInfoPad( msg.c_str() );
-                NOSO_TUI_OutputInfoWin();
-            } );
-    std::snprintf( msg, 200, "--" );
-    NOSO_TUI_OutputInfoPad( msg );
-    NOSO_TUI_OutputInfoWin();
-    return ( 0 );
-}
-
 int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string, std::string>> const & mining_pools ) {
     char inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     char msg[200];

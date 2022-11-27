@@ -28,15 +28,10 @@
 |BLOCK 012345 [599] 0123456789ABCDEF0123456789AB(32)| <-- acti
 |BLOCK 012345       0123456789ABCDEF0123456789AB(32)| <-- logs
 | Mode Sourceee(12) POOL/BESTDIFFFFFFFFFFFFFFFFF(32)| <-- acti/logs
-| Solo Mainnet      BESTDIFFFFFFFFFFFFFFFFFFFFFF(32)| <-- acti/logs: solo
 | Pool f04ever      POOLDIFFFFFFFFFFFFFFFFFFFFFF(32)| <-- acti/logs: pool
 | Sent 01234 / 0123 / 012 | 12345.12345678 NOSO [30]| <-- acti/logs
 | Hashrate(Miner/Pool/Mnet) 012.0M / 012.0M / 012.0G| <-- acti/logs: pool
-| Hashrate(Miner/Pool/Mnet) 012.0M /    n/a /    n/a| <-- acti/logs: solo
 | Computed COUNT hashes within DURATION(3) minutes  |
-| Yay! win this block BLK_NO(6)                     | <-- logs: solo
-| Won total NUM(3) blocks                           | <-- logs: solo
-| Not win yet a block!                              | <-- logs: solo
 | Paid AMOUNT(14.8) NOSO                            | <-- logs: pool
 | ORDER_ID(52)                                      | <-- logs: pool
 **/
@@ -276,16 +271,11 @@ private:
             this->OutputInfoPad( "" );
             this->OutputInfoPad( "  threads - Show hashrate per thread last mining block" );
             this->OutputInfoPad( "  pools   - Show information of configured pools" );
-            this->OutputInfoPad( "  nodes   - Show current mining nodes" );
             this->OutputInfoPad( "  help    - Show this list of supported commands" );
             this->OutputInfoPad( "  exit    - Exit noso-2m, same as Ctrl+C" );
             this->OutputInfoPad( "" );
             this->OutputInfoPad( "--" );
             this->OutputInfoWin();
-        } else if ( iequal( "nodes",    cmdstr ) ) {
-            this->OutputStatPad( "Showing nodes information" );
-            this->OutputStatWin();
-            CTools::ShowNodeInformation( CCommThread::GetInstance()->GetMiningNodes() );
         } else if ( iequal( "pools",    cmdstr ) ) {
             this->OutputStatPad( "Showing pools information" );
             this->OutputStatWin();
@@ -492,14 +482,6 @@ public:
         std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
         prefresh( m_acti_pad->pad, 0, 19, m_acti_yloc + 1, m_acti_xloc + 19, m_acti_yloc + 0 + 1, m_acti_xloc + 19 + 32 );
     }
-    void OutputActiWinMiningMode( bool solo ) {
-        std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
-        if ( m_acti_pad->pad == NULL ) return;
-        mvwprintw( m_acti_pad->pad, 1, 01, "%-4s", ( solo ? "Solo" : "Pool" ) );
-        unique_lock_acti_pad.unlock();
-        std::unique_lock<std::mutex> unique_lock_main_win( m_mutex_main_win );
-        prefresh( m_acti_pad->pad, 1, 01, m_acti_yloc + 2, m_acti_xloc + 01, m_acti_yloc + 1 + 1, m_acti_xloc + 01 + 04 );
-    }
     void OutputActiWinMiningSource( const std::string& source ) {
         std::unique_lock<std::mutex> unique_lock_acti_pad( m_mutex_acti_pad );
         if ( m_acti_pad->pad == NULL ) return;
@@ -567,7 +549,7 @@ public:
     void OutputActiWinDefault() {
         this->ResetActiPad();
         this->OutputActiPad( "BLOCK ...... [...] ................................" );
-        this->OutputActiPad( " .... ............ ................................" );
+        this->OutputActiPad( " Pool ............ ................................" );
         this->OutputActiPad( " Sent ..... / .... / ... | .............. NOSO [..]" );
         this->OutputActiWin();
     }

@@ -23,14 +23,6 @@ struct CSolution {
     }
 };
 
-struct CSolsSetCompare {
-    bool operator()( const std::shared_ptr<CSolution>& lhs, const std::shared_ptr<CSolution>& rhs ) const {
-        return  lhs->blck > rhs->blck ? true :
-                lhs->blck < rhs->blck ? false :
-                lhs->diff < rhs->diff ? true : false;
-    }
-};
-
 struct CTarget {
     std::string prefix;
     std::string address;
@@ -43,15 +35,6 @@ struct CTarget {
         // address = "";
     }
     virtual ~CTarget() = default;
-};
-
-struct CNodeTarget : public CTarget {
-    std::time_t lb_time;
-    std::string lb_addr;
-    CNodeTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
-              std::time_t lb_time, const std::string &lb_addr )
-        :   CTarget( blck_no, lb_hash, mn_diff ), lb_time { lb_time }, lb_addr { lb_addr } {
-    }
 };
 
 struct CPoolTarget : public CTarget {
@@ -78,7 +61,6 @@ struct CPoolTarget : public CTarget {
 
 class CMineThread {
 public:
-    std::uint32_t const m_miner_id;
     std::uint32_t const m_thread_id;
     std::atomic<short> m_exited { 0 };
 protected:
@@ -95,7 +77,7 @@ protected:
     mutable std::mutex m_mutex_summary;
     mutable std::condition_variable m_condv_summary;
 public:
-    CMineThread( std::uint32_t miner_id, std::uint32_t thread_id );
+    CMineThread( std::uint32_t thread_id );
     virtual ~CMineThread() = default;
     void CleanupSyncState();
     void WaitTarget();
