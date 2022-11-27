@@ -113,7 +113,7 @@ extern std::vector<std::tuple<std::string, std::string, std::string>> g_mining_p
 extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 extern std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
 extern std::vector<std::thread> g_mine_threads;
-extern bool g_still_running;
+extern std::atomic<bool> g_still_running;
 
 CCommThread::CCommThread()
     :    m_mining_pools { g_mining_pools }, m_mining_pools_id { 0 } {

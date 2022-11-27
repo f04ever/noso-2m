@@ -19,7 +19,7 @@
 #include "mining.hpp"
 #include "hashing.hpp"
 
-bool g_still_running { true };
+std::atomic<bool> g_still_running { true };
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
 std::vector<std::thread> g_mine_threads;
