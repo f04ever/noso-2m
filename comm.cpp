@@ -90,7 +90,7 @@ CPoolStatus::CPoolStatus( const char *ps_line ) {
     this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 12{utctime}
     next_status_token( ' ', p_pos, c_pos, status );
-    // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     //
     // 8{payment_info}
     if ( payment_info.length() > 0 ) {

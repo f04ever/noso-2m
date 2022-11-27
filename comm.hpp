@@ -37,7 +37,7 @@ struct CPoolStatus {
     std::string payment_order_id;
     std::uint64_t mnet_hashrate;
     std::uint32_t pool_fee;
-    // std::time_t utctime;
+    std::time_t utctime;
     CPoolStatus( const char *ps_line );
 };
 
