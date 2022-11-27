@@ -111,12 +111,17 @@ CPoolStatus::CPoolStatus( const char *ps_line ) {
 extern char g_miner_address[];
 extern std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
 extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
-extern std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
-extern std::vector<std::thread> g_mine_threads;
 extern std::atomic<bool> g_still_running;
+extern std::uint32_t g_threads_count;
 
 CCommThread::CCommThread()
     :    m_mining_pools { g_mining_pools }, m_mining_pools_id { 0 } {
+    auto const NewSolFunc { []( const std::shared_ptr<CSolution>& solution ){
+            CCommThread::GetInstance()->AddSolution( solution ); } };
+    for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
+        m_mine_objects.push_back( std::make_shared<CMineThread>( thread_id ) );
+    for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
+        m_mine_threads.emplace_back( &CMineThread::Mine, m_mine_objects[thread_id], NewSolFunc );
 }
 
 std::shared_ptr<CCommThread> CCommThread::GetInstance() {
@@ -129,7 +134,7 @@ void CCommThread::CloseMiningBlock( const std::chrono::duration<double>& elapsed
     m_last_block_hashes_count = 0;
     m_last_block_elapsed_secs = elapsed_blck.count();
     g_last_block_thread_hashrates.clear();
-    for_each( g_mine_objects.begin(), g_mine_objects.end(),
+    for_each( m_mine_objects.begin(), m_mine_objects.end(),
             [&]( auto const & object ) {
                 if ( object->m_exited < 2 ) {
                     auto block_summary = object->GetBlockSummary();
@@ -536,7 +541,7 @@ void CCommThread::Communicate() {
         if ( !g_still_running || target == nullptr ) break;
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
         begin_blck = std::chrono::steady_clock::now();
-        for ( auto const & mo : g_mine_objects ) mo->NewTarget( target );
+        for ( auto const & mo : m_mine_objects ) mo->NewTarget( target );
         this->_ReportMiningTarget( target );
         while ( g_still_running && NOSO_BLOCK_AGE <= 585 ) {
             auto begin_submit = std::chrono::steady_clock::now();
@@ -552,7 +557,7 @@ void CCommThread::Communicate() {
         this->_ReportTargetSummary( target );
         this->ResetMiningBlock();
     } // END while ( g_still_running ) {
-    for ( auto &obj : g_mine_objects ) obj->CleanupSyncState();
-    for ( auto &thr : g_mine_threads ) thr.join();
+    for ( auto &obj : m_mine_objects ) obj->CleanupSyncState();
+    for ( auto &thr : m_mine_threads ) thr.join();
 }
 

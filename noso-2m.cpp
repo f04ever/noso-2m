@@ -22,8 +22,6 @@
 std::atomic<bool> g_still_running { true };
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
-std::vector<std::thread> g_mine_threads;
-std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
 std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
 std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 
@@ -124,13 +122,7 @@ int main( int argc, char *argv[] ) {
     NOSO_TUI_OutputHistWin();
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
-        for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
-            g_mine_objects.push_back( std::make_shared<CMineThread>( thread_id ) );
         std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );
-        auto const NewSolFunc { []( const std::shared_ptr<CSolution>& solution ){
-            CCommThread::GetInstance()->AddSolution( solution ); } };
-        for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
-            g_mine_threads.emplace_back( &CMineThread::Mine, g_mine_objects[thread_id], NewSolFunc );
 #ifdef NO_TEXTUI
         signal( SIGINT, []( int /* signum */ ) {
             if ( !g_still_running ) return;

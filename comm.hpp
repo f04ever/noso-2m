@@ -56,6 +56,8 @@ private:
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
     char m_inet_buffer[DEFAULT_INET_BUFFER_SIZE];
+    std::vector<std::thread> m_mine_threads;
+    std::vector<std::shared_ptr<CMineThread>> m_mine_objects;
     CCommThread();
     const std::shared_ptr<CSolution> GetSolution();
     void ClearSolutions();
