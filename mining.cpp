@@ -8,7 +8,7 @@
 #include "noso-2m.hpp"
 #include "mining.hpp"
 
-extern bool g_still_running;
+extern std::atomic<bool> g_still_running;
 
 CMineThread::CMineThread( std::uint32_t thread_id )
     :   m_thread_id { thread_id } {
