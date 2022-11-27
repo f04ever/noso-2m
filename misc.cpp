@@ -10,7 +10,6 @@
 
 extern char g_miner_address[];
 extern std::uint32_t g_threads_count;
-extern std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools;
 
 inline
 bool is_valid_address( std::string const & address ) {
@@ -64,20 +63,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
                             std::string name { sm0[1].str() };
                             std::string host { sm0[3].str() };
                             std::string port { sm0[13].str() };
-                            if ( host.length() <= 0 ) {
-                                const auto def_pool = std::find_if(
-                                        g_default_pools.begin(), g_default_pools.end(),
-                                        [&name]( const auto& val ) {
-                                            std::string def_name { std::get<0>( val ) };
-                                            bool iequal = std::equal(
-                                                    name.begin(), name.end(), def_name.begin(), def_name.end(),
-                                                    []( unsigned char a, unsigned char b ) { return tolower( a ) == tolower( b ); });
-                                            return iequal ? true : false; } );
-                                if ( def_pool != g_default_pools.end() ) {
-                                    host = std::get<1>( *def_pool );
-                                    if ( port.length() <= 0 ) port = std::get<2>( *def_pool );
-                                }
-                            }
+                            if ( name.length() <= 0 ) return;
                             if ( host.length() <= 0 ) return;
                             if ( port.length() <= 0 ) port = std::string { "8082" };
                             mining_pools.push_back( { name, host, port } );
@@ -85,9 +71,6 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
                     );
             }
         );
-    if  ( mining_pools.size() <= 0 )
-        for( const auto& dp : g_default_pools )
-            mining_pools.push_back( { std::get<0>( dp ), std::get<1>( dp ), std::get<2>( dp ) } );
     return mining_pools;
 }
 
