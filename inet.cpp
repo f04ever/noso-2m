@@ -189,37 +189,6 @@ int CInet::ExecCommand( char *buffer, std::size_t buffsize ) {
     return n;
 }
 
-CNodeInet::CNodeInet( const std::string &host, const std::string &port , int timeosec )
-    :   CInet( host, port, timeosec ) {
-}
-
-int CNodeInet::RequestTimestamp( char *buffer, std::size_t buffsize ) {
-    assert( buffer && buffsize > 0 );
-    std::strcpy( buffer, "NSLTIME\n" );
-    return this->ExecCommand( buffer, buffsize );
-}
-
-int CNodeInet::RequestMNList( char *buffer, std::size_t buffsize ) {
-    assert( buffer && buffsize > 0 );
-    std::strcpy( buffer, "NSLMNS\n" );
-    return this->ExecCommand( buffer, buffsize );
-}
-
-int CNodeInet::RequestSource( char *buffer, std::size_t buffsize ) {
-    assert( buffer && buffsize > 0 );
-    std::strcpy( buffer, "NODESTATUS\n" );
-    return this->ExecCommand( buffer, buffsize );
-}
-
-int CNodeInet::SubmitSolution( std::uint32_t blck, const char base[19], const char address[32],
-                    char *buffer, std::size_t buffsize ) {
-    assert( buffer && buffsize > 0 );
-    assert( std::strlen( base ) == 18
-            && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
-    std::snprintf( buffer, buffsize, "BESTHASH 1 2 3 4 %s %s %d %lld\n", address, base, blck, NOSO_TIMESTAMP );
-    return this->ExecCommand( buffer, buffsize );
-}
-
 CPoolInet::CPoolInet( const std::string& name, const std::string &host, const std::string &port , int timeosec )
     :   CInet( host, port, timeosec ), m_name { name } {
 }

@@ -8,21 +8,13 @@
 #include "output.hpp"
 #include "noso-2m.hpp"
 
-extern bool g_solo_mining;
 extern char g_miner_address[];
-extern std::uint32_t g_miner_id;
 extern std::uint32_t g_threads_count;
 extern std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools;
 
 inline
 bool is_valid_address( std::string const & address ) {
     if ( address.length() < 30 || address.length() > 31 ) return false;
-    return true;
-}
-
-inline
-bool is_valid_minerid( std::uint32_t minerid ) {
-    if ( minerid < 0 || minerid > 8100 ) return false;
     return true;
 }
 
@@ -101,14 +93,10 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
 
 mining_options_t
     g_arg_options = {
-        .solo = 0,
         .threads = 2,
-        .minerid = 0,
     },
     g_cfg_options = {
-        .solo = 0,
         .threads = 2,
-        .minerid = -1,
     };
 
 inline
@@ -117,14 +105,10 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
         g_arg_options.address = parsed_options["address"].as<std::string>();
         if ( !is_valid_address( g_arg_options.address ) )
             throw std::invalid_argument( "Invalid miner address option" );
-        g_arg_options.minerid = parsed_options["minerid"].as<std::uint32_t>();
-        if ( !is_valid_minerid( g_arg_options.minerid ) )
-            throw std::invalid_argument( "Invalid miner id option" );
         g_arg_options.threads = parsed_options["threads"].as<std::uint32_t>();
         if ( !is_valid_threads( g_arg_options.threads ) )
             throw std::invalid_argument( "Invalid threads count option" );
         g_arg_options.pools = parsed_options["pools"].as<std::string>();
-        g_arg_options.solo = parsed_options.count( "solo" );
     } catch( const std::invalid_argument& e ) {
         std::string msg { e.what() };
         NOSO_LOG_FATAL << msg << std::endl;
@@ -162,11 +146,6 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                     if ( !is_valid_address( g_cfg_options.address ) )
                         throw std::invalid_argument( "Invalid address config" );
                     found_cfg++;
-                } else if ( line_str.rfind( "minerid ", 0 ) == 0 ) {
-                    g_cfg_options.minerid = std::stoi( line_str.substr( 8 ) );
-                    if ( !is_valid_minerid( g_cfg_options.minerid ) )
-                        throw std::invalid_argument( "Invalid minerid config" );
-                    found_cfg++;
                 } else if ( line_str.rfind( "threads ", 0 ) == 0 ) {
                     g_cfg_options.threads = std::stoi( line_str.substr( 8 ) );
                     if ( !is_valid_threads( g_cfg_options.threads ) )
@@ -174,9 +153,6 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                     found_cfg++;
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
                     g_cfg_options.pools = line_str.substr( 6 );
-                    found_cfg++;
-                } else if ( line_str == "solo" || line_str == "solo true" ) {
-                    g_cfg_options.solo = true;
                     found_cfg++;
                 }
             }
@@ -199,11 +175,8 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
         g_arg_options.pools != DEFAULT_POOL_URL_LIST ? g_arg_options.pools
             : g_cfg_options.pools.length() > 0 ? g_cfg_options.pools : DEFAULT_POOL_URL_LIST };
     std::strcpy( g_miner_address, sel_address.c_str() );
-    g_miner_id = g_arg_options.minerid > DEFAULT_MINER_ID ? g_arg_options.minerid
-        : g_cfg_options.minerid >= DEFAULT_MINER_ID ? g_cfg_options.minerid : DEFAULT_MINER_ID;
     g_threads_count = g_arg_options.threads > DEFAULT_THREADS_COUNT ? g_arg_options.threads
         : g_cfg_options.threads > DEFAULT_THREADS_COUNT ? g_cfg_options.threads : DEFAULT_THREADS_COUNT;
     g_mining_pools = parse_pools_argv( sel_pools );
-    g_solo_mining = g_arg_options.solo > 0 ? true : g_cfg_options.solo;
 }
 

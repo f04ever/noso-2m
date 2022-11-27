@@ -5,14 +5,13 @@
 #include <mutex>
 #include <cstring>
 
-#include "mining.hpp"
 #include "noso-2m.hpp"
+#include "mining.hpp"
 
 extern bool g_still_running;
-extern bool g_solo_mining;
 
-CMineThread::CMineThread( std::uint32_t miner_id, std::uint32_t thread_id )
-    :   m_miner_id { miner_id }, m_thread_id { thread_id } {
+CMineThread::CMineThread( std::uint32_t thread_id )
+    :   m_thread_id { thread_id } {
 }
 
 void CMineThread::CleanupSyncState() {
@@ -56,7 +55,7 @@ void CMineThread::DoneTarget() {
 void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
     std::string thread_prefix = {
         target->prefix
-        + nosohash_prefix( m_miner_id )
+        + '!'
         + nosohash_prefix( m_thread_id ) };
     thread_prefix.append( 9 - thread_prefix.size(), '!' );
     m_mutex_blck_no.lock();
@@ -92,15 +91,7 @@ void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>&
             const char *hash { m_hasher.GetHash() };
             assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 );
             if ( std::strncmp( hash, m_lb_hash, match_len ) == 0 ) {
-                if ( g_solo_mining ) {
-                    const char *diff { m_hasher.GetDiff( m_lb_hash ) };
-                    assert( std::strlen( diff ) == 32 );
-                    if ( std::strcmp( diff, best_diff ) < 0 ) {
-                        NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, diff ) );
-                        std::strcpy( best_diff, diff );
-                        while ( best_diff[match_len] == '0' ) ++match_len;
-                    }
-                } else NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, "" ) );
+                NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, "" ) );
             }
         }
         std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
@@ -109,3 +100,4 @@ void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>&
     } // END while ( g_still_running ) {
     m_exited = 1;
 }
+
