@@ -19,10 +19,6 @@
 #include "mining.hpp"
 #include "hashing.hpp"
 
-extern
-std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools {
-        { "f04ever", "f04ever.com", "8082" },
-    };
 bool g_still_running { true };
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
