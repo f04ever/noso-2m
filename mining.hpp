@@ -107,3 +107,4 @@ public:
 };
 
 #endif // __NOSO2M__MINING_HPP__
+

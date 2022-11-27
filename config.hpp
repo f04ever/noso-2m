@@ -22,3 +22,4 @@
 #define DEFAULT_INET_BUFFER_SIZE        1024
 
 #endif // __NOSO2M_CONFIG_HPP__
+

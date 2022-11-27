@@ -8,9 +8,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "noso-2m.hpp"
 #include "logging.hpp"
 #include "textui.hpp"
-#include "noso-2m.hpp"
 
 #define NOSO_STDOUT std::cout
 #define NOSO_STDERR std::cerr

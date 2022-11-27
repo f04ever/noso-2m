@@ -5,8 +5,8 @@
 #include <mutex>
 #include <cstring>
 
-#include "mining.hpp"
 #include "noso-2m.hpp"
+#include "mining.hpp"
 
 extern bool g_still_running;
 extern bool g_solo_mining;
@@ -109,3 +109,4 @@ void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>&
     } // END while ( g_still_running ) {
     m_exited = 1;
 }
+

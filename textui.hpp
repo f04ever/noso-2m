@@ -11,10 +11,10 @@
 #include <form.h>
 #include <ncurses.h>
 
+#include "noso-2m.hpp"
 #include "util.hpp"
 #include "tool.hpp"
 #include "comm.hpp"
-#include "noso-2m.hpp"
 
 #ifndef KEY_ESC
 #define KEY_ESC (27)

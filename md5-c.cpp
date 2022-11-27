@@ -227,3 +227,4 @@ void md5Step(uint32_t *buffer, uint32_t *input){
 uint32_t rotateLeft(uint32_t x, uint32_t n){
     return (x << n) | (x >> (32 - n));
 }
+

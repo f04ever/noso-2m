@@ -4,12 +4,12 @@
 
 #include <algorithm>
 
+#include "noso-2m.hpp"
 #include "tool.hpp"
 #include "inet.hpp"
 #include "comm.hpp"
 #include "util.hpp"
 #include "output.hpp"
-#include "noso-2m.hpp"
 
 int CTools::ShowNodeInformation( std::vector<std::tuple<std::string, std::string>> const & mining_nodes ) {
     char msg[200];
