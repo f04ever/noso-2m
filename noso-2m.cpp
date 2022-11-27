@@ -19,29 +19,9 @@
 #include "mining.hpp"
 #include "hashing.hpp"
 
-extern
-std::vector<std::tuple<std::string, std::string>> const g_default_nodes {
-        { "109.230.238.240" ,   "8080" },
-        { "149.57.235.14"   ,   "8080" },
-        { "149.57.226.244"  ,   "8080" },
-        { "81.22.38.101"    ,   "8080" },
-        { "66.151.117.247"  ,   "8080" },
-        { "149.57.229.81"   ,   "8080" },
-        { "149.57.242.211"  ,   "8080" },
-        { "149.57.138.12"   ,   "8080" },
-        { "159.196.1.198"   ,   "8080" },
-        { "101.100.138.125" ,   "8080" },
-    }; // seed nodes
-extern
-std::vector<std::tuple<std::string, std::string, std::string>> const g_default_pools {
-        { "f04ever", "f04ever.com", "8082" },
-    };
-bool g_solo_mining { false };
-bool g_still_running { true };
+std::atomic<bool> g_still_running { true };
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
-std::uint32_t g_miner_id { DEFAULT_MINER_ID };
 std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
-std::uint32_t g_mined_block_count { 0 };
 std::vector<std::thread> g_mine_threads;
 std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
 std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
@@ -52,10 +32,8 @@ int main( int argc, char *argv[] ) {
     command_options.add_options()
         ( "c,config",   "A configuration file",                 cxxopts::value<std::string>()->default_value( DEFAULT_CONFIG_FILENAME ) )
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
-        ( "i,minerid",  "Miner ID - a number between 0-8100",   cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_MINER_ID ) ) )
         ( "t,threads",  "Threads count - 2 or more",            cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
         (   "pools",    "Mining pools list",                    cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
-        (   "solo",     "Solo mining mode" )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
@@ -95,7 +73,7 @@ int main( int argc, char *argv[] ) {
         std::exit( EXIT_FAILURE );
     }
     char buffer[100];
-    std::snprintf( buffer, 100, "%-31s [%04d] | %d threads", g_miner_address, g_miner_id, g_threads_count );
+    std::snprintf( buffer, 100, "%-31s        | %d threads", g_miner_address, g_threads_count );
     NOSO_TUI_OutputHeadPad( buffer );
     NOSO_TUI_OutputHeadWin();
     std::string msg { "" };
@@ -104,41 +82,15 @@ int main( int argc, char *argv[] ) {
     msg = std::string( "- Wallet address: " ) + g_miner_address;
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
-    msg = std::string( "-       Miner ID: " ) + std::to_string( g_miner_id );
-    NOSO_LOG_INFO << msg << std::endl;
-    NOSO_TUI_OutputHistPad( msg.c_str() );
     msg = std::string( "-  Threads count: " ) + std::to_string( g_threads_count );
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
-    msg = std::string( "-    Mining mode: " ) + ( g_solo_mining ? "solo" : "pool" );
-    NOSO_LOG_INFO << msg << std::endl;
-    NOSO_TUI_OutputHistPad( msg.c_str() );
-    if ( g_solo_mining ) {
-        NOSO_LOG_INFO << "===================================================" << std::endl;
-        NOSO_LOG_INFO << std::endl;
-        NOSO_LOG_INFO << "SOLO MINING HAS BEEN DISABLE ON NOSO NETWORK" << std::endl;
-        NOSO_LOG_INFO << "More detail in the #ANNOUNCEMENTS on the Discord channel in Nov.08 2022" << std::endl;
-        NOSO_LOG_INFO << "https://discord.com/channels/816716075747901470/816717022812831765/1039427185078964305" << std::endl;
-        NOSO_LOG_INFO << std::endl;
-        NOSO_LOG_INFO << "===================================================" << std::endl;
-        NOSO_TUI_OutputHistPad( "===================================================" );
-        NOSO_TUI_OutputHistPad( "" );;
-        NOSO_TUI_OutputHistPad( "SOLO MINING HAS BEEN DISABLE ON NOSO NETWORK" );
-        NOSO_TUI_OutputHistPad( "More detail in the #ANNOUNCEMENTS on the Discord channel in Nov.08 2022" );
-        NOSO_TUI_OutputHistPad( "https://discord.com/channels/816716075747901470/816717022812831765/1039427185078964305" );
-        NOSO_TUI_OutputHistPad( "" );
-        NOSO_TUI_OutputHistPad( "===================================================" );
-        NOSO_TUI_WaitKeyPress();
-        std::exit( EXIT_FAILURE );
-    }
-    if ( !g_solo_mining ) {
-        for( auto itor = g_mining_pools.cbegin(); itor != g_mining_pools.cend(); itor = std::next( itor ) ) {
-            msg = ( itor == g_mining_pools.cbegin() ? "-   Mining pools: " : "                : " )
-                    + lpad( std::get<0>( *itor ), 12, ' ' ).substr( 0, 12 )
-                    + "(" + std::get<1>( *itor ) + ":" + std::get<2>( *itor ) + ")";
-            NOSO_LOG_INFO << msg << std::endl;
-            NOSO_TUI_OutputHistPad( msg.c_str() );
-        }
+    for( auto itor = g_mining_pools.cbegin(); itor != g_mining_pools.cend(); itor = std::next( itor ) ) {
+        msg = ( itor == g_mining_pools.cbegin() ? "-   Mining pools: " : "                : " )
+                + lpad( std::get<0>( *itor ), 12, ' ' ).substr( 0, 12 )
+                + "(" + std::get<1>( *itor ) + ":" + std::get<2>( *itor ) + ")";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
     }
     if ( std::strcmp( g_miner_address, DEFAULT_MINER_ADDRESS ) == 0 ) {
         msg = "";
@@ -172,22 +124,8 @@ int main( int argc, char *argv[] ) {
     NOSO_TUI_OutputHistWin();
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
-        std::time_t mainnet_timestamp { CCommThread::GetInstance()->RequestTimestamp() };
-        if ( mainnet_timestamp == std::time_t( -1 ) ) {
-            throw std::runtime_error( "Can not check mainnet's timestamp!" );
-        }
-        else {
-            std::time_t computer_timestamp { static_cast<time_t>( NOSO_TIMESTAMP ) };
-            long timestamp_difference = std::abs( computer_timestamp - mainnet_timestamp );
-            if ( timestamp_difference > DEFAULT_TIMESTAMP_DIFFERENCES ) {
-                msg = "Your machine's time is different ("
-                    + std::to_string( timestamp_difference )
-                    + ") from mainnet. Synchronize clock!";
-                throw std::runtime_error( msg );
-            }
-        }
         for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
-            g_mine_objects.push_back( std::make_shared<CMineThread>( g_miner_id, thread_id ) );
+            g_mine_objects.push_back( std::make_shared<CMineThread>( thread_id ) );
         std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );
         auto const NewSolFunc { []( const std::shared_ptr<CSolution>& solution ){
             CCommThread::GetInstance()->AddSolution( solution ); } };

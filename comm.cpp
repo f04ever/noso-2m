@@ -24,92 +24,6 @@ std::string extract_status_token( size_t p_pos, size_t c_pos, const std::string&
     return status.substr( p_pos + 1, c_pos == std::string::npos ? std::string::npos : ( c_pos - p_pos - 1 ) );
 };
 
-inline
-CNodeStatus::CNodeStatus( const char *ns_line ) {
-    assert( ns_line != nullptr && std::strlen( ns_line ) > 2 );
-    std::string status { ns_line };
-    status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
-    size_t p_pos = -1, c_pos = -1;
-    //NODESTATUS 1{Peers} 2{LastBlock} 3{Pendings} 4{Delta} 5{headers} 6{version} 7{UTCTime} 8{MNsHash} 9{MNscount}
-    //           10{LasBlockHash} 11{BestHashDiff} 12{LastBlockTimeEnd} 13{LBMiner} 14{ChecksCount} 15{LastBlockPoW}
-    //           16{LastBlockDiff} 17{summary} 18{GVTs}
-    //
-    // 0{NODESTATUS}
-    next_status_token( ' ', p_pos, c_pos, status );
-    // std::string nodestatus = extract_status_token( p_pos, c_pos, status );
-    // 1{peer}
-    next_status_token( ' ', p_pos, c_pos, status );
-    // this->peer = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 2{blck}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 3{pending}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->pending = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 4{delta}
-    next_status_token( ' ', p_pos, c_pos, status );
-    // this->delta = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 5{header/branche}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->branche = extract_status_token( p_pos, c_pos, status );
-    if ( this->branche.length() != 5 )
-        throw std::out_of_range( "Wrong receiving branche[" + this->branche + "]" );
-    // 6{version}
-    next_status_token( ' ', p_pos, c_pos, status );
-    // this->version = extract_status_token( p_pos, c_pos, status );
-    // 7{utctime}
-    next_status_token( ' ', p_pos, c_pos, status );
-    // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 8{mn_hash}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->mn_hash = extract_status_token( p_pos, c_pos, status );
-    if ( this->mn_hash.length() != 5 )
-        throw std::out_of_range( "Wrong receiving mn_hash[" + this->mn_hash + "]" );
-    // 9{mn_count}
-    next_status_token( ' ', p_pos, c_pos, status );
-    // this->mn_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 10{lb_hash}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->lb_hash = extract_status_token( p_pos, c_pos, status );
-    if ( this->lb_hash.length() != 32 )
-        throw std::out_of_range( "Wrong receiving lb_hash[" + this->lb_hash + "]" );
-    // 11{bh_diff/mn_diff}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->mn_diff = extract_status_token( p_pos, c_pos, status );
-    if ( this->mn_diff.length() != 32 )
-        throw std::out_of_range( "Wrong receiving mn_diff[" + this->mn_diff + "]" );
-    // 12{lb_time}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->lb_time = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 13{lb_addr}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->lb_addr = extract_status_token( p_pos, c_pos, status );
-    if ( this->lb_addr.length() != 30 && this->lb_addr.length() != 31 )
-        throw std::out_of_range( "Wrong receiving lb_addr[" + this->lb_addr + "]" );
-    // 14{check_n}
-    next_status_token( ' ', p_pos, c_pos, status );
-    // this->check_n = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 15{lb_pows}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->lb_pows = std::stoull( extract_status_token( p_pos, c_pos, status ) );
-    // 16{lb_diff}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->lb_diff = extract_status_token( p_pos, c_pos, status );
-    if ( this->lb_diff.length() != 32 ) {
-        throw std::out_of_range( "Wrong receiving lb_diff[" + this->lb_diff + "]" );
-    }
-    // 17{sum_hash}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->sum_hash = extract_status_token( p_pos, c_pos, status );
-    if ( this->sum_hash.length() != 5 )
-        throw std::out_of_range( "Wrong receiving sum_hash[" + this->sum_hash + "]" );
-    // 18{gvt_hash}
-    next_status_token( ' ', p_pos, c_pos, status );
-    this->gvt_hash = extract_status_token( p_pos, c_pos, status );
-    if ( this->gvt_hash.length() != 5 )
-        throw std::out_of_range( "Wrong receiving gvt_hash[" + this->gvt_hash + "]" );
-}
-
 CPoolInfo::CPoolInfo( const char *pi ) {
     assert( pi != nullptr && std::strlen( pi ) > 2 );
     std::string status { pi };
@@ -176,7 +90,7 @@ CPoolStatus::CPoolStatus( const char *ps_line ) {
     this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     // 12{utctime}
     next_status_token( ' ', p_pos, c_pos, status );
-    // this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     //
     // 8{payment_info}
     if ( payment_info.length() > 0 ) {
@@ -195,196 +109,19 @@ CPoolStatus::CPoolStatus( const char *ps_line ) {
 }
 
 extern char g_miner_address[];
-extern std::vector<std::tuple<std::string, std::string>> const g_default_nodes;
 extern std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
 extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 extern std::vector<std::shared_ptr<CMineThread>> g_mine_objects;
 extern std::vector<std::thread> g_mine_threads;
-extern std::uint32_t g_mined_block_count;
-extern bool g_still_running;
-extern bool g_solo_mining;
+extern std::atomic<bool> g_still_running;
 
 CCommThread::CCommThread()
     :    m_mining_pools { g_mining_pools }, m_mining_pools_id { 0 } {
-    this->UpdateMiningNodes();
-}
-
-inline
-std::vector<std::tuple<std::string, std::string>> const & CCommThread::GetDefaultNodes() {
-    // TODO: load default nodes from mainnet.cfg when it is implemented
-    return g_default_nodes;
-}
-
-inline
-bool CCommThread::SaveHintNodes( std::vector<std::tuple<std::string, std::string>> const &nodes ) {
-    std::ofstream nodes_ostream( "hint_nodes.txt" );
-    if( !nodes_ostream.good() ) {
-        std::string msg { "Failed to save hint nodes to file 'hint_nodes.txt'!" };
-        NOSO_LOG_ERROR << msg << std::endl;
-        NOSO_TUI_OutputHistPad( msg.c_str() );
-        NOSO_TUI_OutputHistWin();
-        return false;
-    }
-    for( auto node : nodes ) {
-        nodes_ostream << std::get<0>( node ) << ":" << std::get<1>( node ) << std::endl;
-    }
-    std::string msg { "Saved hint nodes to file 'hint_nodes.txt'" };
-    NOSO_LOG_INFO << msg << std::endl;
-    return true;
-}
-
-inline
-std::vector<std::tuple<std::string, std::string>> CCommThread::LoadHintNodes() {
-    std::vector<std::tuple<std::string, std::string>> nodes;
-    std::ifstream nodes_istream( "hint_nodes.txt" );
-    if( !nodes_istream.good() ) {
-        std::string msg { "Hint nodes file 'hint_nodes.txt' not found!" };
-        NOSO_LOG_WARN << msg << std::endl;
-        NOSO_TUI_OutputHistPad( msg.c_str() );
-        msg = "Trying with default hint nodes.";
-        NOSO_LOG_INFO << msg << std::endl;
-        NOSO_TUI_OutputHistPad( msg.c_str() );
-        NOSO_TUI_OutputHistWin();
-    } else {
-        std::string msg { "Load hint nodes from file 'hint_nodes.txt'" };
-        NOSO_LOG_INFO << msg << std::endl;
-        std::regex const re { // IP-ADDRESS:PORT
-                "^"
-                "("
-                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
-                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
-                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
-                    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])"
-                ")"
-                "\\:"
-                "("
-                    "6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-5]{0,5}|[0-9]{1,4}"
-                ")"
-                "$" };
-        std::smatch sm;
-        for_each(
-                std::istream_iterator<std::string>{ nodes_istream },
-                std::istream_iterator<std::string>{},
-                [&]( auto const &line ) {
-                    if( std::regex_match( line, sm, re ) ) {
-                        std::string const host { sm[1] };
-                        std::string const port { sm[6] };
-                        nodes.push_back( { host, port } );
-                    }
-                } );
-    }
-    return nodes;
-}
-
-inline
-std::vector<std::tuple<std::string, std::string>> CCommThread::GetValidators(
-        std::vector<std::tuple<std::string, std::string>> const &hints ) {
-    std::vector<std::tuple<std::string, std::string>> nodes;
-    std::size_t const NSLMNS_INET_BUFFER_SIZE { 32'000 }; // appro. max 500 * 64 bytes per MN
-    char inet_buffer[NSLMNS_INET_BUFFER_SIZE];
-    for (   auto itor = hints.begin();
-            g_still_running
-                && itor != hints.end();
-            itor = std::next( itor ) ) {
-        CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
-        int rsize { inet.RequestMNList( inet_buffer, NSLMNS_INET_BUFFER_SIZE ) };
-                // auto ns { std::make_shared<CNodeStatus>( m_inet_buffer ) };
-                // assert( ns->mn_hash == Md5String( ns->).substr(5) )
-        if ( rsize <= 0 ) {
-            NOSO_LOG_DEBUG
-                << "sync_nodes <- CNodeInet::RequestMNList Poor connecting with node "
-                << inet.m_host << ":" << inet.m_port
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with a node!" );
-        } else {
-            std::regex const re {
-                    "("
-                        "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
-                        "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
-                        "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\."
-                        "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])"
-                    ")"
-                    ";"
-                    "("
-                        "6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-5]{0,5}|[0-9]{1,4}"
-                    ")"
-                    "\\:"
-                    "N[0-9A-Za-z]{29,30}"
-                    "\\:"
-                    "([0-9]{1,})" };
-            std::string mn_list { inet_buffer };
-            std::vector<std::tuple<std::string, std::string, std::uint32_t>> validators;
-            try {
-                std::for_each(
-                        std::sregex_iterator { mn_list.begin(), mn_list.end(), re },
-                        std::sregex_iterator {},
-                        [&]( auto const &sm0 ) {
-                            std::string host { sm0[1].str() };
-                            std::string port { sm0[6].str() };
-                            std::string ages { sm0[7].str() };
-                            validators.push_back( { host, port, std::stol( ages ) } );
-                        } );
-            } catch ( const std::exception &e ) {
-                NOSO_LOG_DEBUG
-                    << "CCommThread::GetValidators Unrecognised response from node "
-                    << inet.m_host << ":" << inet.m_port
-                    << "[" << inet_buffer << "](size=" << rsize << ")" << e.what()
-                    << std::endl;
-                NOSO_TUI_OutputStatPad( "An unrecognised response from a node!" );
-                continue;
-            }
-            std::sort( validators.begin(), validators.end(),
-                    []( auto const &a, auto const &b ){
-                        return std::get<2>( a ) > std::get<2>( b );
-                    } );
-            std::size_t validators_count { validators.size() / 10 + 3 };
-            auto const &validators_begin = validators.begin();
-            std::for_each( validators_begin, validators_begin + validators_count,
-                    [&]( auto const &a ) {
-                        nodes.push_back( { std::get<0>( a ), std::get<1>( a ) } );
-                    } );
-            if ( nodes.size() > 0 ) break;
-        }
-        NOSO_TUI_OutputStatWin();
-    }
-    return nodes;
-}
-
-inline
-void CCommThread::UpdateMiningNodes() {
-    if( m_mining_nodes.size() < DEFAULT_CONSENSUS_NODES_COUNT ) {
-        std::vector<std::tuple<std::string, std::string>> hints;
-        if ( m_mining_nodes.size() <= 0 ) {
-            hints = CCommThread::LoadHintNodes();
-            if ( hints.size() <= 0 ) hints = this->GetDefaultNodes();
-            if ( hints.size() <= 0 ) hints.push_back( { "localhost", "8080" } );
-        } else {
-            hints = m_mining_nodes;
-        }
-        std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
-        m_mining_nodes = CCommThread::GetValidators( hints );
-        std::stringstream msg;
-        msg << "Validator nodes:";
-        NOSO_LOG_INFO << msg.str() << std::endl;
-        NOSO_TUI_OutputHistPad( msg.str().c_str() );
-        for ( auto node : m_mining_nodes ) {
-            msg.str( std::string() );
-            msg << "- " << std::get<0>( node ) << ":" << std::get<1>( node );
-            NOSO_LOG_INFO << msg.str() << std::endl;
-            NOSO_TUI_OutputHistPad( msg.str().c_str() );
-        }
-        NOSO_TUI_OutputHistWin();
-        CCommThread::SaveHintNodes( m_mining_nodes );
-    }
 }
 
 std::shared_ptr<CCommThread> CCommThread::GetInstance() {
     static std::shared_ptr<CCommThread> singleton { new CCommThread() };
     return singleton;
-}
-
-std::vector<std::tuple<std::string, std::string>> const & CCommThread::GetMiningNodes() {
-    return m_mining_nodes;
 }
 
 inline
@@ -425,39 +162,20 @@ void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) 
             << " Computed " << m_last_block_hashes_count << " hashes within "
             << std::fixed << std::setprecision( 2 ) << m_last_block_elapsed_secs / 60 << " minutes"
             << std::endl;
-        if ( g_solo_mining ) {
-            std::shared_ptr<CNodeTarget> node_target { std::dynamic_pointer_cast<CNodeTarget>( target ) };
-            std::snprintf( msg, 100, " Hashrate(Miner/Pool/Mnet) %5.01f%c /    n/a /    n/a",
-                        hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ) );
+        std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
+        std::snprintf( msg, 100, " Hashrate(Miner/Pool/Mnet) %5.01f%c / %5.01f%c / %5.01f%c",
+                    hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ),
+                    hashrate_pretty_value( pool_target->pool_hashrate ), hashrate_pretty_unit( pool_target->pool_hashrate ),
+                    hashrate_pretty_value( pool_target->mnet_hashrate ), hashrate_pretty_unit( pool_target->mnet_hashrate ) );
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg );
+        if ( pool_target->payment_block == pool_target->blck_no ) {
+            std::snprintf( msg, 100, " Paid %.8g NOSO", pool_target->payment_amount / 100'000'000.0 );
             NOSO_LOG_INFO << msg << std::endl;
             NOSO_TUI_OutputHistPad( msg );
-            if ( node_target->lb_addr == g_miner_address ) {
-                g_mined_block_count++;
-                std::snprintf( msg, 100, " Yay! win this block %06u", node_target->blck_no + 1 );
-                NOSO_LOG_INFO << msg << std::endl;
-                NOSO_TUI_OutputHistPad( msg );
-            }
-            if ( g_mined_block_count > 0 ) {
-                std::snprintf( msg, 100, " Won total %3u blocks", g_mined_block_count );
-                NOSO_LOG_INFO << msg << std::endl;
-                NOSO_TUI_OutputHistPad( msg );
-            }
-        } else {
-            std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
-            std::snprintf( msg, 100, " Hashrate(Miner/Pool/Mnet) %5.01f%c / %5.01f%c / %5.01f%c",
-                        hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ),
-                        hashrate_pretty_value( pool_target->pool_hashrate ), hashrate_pretty_unit( pool_target->pool_hashrate ),
-                        hashrate_pretty_value( pool_target->mnet_hashrate ), hashrate_pretty_unit( pool_target->mnet_hashrate ) );
+            std::snprintf( msg, 100, " %s", pool_target->payment_order_id.c_str() );
             NOSO_LOG_INFO << msg << std::endl;
             NOSO_TUI_OutputHistPad( msg );
-            if ( pool_target->payment_block == pool_target->blck_no ) {
-                std::snprintf( msg, 100, " Paid %.8g NOSO", pool_target->payment_amount / 100'000'000.0 );
-                NOSO_LOG_INFO << msg << std::endl;
-                NOSO_TUI_OutputHistPad( msg );
-                std::snprintf( msg, 100, " %s", pool_target->payment_order_id.c_str() );
-                NOSO_LOG_INFO << msg << std::endl;
-                NOSO_TUI_OutputHistPad( msg );
-            }
         }
         NOSO_TUI_OutputHistWin();
     }
@@ -467,33 +185,18 @@ void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) 
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputActiWinBlockNum( target->blck_no + 1 );
     NOSO_TUI_OutputActiWinLastHash( target->lb_hash.substr( 0, 32 ) );
-    if ( g_solo_mining ) {
-        std::shared_ptr<CNodeTarget> node_target { std::dynamic_pointer_cast<CNodeTarget>( target ) };
-        std::snprintf( msg, 100, " Solo %-12s %-32s",
-                        std::string( "Mainnet" ).substr( 0, 12 ).c_str(),
-                        node_target->mn_diff.substr( 0, 32).c_str() );
-        NOSO_LOG_INFO << msg << std::endl;
-    } else {
-        std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
-        std::snprintf( msg, 100, " Pool %-12s %-32s",
-                        pool_target->pool_name.substr( 0, 12 ).c_str(),
-                        pool_target->mn_diff.substr( 0, 32).c_str() );
-        NOSO_LOG_INFO << msg << std::endl;
-    }
-    NOSO_TUI_OutputActiWinMiningMode( g_solo_mining );
+    std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
+    std::snprintf( msg, 100, " Pool %-12s %-32s",
+                    pool_target->pool_name.substr( 0, 12 ).c_str(),
+                    pool_target->mn_diff.substr( 0, 32).c_str() );
+    NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputActiWinMiningDiff( target->mn_diff.substr( 0, 32 ) );
     NOSO_TUI_OutputActiWinAcceptedSol( m_accepted_solutions_count );
     NOSO_TUI_OutputActiWinRejectedSol( m_rejected_solutions_count );
     NOSO_TUI_OutputActiWinFailuredSol( m_failured_solutions_count );
-    if ( g_solo_mining ) {
-        std::shared_ptr<CNodeTarget> node_target { std::dynamic_pointer_cast<CNodeTarget>( target ) };
-        NOSO_TUI_OutputActiWinMiningSource( std::string( "Mainnet" ).substr( 0, 12 ) );
-    } else {
-        std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
-        NOSO_TUI_OutputActiWinMiningSource( pool_target->pool_name.substr( 0, 12 ) );
-        NOSO_TUI_OutputActiWinTillBalance( pool_target->till_balance );
-        NOSO_TUI_OutputActiWinTillPayment( pool_target->till_payment );
-    }
+    NOSO_TUI_OutputActiWinMiningSource( pool_target->pool_name.substr( 0, 12 ) );
+    NOSO_TUI_OutputActiWinTillBalance( pool_target->till_balance );
+    NOSO_TUI_OutputActiWinTillPayment( pool_target->till_payment );
     NOSO_TUI_OutputStatPad( "Press Ctrl+C to stop!" );
     NOSO_TUI_OutputStatWin();
 }
@@ -505,28 +208,16 @@ void CCommThread::_ReportTargetSummary( const std::shared_ptr<CTarget>& target )
     NOSO_TUI_OutputHistPad( msg );
     std::snprintf( msg, 100, "BLOCK %06u       %-32s", target->blck_no + 1, target->lb_hash.substr( 0, 32 ).c_str() );
     NOSO_TUI_OutputHistPad( msg );
-    if ( g_solo_mining ) {
-        std::shared_ptr<CNodeTarget> node_target { std::dynamic_pointer_cast<CNodeTarget>( target ) };
-        std::snprintf( msg, 100, " Solo %-12s %-32s",
-                        std::string( "Mainnet" ).substr( 0, 12 ).c_str(),
-                        node_target->mn_diff.substr( 0, 32).c_str() );
-        NOSO_TUI_OutputHistPad( msg );
-        std::snprintf( msg, 100, " Sent %5u / %4u / %3u",
-                        m_accepted_solutions_count, m_rejected_solutions_count, m_failured_solutions_count );
-        NOSO_LOG_INFO << msg << std::endl;
-        NOSO_TUI_OutputHistPad( msg );
-    } else {
-        std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
-        std::snprintf( msg, 100, " Pool %-12s %-32s",
-                        pool_target->pool_name.substr( 0, 12 ).c_str(),
-                        pool_target->mn_diff.substr( 0, 32).c_str() );
-        NOSO_TUI_OutputHistPad( msg );
-        std::snprintf( msg, 100, " Sent %5u / %4u / %3u | %14.8g NOSO [%2u]",
-                        m_accepted_solutions_count, m_rejected_solutions_count, m_failured_solutions_count,
-                        pool_target->till_balance / 100'000'000.0, pool_target->till_payment );
-        NOSO_LOG_INFO << msg << std::endl;
-        NOSO_TUI_OutputHistPad( msg );
-    }
+    std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
+    std::snprintf( msg, 100, " Pool %-12s %-32s",
+                    pool_target->pool_name.substr( 0, 12 ).c_str(),
+                    pool_target->mn_diff.substr( 0, 32).c_str() );
+    NOSO_TUI_OutputHistPad( msg );
+    std::snprintf( msg, 100, " Sent %5u / %4u / %3u | %14.8g NOSO [%2u]",
+                    m_accepted_solutions_count, m_rejected_solutions_count, m_failured_solutions_count,
+                    pool_target->till_balance / 100'000'000.0, pool_target->till_payment );
+    NOSO_LOG_INFO << msg << std::endl;
+    NOSO_TUI_OutputHistPad( msg );
     NOSO_TUI_OutputHistWin();
     NOSO_TUI_OutputActiWinDefault();
 };
@@ -598,34 +289,19 @@ void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolut
 
 void CCommThread::AddSolution( const std::shared_ptr<CSolution>& solution ) {
     m_mutex_solutions.lock();
-    if ( g_solo_mining ) m_solo_solutions.insert( solution );
-    else m_pool_solutions.push_back( solution );
+    m_pool_solutions.push_back( solution );
     m_mutex_solutions.unlock();
 }
 
 inline
 void CCommThread::ClearSolutions() {
     m_mutex_solutions.lock();
-    if ( g_solo_mining ) m_solo_solutions.clear();
-    else m_pool_solutions.clear();
+    m_pool_solutions.clear();
     m_mutex_solutions.unlock();
 }
 
 inline
-const std::shared_ptr<CSolution> CCommThread::BestSolution() {
-    std::shared_ptr<CSolution> best_solution { nullptr };
-    m_mutex_solutions.lock();
-    if ( m_solo_solutions.begin() != m_solo_solutions.end() ) {
-        auto itor_best_solution = m_solo_solutions.begin();
-        best_solution = *itor_best_solution;
-        m_solo_solutions.clear();
-    }
-    m_mutex_solutions.unlock();
-    return best_solution;
-}
-
-inline
-const std::shared_ptr<CSolution> CCommThread::GoodSolution() {
+const std::shared_ptr<CSolution> CCommThread::GetSolution() {
     std::shared_ptr<CSolution> good_solution { nullptr };
     m_mutex_solutions.lock();
     if ( m_pool_solutions.begin() != m_pool_solutions.end() ) {
@@ -634,136 +310,6 @@ const std::shared_ptr<CSolution> CCommThread::GoodSolution() {
     }
     m_mutex_solutions.unlock();
     return good_solution;
-}
-
-inline
-std::shared_ptr<CSolution> CCommThread::GetSolution() {
-    return g_solo_mining ? this->BestSolution() : this->GoodSolution();
-}
-
-std::time_t CCommThread::RequestTimestamp() {
-    if ( m_mining_nodes.size() <= 0 ) return std::time_t( -1 );
-    std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
-    std::time_t ret_time { -1 };
-    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
-    for (   auto itor = m_mining_nodes.begin();
-            g_still_running
-                && itor != m_mining_nodes.end();
-            itor = std::next( itor ) ) {
-        CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
-        int rsize { inet.RequestTimestamp( m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
-        if ( rsize <= 0 ) {
-            bad_mining_nodes.push_back( itor );
-            NOSO_LOG_DEBUG
-                << "CCommThread::RequestTimestamp Poor connecting with node "
-                << inet.m_host << ":" << inet.m_port
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with a node!" );
-        } else {
-            try {
-                ret_time = std::time_t( std::atol( m_inet_buffer ) );
-                break;
-            } catch ( const std::exception &e ) {
-                bad_mining_nodes.push_back( itor );
-                NOSO_LOG_DEBUG
-                    << "CCommThread::RequestTimestamp Unrecognised response from node "
-                    << inet.m_host << ":" << inet.m_port
-                    << "[" << m_inet_buffer << "](size=" << rsize << ")" << e.what()
-                    << std::endl;
-                NOSO_TUI_OutputStatPad( "An unrecognised response from a node!" );
-            }
-        }
-        NOSO_TUI_OutputStatWin();
-    }
-    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
-            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
-    return ret_time;
-}
-
-inline
-std::vector<std::shared_ptr<CNodeStatus>> CCommThread::RequestNodeSources( std::size_t min_nodes_count ) {
-    std::vector<std::shared_ptr<CNodeStatus>> sources;
-    if ( m_mining_nodes.size() < min_nodes_count ) return sources;
-    std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
-    std::size_t nodes_count { 0 };
-    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
-    for (   auto itor = m_mining_nodes.begin();
-            g_still_running
-                && nodes_count < min_nodes_count
-                && itor != m_mining_nodes.end();
-            itor = std::next( itor ) ) {
-        CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
-        int rsize { inet.RequestSource( m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
-        if ( rsize <= 0 ) {
-            bad_mining_nodes.push_back( itor );
-            NOSO_LOG_DEBUG
-                << "CCommThread::RequestNodeSources Poor connecting with node "
-                << inet.m_host << ":" << inet.m_port
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with a node!" );
-        } else {
-            try {
-                sources.push_back( std::make_shared<CNodeStatus>( m_inet_buffer ) );
-                nodes_count ++;
-            } catch ( const std::exception &e ) {
-                bad_mining_nodes.push_back( itor );
-                NOSO_LOG_DEBUG
-                    << "CCommThread::RequestNodeSources Unrecognised response from node "
-                    << inet.m_host << ":" << inet.m_port
-                    << "[" << m_inet_buffer << "](size=" << rsize << ")" << e.what()
-                    << std::endl;
-                NOSO_TUI_OutputStatPad( "An unrecognised response from a node!" );
-            }
-        }
-        NOSO_TUI_OutputStatWin();
-    }
-    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
-            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
-    return sources;
-}
-
-inline
-std::shared_ptr<CNodeTarget> CCommThread::GetNodeTargetConsensus() {
-    std::vector<std::shared_ptr<CNodeStatus>> status_of_nodes = this->RequestNodeSources( DEFAULT_CONSENSUS_NODES_COUNT );
-    if ( status_of_nodes.size() < DEFAULT_CONSENSUS_NODES_COUNT ) return nullptr;
-    const auto max_freq = []( const auto &freq ) {
-        return std::max_element(
-            std::begin( freq ), std::end( freq ),
-            [] ( const auto &p1, const auto &p2 ) {
-                return p1.second < p2.second; } )->first;
-    };
-    m_freq_blck_no.clear();
-    m_freq_pending.clear();
-    m_freq_branche.clear();
-    m_freq_lb_hash.clear();
-    m_freq_mn_diff.clear();
-    m_freq_lb_time.clear();
-    m_freq_lb_addr.clear();
-    m_freq_lb_pows.clear();
-    m_freq_lb_diff.clear();
-    m_freq_mn_hash.clear();
-    for( auto ns : status_of_nodes ) {
-        ++m_freq_blck_no [ns->blck_no];
-        ++m_freq_pending [ns->pending];
-        ++m_freq_branche [ns->branche];
-        ++m_freq_lb_hash [ns->lb_hash];
-        ++m_freq_mn_diff [ns->mn_diff];
-        ++m_freq_lb_time [ns->lb_time];
-        ++m_freq_lb_addr [ns->lb_addr];
-        ++m_freq_lb_pows [ns->lb_pows];
-        ++m_freq_lb_diff [ns->lb_diff];
-        ++m_freq_mn_hash [ns->mn_hash];
-    }
-    std::shared_ptr<CNodeTarget> target {
-        std::make_shared<CNodeTarget>(
-            max_freq( m_freq_blck_no ),
-            max_freq( m_freq_lb_hash ),
-            max_freq( m_freq_mn_diff ),
-            max_freq( m_freq_lb_time ),
-            max_freq( m_freq_lb_addr ) ) };
-        target->prefix = "";
-        target->address = g_miner_address;
-    return target;
 }
 
 inline
@@ -866,75 +412,12 @@ std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetFailover() {
 inline
 std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
     assert( std::strlen( prev_lb_hash ) == 32 );
-    std::shared_ptr<CTarget> target { nullptr };
-    if ( g_solo_mining ) target = this->GetNodeTargetConsensus();
-    else target = this->GetPoolTargetFailover();
+    std::shared_ptr<CTarget> target = this->GetPoolTargetFailover();
     while ( g_still_running && ( target == nullptr || ( target !=nullptr && target->lb_hash == prev_lb_hash ) ) ) {
         std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
-        if ( g_solo_mining ) target = this->GetNodeTargetConsensus();
-        else target = this->GetPoolTargetFailover();
+        target = this->GetPoolTargetFailover();
     }
     return target;
-}
-
-inline
-int CCommThread::SubmitSoloSolution( std::uint32_t blck, const char base[19],
-                                    const char address[32], char new_mn_diff[33] ) {
-    assert( std::strlen( base ) == 18
-            && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
-    if ( m_mining_nodes.size() <= 0 ) return ( -1 );
-    std::shuffle( m_mining_nodes.begin(), m_mining_nodes.end(), m_random_engine );
-    int ret_code { -1 };
-    std::vector<std::vector<std::tuple<std::string, std::string>>::iterator> bad_mining_nodes;
-    for (   auto itor = m_mining_nodes.begin();
-            g_still_running
-                && itor != m_mining_nodes.end();
-            itor = std::next( itor ) ) {
-        CNodeInet inet { std::get<0>( *itor ), std::get<1>( *itor ), DEFAULT_NODE_INET_TIMEOSEC };
-        int rsize { inet.SubmitSolution( blck, base, address, m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
-        if ( rsize <= 0 ) {
-            bad_mining_nodes.push_back( itor );
-            NOSO_LOG_DEBUG
-                << "CCommThread::SubmitSoloSolution Poor connecting with node "
-                << inet.m_host << ":" << inet.m_port
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with a node!" );
-        } else {
-            // try {
-            // m_inet_buffer ~ len=(70+2)~[True Diff(32) Hash(32)\r\n] OR len=(40+2)~[False Diff(32) Code#(1)\r\n]
-            if      ( rsize >= 42
-                        && std::strncmp( m_inet_buffer, "False ", 6 ) == 0
-                        && m_inet_buffer[38] == ' '
-                        && '1' <= m_inet_buffer[39] && m_inet_buffer[39] <= '7' ) {
-                // len=(40+2)~[False Diff(32) Code#(1)\r\n]
-                std::strncpy( new_mn_diff, m_inet_buffer + 6, 32 );
-                new_mn_diff[32] = '\0';
-                ret_code  = m_inet_buffer[39] - '0';
-                break;
-            }
-            else if ( rsize >= 72
-                        && std::strncmp( m_inet_buffer, "True ", 5 ) == 0
-                        && m_inet_buffer[37] == ' ' ) {
-                // len=(70+2)~[True Diff(32) Hash(32)\r\n]
-                std::strncpy( new_mn_diff, m_inet_buffer + 5, 32 );
-                new_mn_diff[32] = '\0';
-                ret_code = 0;
-                break;
-            }
-            // } catch ( const std::exception &e ) {}
-            bad_mining_nodes.push_back( itor );
-            NOSO_LOG_DEBUG
-                << "CCommThread::SubmitSoloSolution Unrecognised response from node "
-                << inet.m_host << ":" << inet.m_port
-                << "[" << m_inet_buffer << "](size=" << rsize << ")"
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "An unrecognised response from a node!" );
-        }
-        NOSO_TUI_OutputStatWin();
-    }
-    std::for_each( bad_mining_nodes.begin(), bad_mining_nodes.end(),
-            [&]( auto const &itor ) { m_mining_nodes.erase( itor ); } );
-    return ret_code;
 }
 
 inline
@@ -992,31 +475,8 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
 }
 
 inline
-void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution, std::shared_ptr<CTarget> &target ) {
-    int code { 0 };
-    if ( g_solo_mining ) {
-        target->mn_diff = solution->diff;
-        char new_mn_diff[33] { NOSO_MAX_DIFF };
-        code = this->SubmitSoloSolution( solution->blck, solution->base.c_str(), g_miner_address, new_mn_diff );
-        if ( code >= 0 ) {
-            if ( target->mn_diff > new_mn_diff ) {
-                target->mn_diff = new_mn_diff;
-                NOSO_TUI_OutputActiWinMiningDiff( target->mn_diff.substr( 0, 32 ) );
-            }
-            if ( code == 6 ) {
-                if ( solution->diff < new_mn_diff ) this->AddSolution( solution );
-                NOSO_LOG_DEBUG
-                    << " WAITBLCK"
-                    << ")base[" << solution->base
-                    << "]hash[" << solution->hash
-                    << "]Network building block!"
-                    << std::endl;
-                NOSO_TUI_OutputStatPad( "A submission while network building block! The solution will be re-submited." );
-            }
-        }
-    } else {
-        code = this->SubmitPoolSolution( solution->blck, solution->base.c_str(), g_miner_address );
-    }
+void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution ) {
+    int code = this->SubmitPoolSolution( solution->blck, solution->base.c_str(), g_miner_address );
     if ( code > 0 ) this->_ReportErrorSubmitting( code, solution ); // rest other error codes 1, 2, 3, 4, 7
     char msg[100] { "" };
     if ( code == 0 ) {
@@ -1072,7 +532,6 @@ void CCommThread::Communicate() {
             } while ( g_still_running && ( NOSO_BLOCK_AGE < NOSO_BLOCK_AGE_TARGET_SAFE || 585 < NOSO_BLOCK_AGE ) );
             if ( !g_still_running ) break;
         }
-        if( g_solo_mining ) this->UpdateMiningNodes();
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         if ( !g_still_running || target == nullptr ) break;
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
@@ -1083,8 +542,7 @@ void CCommThread::Communicate() {
             auto begin_submit = std::chrono::steady_clock::now();
             std::shared_ptr<CSolution> solution = this->GetSolution();
             if ( solution != nullptr && solution->diff < target->mn_diff )
-                this->SubmitSolution( solution, target );
-            if( g_solo_mining ) this->UpdateMiningNodes();
+                this->SubmitSolution( solution );
             std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
             if ( elapsed_submit.count() < DEFAULT_INET_CIRCLE_SECONDS ) {
                 std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );

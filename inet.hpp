@@ -23,16 +23,6 @@ public:
     int ExecCommand( char *buffer, std::size_t buffsize );
 };
 
-class CNodeInet : public CInet {
-public:
-    CNodeInet( const std::string &host, const std::string &port , int timeosec );
-    int RequestTimestamp( char *buffer, std::size_t buffsize );
-    int RequestMNList( char *buffer, std::size_t buffsize );
-    int RequestSource( char *buffer, std::size_t buffsize );
-    int SubmitSolution( std::uint32_t blck, const char base[19], const char address[32],
-                        char *buffer, std::size_t buffsize );
-};
-
 class CPoolInet : public CInet {
 public:
     std::string m_name;
