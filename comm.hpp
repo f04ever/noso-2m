@@ -62,7 +62,7 @@ private:
     const std::shared_ptr<CSolution> GetSolution();
     void ClearSolutions();
     std::shared_ptr<CPoolTarget> RequestPoolTarget( const char address[32] );
-    std::shared_ptr<CPoolTarget> GetPoolTargetFailover();
+    std::shared_ptr<CPoolTarget> GetPoolTargetRetrying();
     int SubmitPoolSolution( std::uint32_t blck_no, const char base[19], const char address[32] );
     void CloseMiningBlock( const std::chrono::duration<double>& elapsed_blck );
     void ResetMiningBlock();

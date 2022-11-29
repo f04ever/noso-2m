@@ -370,57 +370,27 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
 }
 
 inline
-std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetFailover() {
-    static const int max_tries_count { 5 };
-    bool first_fail { true };
-    int tries_count { 1 };
+std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetRetrying() {
+    std::uint32_t tries_count { 1 };
+    auto pool { m_mining_pools[m_mining_pools_id] };
     std::shared_ptr<CPoolTarget> pool_target = this->RequestPoolTarget( g_miner_address );
-        std::uint32_t old_inet_pools_id { m_mining_pools_id };
-        auto old_pool { m_mining_pools[old_inet_pools_id] };
     while ( g_still_running
             && NOSO_BLOCK_IS_IN_MINING_AGE
             && pool_target == nullptr ) {
         NOSO_LOG_DEBUG
-            << "WAIT TARGET FROM POOL "
-            << std::get<0>( old_pool ) << "(" << std::get<1>( old_pool ) << ":" << std::get<2>( old_pool ) << ")"
-            << " (Retries " << tries_count << "/" << max_tries_count << ")"
+            << "WAITING ON POOL "
+            << std::get<0>( pool )
+            << "(" << std::get<1>( pool ) << ":" << std::get<2>( pool ) << ")"
+            << " (Retries " << tries_count << "/" << DEFAULT_POOL_RETRIES_COUNT << ")"
             << std::endl;
-        NOSO_TUI_OutputStatPad( "Waiting target from pool..." );
+        NOSO_TUI_OutputStatPad( "Waiting on pool ..." );
         NOSO_TUI_OutputStatWin();
-        if ( tries_count >= max_tries_count ) {
-            tries_count = 0;
-            if ( m_mining_pools.size() > 1 ) {
-                if ( first_fail ) {
-                    m_mining_pools_id = 0;
-                    if ( m_mining_pools_id == old_inet_pools_id ) ++m_mining_pools_id;
-                    first_fail = false;
-                } else {
-                    ++m_mining_pools_id;
-                    if ( m_mining_pools_id >= m_mining_pools.size() ) m_mining_pools_id = 0;
-                }
-                auto new_pool { m_mining_pools[m_mining_pools_id] };
-                NOSO_LOG_DEBUG
-                    << "POOL FAILOVER FROM "
-                    << std::get<0>( old_pool ) << "(" << std::get<1>( old_pool ) << ":" << std::get<2>( old_pool ) << ")"
-                    << " TO "
-                    << std::get<0>( new_pool ) << "(" << std::get<1>( new_pool ) << ":" << std::get<2>( new_pool ) << ")"
-                    << std::endl;
-                NOSO_TUI_OutputStatPad( "Failover to new pool!" );
-                NOSO_TUI_OutputStatWin();
-            } else {
-                NOSO_LOG_DEBUG
-                    << "RE-ENTER POOL "
-                    << std::get<0>( old_pool ) << "(" << std::get<1>( old_pool ) << ":" << std::get<2>( old_pool ) << ")"
-                    << " AS NO POOL CONFIGURED FOR FAILOVER"
-                    << std::endl;
-                NOSO_TUI_OutputStatPad( "No pool for failover. Re-attempt current pool." );
-                NOSO_TUI_OutputStatWin();
-            }
-        }
         std::this_thread::sleep_for( std::chrono::milliseconds(
                 static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
         pool_target = this->RequestPoolTarget( g_miner_address );
         ++tries_count;
+        if ( tries_count > std::uint32_t( DEFAULT_POOL_RETRIES_COUNT ) )
+            break;
     }
     return pool_target;
 }
@@ -428,13 +398,13 @@ std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetFailover() {
 inline
 std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
     assert( std::strlen( prev_lb_hash ) == 32 );
-    std::shared_ptr<CTarget> target = this->GetPoolTargetFailover();
         std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
-        target = this->GetPoolTargetFailover();
+    std::shared_ptr<CTarget> target = this->GetPoolTargetRetrying();
     while ( g_still_running
             && NOSO_BLOCK_IS_IN_MINING_AGE
             && ( target !=nullptr
                     && target->lb_hash == prev_lb_hash ) ) {
+        target = this->GetPoolTargetRetrying();
     }
     return target;
 }
