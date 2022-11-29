@@ -30,7 +30,7 @@ void CMineThread::SetBlockSummary( std::uint32_t hashes_count, double duration )
 std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
     std::unique_lock<std::mutex> unique_lock_summary_lock( m_mutex_summary );
     m_condv_summary.wait( unique_lock_summary_lock, [&]() {
-                             return !g_still_running || m_computed_hashes_count > 0; } );
+            return !g_still_running || m_computed_hashes_count > 0; } );
     auto summary = std::make_tuple( m_computed_hashes_count, m_block_mining_duration );
     m_computed_hashes_count = 0;
     m_block_mining_duration = 0.;
@@ -41,7 +41,8 @@ std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
 inline
 void CMineThread::WaitTarget() {
     std::unique_lock<std::mutex> unique_lock_blck_no( m_mutex_blck_no );
-    m_condv_blck_no.wait( unique_lock_blck_no, [&]() { return !g_still_running || m_blck_no > 0; } );
+    m_condv_blck_no.wait( unique_lock_blck_no, [&]() {
+            return !g_still_running || m_blck_no > 0; } );
     unique_lock_blck_no.unlock();
 }
 
@@ -50,12 +51,12 @@ void CMineThread::DoneTarget() {
     std::unique_lock<std::mutex> unique_lock_blck_no( m_mutex_blck_no );
     m_blck_no = 0;
     unique_lock_blck_no.unlock();
+    this->CleanupSyncState();
 }
 
 void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
     std::string thread_prefix = {
         target->prefix
-        + '!'
         + nosohash_prefix( m_thread_id ) };
     thread_prefix.append( 9 - thread_prefix.size(), '!' );
     m_mutex_blck_no.lock();
@@ -86,7 +87,8 @@ void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>&
         while ( best_diff[match_len] == '0' ) ++match_len;
         std::uint32_t hashes_counter { 0 };
         auto begin_mining { std::chrono::steady_clock::now() };
-        while ( g_still_running && 1 <= NOSO_BLOCK_AGE && NOSO_BLOCK_AGE <= 585 ) {
+        while ( g_still_running
+                && NOSO_BLOCK_IS_IN_MINING_AGE ) {
             const char *base { m_hasher.GetBase( hashes_counter++ ) };
             const char *hash { m_hasher.GetHash() };
             assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 );

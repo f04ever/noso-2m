@@ -44,7 +44,7 @@ struct CPoolStatus {
 class CCommThread { // A singleton pattern class
 private:
     mutable std::default_random_engine m_random_engine {
-        std::default_random_engine { std::random_device {}() } };
+            std::default_random_engine { std::random_device {}() } };
     mutable std::mutex m_mutex_solutions;
     std::vector<std::tuple<std::string, std::string, std::string>>& m_mining_pools;
     std::uint32_t m_mining_pools_id;

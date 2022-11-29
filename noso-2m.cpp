@@ -31,7 +31,7 @@ int main( int argc, char *argv[] ) {
         ( "c,config",   "A configuration file",                 cxxopts::value<std::string>()->default_value( DEFAULT_CONFIG_FILENAME ) )
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "t,threads",  "Threads count - 2 or more",            cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
-        (   "pools",    "Mining pools list",                    cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
+        ( "p,pools",    "Mining pools list",                    cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
@@ -59,7 +59,7 @@ int main( int argc, char *argv[] ) {
     try {
         NOSO_TUI_StartTUI();
     } catch( const std::runtime_error& e ) {
-        NOSO_STDERR << e.what() << std::endl;
+        NOSO_LOG_ERROR << e.what() << std::endl;
         NOSO_LOG_INFO << "===================================================" << std::endl;
         std::exit( EXIT_FAILURE );
     }
@@ -77,14 +77,16 @@ int main( int argc, char *argv[] ) {
     std::string msg { "" };
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
-    msg = std::string( "- Wallet address: " ) + g_miner_address;
+    msg = std::string( "-  Wallet address: " ) + g_miner_address;
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
-    msg = std::string( "-  Threads count: " ) + std::to_string( g_threads_count );
+    msg = std::string( "-   Threads count: " ) + std::to_string( g_threads_count );
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
-    for( auto itor = g_mining_pools.cbegin(); itor != g_mining_pools.cend(); itor = std::next( itor ) ) {
-        msg = ( itor == g_mining_pools.cbegin() ? "-   Mining pools: " : "                : " )
+    for( auto itor = std::begin( g_mining_pools );
+            itor != std::end( g_mining_pools );
+            itor = std::next( itor ) ) {
+        msg = ( itor == std::begin( g_mining_pools ) ? "-    Mining pools: " : "                 : " )
                 + lpad( std::get<0>( *itor ), 12, ' ' ).substr( 0, 12 )
                 + "(" + std::get<1>( *itor ) + ":" + std::get<2>( *itor ) + ")";
         NOSO_LOG_INFO << msg << std::endl;
@@ -97,7 +99,7 @@ int main( int argc, char *argv[] ) {
         msg = std::string( "YOU ARE MINING TO " ) + g_miner_address;
         NOSO_LOG_INFO << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
-        msg = "This address is the default of miner noso-2m.";
+        msg = "This wallet address is the default of noso-2m.";
         NOSO_LOG_INFO << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
         msg = "Mine to this address is to donate noso-2m's author.";
@@ -112,7 +114,10 @@ int main( int argc, char *argv[] ) {
         msg = "or/and in the config file.";
         NOSO_LOG_INFO << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
-        msg = "Happy mining!";
+        msg = "                                      Happy mining!";
+        NOSO_LOG_INFO << msg << std::endl;
+        NOSO_TUI_OutputHistPad( msg.c_str() );
+        msg = "                                         f04ever";
         NOSO_LOG_INFO << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
     }
@@ -128,7 +133,7 @@ int main( int argc, char *argv[] ) {
             if ( !g_still_running ) return;
             std::string msg { "Ctrl+C pressed! Wait for finishing all threads..." };
             NOSO_LOG_WARN << msg << std::endl;
-            g_still_running = false; });
+            g_still_running = false; } );
 #else // OF #ifdef NO_TEXTUI
         int last_key = NOSO_TUI_HandleEventLoop();
         g_still_running = false;

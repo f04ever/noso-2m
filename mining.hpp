@@ -16,10 +16,10 @@ struct CSolution {
     std::string base;
     std::string hash;
     std::string diff;
-    CSolution( std::uint32_t blck_, const char base_[19], const char hash_[33], const char diff_[33] )
-        :   blck { blck_ }, base { base_ }, hash { hash_ }, diff { diff_ } {
-        assert( std::strlen( base_ ) == 18 && std::strlen( hash_ ) == 32
-               && ( std::strlen( diff_ ) == 0 || std::strlen( diff_ ) == 32 ) );
+    CSolution( std::uint32_t blck, const char base[19], const char hash[33], const char diff[33] )
+        :   blck { blck }, base { base }, hash { hash }, diff { diff } {
+        assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32
+               && ( std::strlen( diff ) == 0 || std::strlen( diff ) == 32 ) );
     }
 };
 
