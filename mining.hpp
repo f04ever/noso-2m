@@ -46,15 +46,23 @@ struct CPoolTarget : public CTarget {
     std::uint64_t payment_amount;
     std::string payment_order_id;
     std::uint64_t mnet_hashrate;
+    std::uint32_t pool_fee;
+    std::time_t utc_time;
+    std::uint32_t num_miners;
+    std::uint64_t sum_amount;
+    std::uint32_t max_shares;
     std::string pool_name;
     CPoolTarget( std::uint32_t blck_no, const std::string &lb_hash, const std::string &mn_diff,
-                const std::string &prefix, const std::string &address, std::uint64_t till_balance,
-                std::uint32_t till_payment, std::uint64_t pool_hashrate, std::uint32_t payment_block,
-                std::uint64_t payment_amount, const std::string &payment_order_id, std::uint64_t mnet_hashrate,
-                const std::string& pool_name )
+            const std::string &prefix, const std::string &address, std::uint64_t till_balance,
+            std::uint32_t till_payment, std::uint64_t pool_hashrate, std::uint32_t payment_block,
+            std::uint64_t payment_amount, const std::string &payment_order_id, std::uint64_t mnet_hashrate,
+            std::uint32_t pool_fee, std::time_t utc_time, std::uint32_t num_miners,
+            std::uint64_t sum_amount, std::uint32_t max_shares, const std::string& pool_name )
         :   CTarget( blck_no, lb_hash, mn_diff ), till_balance { till_balance }, till_payment { till_payment },
             pool_hashrate { pool_hashrate }, payment_block { payment_block }, payment_amount { payment_amount },
-            payment_order_id { payment_order_id }, mnet_hashrate { mnet_hashrate }, pool_name { pool_name } {
+            payment_order_id { payment_order_id }, mnet_hashrate { mnet_hashrate },
+            pool_fee { pool_fee }, utc_time { utc_time }, num_miners { num_miners },
+            sum_amount { sum_amount }, max_shares { max_shares }, pool_name { pool_name } {
         this->prefix = prefix;
         this->address = address;
     }

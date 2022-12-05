@@ -40,6 +40,23 @@ CPoolInfo::CPoolInfo( const char *pi ) {
     this->mnet_hashrate = std::stoul( extract_status_token( p_pos, c_pos, status ) );
 }
 
+CPoolPublic::CPoolPublic( const char *pp ) {
+    assert( pp != nullptr && std::strlen( pp ) > 2 );
+    std::string status { pp };
+    status.erase( status.length() - 2 ); // remove the carriage return and new line charaters
+    size_t p_pos = -1, c_pos = -1;
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->pool_version = extract_status_token( p_pos, c_pos, status );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->pool_ips_count = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->pool_max_shares = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->pool_pay_blocks = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->pool_miner_ip = extract_status_token( p_pos, c_pos, status );
+}
+
 inline
 CPoolStatus::CPoolStatus( const char *ps ) {
     assert( ps != nullptr && std::strlen( ps ) > 2 );
@@ -89,9 +106,21 @@ CPoolStatus::CPoolStatus( const char *ps ) {
     // 11{pool_fee}
     next_status_token( ' ', p_pos, c_pos, status );
     this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
-    // 12{utctime}
+    // 12{utc_time}
     next_status_token( ' ', p_pos, c_pos, status );
-    this->utctime = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    this->utc_time = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    // 13{num_miners}
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->num_miners = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    // 14{pool_fee} duplicate the 11, skip
+    next_status_token( ' ', p_pos, c_pos, status );
+    // this->pool_fee = std::stoul( extract_status_token( p_pos, c_pos, status ) );
+    // 15{sum_amount}
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->sum_amount = std::stoull( extract_status_token( p_pos, c_pos, status ) );
+    // 16{max_shares}
+    next_status_token( ' ', p_pos, c_pos, status );
+    this->max_shares = std::stoul( extract_status_token( p_pos, c_pos, status ) );
     //
     // 8{payment_info}
     if ( payment_info.length() > 0 ) {
@@ -284,6 +313,31 @@ void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolut
             << "]Shares limitation reached!"
             << std::endl;
         NOSO_TUI_OutputStatPad( "Shares limitation reached!" );
+    } else if ( code == 11 ) {
+        NOSO_LOG_ERROR
+            << "    ERROR(--"
+            << ")base[" << solution->base
+            << "]hash[" << solution->hash
+            << "]Miner using TOR IP is not allowed!"
+            << std::endl;
+        NOSO_TUI_OutputStatPad( "Miner using TOR IP is not allowed!" );
+    } else if ( code == 12 ) {
+        NOSO_LOG_ERROR
+            << "    ERROR(--"
+            << ")base[" << solution->base
+            << "]hash[" << solution->hash
+            << "]Miner using VPN IP is not allowed!"
+            << std::endl;
+        NOSO_TUI_OutputStatPad( "Miner using VPN IP is not allowed!" );
+    } else {
+        std::string msg { "Unknown responding error code" + std::to_string( code ) + " !" };
+        NOSO_LOG_ERROR
+            << "    ERROR(--"
+            << ")base[" << solution->base
+            << "]hash[" << solution->hash
+            << "]" << msg.c_str()
+            << std::endl;
+        NOSO_TUI_OutputStatPad( msg.c_str() );
     }
     NOSO_TUI_OutputStatWin();
 }
@@ -358,16 +412,30 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
                 ps.payment_amount,
                 ps.payment_order_id,
                 ps.mnet_hashrate,
+                ps.pool_fee,
+                ps.utc_time,
+                ps.num_miners,
+                ps.sum_amount,
+                ps.max_shares,
                 std::get<0>( m_pool )
             );
         }
         catch ( const std::exception &e ) {
-            NOSO_LOG_DEBUG
-                << "CCommThread::RequestPoolTarget Unrecognised response from pool "
-                << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
-                << "[" << m_inet_buffer << "](size=" << rsize << ")" << e.what()
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "An unrecognised response from pool!" );
+            if ( rsize >= 13
+                    && std::strncmp( m_inet_buffer, "WRONG_ADDRESS", 13 ) == 0 ) {
+                std::string msg = "Submission uses a wrong wallet address" + std::string( address );
+                NOSO_LOG_DEBUG
+                    << msg
+                    << std::endl;
+                NOSO_TUI_OutputStatPad( msg.c_str() );
+            } else {
+                NOSO_LOG_DEBUG
+                    << "CCommThread::RequestPoolTarget Unrecognised response from pool "
+                    << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
+                    << "[" << m_inet_buffer << "](size=" << rsize << ")" << e.what()
+                    << std::endl;
+                NOSO_TUI_OutputStatPad( "An unrecognised response from pool!" );
+            }
         }
     }
     NOSO_TUI_OutputStatWin();
@@ -440,7 +508,7 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
             NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with pool!" );
         } else {
             // try {
-            // m_inet_buffer ~ len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1)\r\n]
+            // m_inet_buffer ~ len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1-2)\r\n]
             if (        rsize >= 6
                             && std::strncmp( m_inet_buffer, "True", 4 ) == 0 ) {
                 ret_code = 0;
@@ -448,13 +516,29 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
             }
             else if (   rsize >= 9
                             && std::strncmp( m_inet_buffer, "False ", 6 ) == 0 ) {
-                if ( '1' <= m_inet_buffer[6] && m_inet_buffer[6] <= '7' ) {
-                    ret_code = m_inet_buffer[6] - '0';
-                    break;
-                }
                 if ( rsize >= 18
                         && std::strncmp( m_inet_buffer + 6, "SHARES_LIMIT", 12 ) == 0 ) {
                     ret_code =  9;
+                    break;
+                }
+                std::uint32_t err_code = std::stoul( m_inet_buffer + 6 );
+                assert( err_code == 1
+                        || err_code == 2
+                        || err_code == 3
+                        || err_code == 4
+                        || err_code == 5
+                        || err_code == 7
+                        || err_code == 11
+                        || err_code == 12 );
+                if ( err_code == 1
+                        || err_code == 2
+                        || err_code == 3
+                        || err_code == 4
+                        || err_code == 5
+                        || err_code == 7
+                        || err_code == 11
+                        || err_code == 12 ) {
+                    ret_code = err_code;
                     break;
                 }
             }

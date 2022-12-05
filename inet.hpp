@@ -28,6 +28,7 @@ public:
     std::string m_name;
     CPoolInet( const std::string& name, const std::string &host, const std::string &port , int timeosec );
     int RequestPoolInfo( char *buffer, std::size_t buffsize );
+    int RequestPoolPublic( char *buffer, std::size_t buffsize );
     int RequestSource( const char address[32], char *buffer, std::size_t buffsize );
     int SubmitSolution( std::uint32_t blck_no, const char base[19], const char address[32],
                         char *buffer, std::size_t buffsize );

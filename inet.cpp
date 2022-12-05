@@ -199,6 +199,12 @@ int CPoolInet::RequestPoolInfo( char *buffer, std::size_t buffsize ) {
     return this->ExecCommand( buffer, buffsize );
 }
 
+int CPoolInet::RequestPoolPublic( char *buffer, std::size_t buffsize ) {
+    assert( buffer && buffsize > 0 );
+    std::snprintf( buffer, buffsize, "POOLPUBLIC\n" );
+    return this->ExecCommand( buffer, buffsize );
+}
+
 int CPoolInet::RequestSource( const char address[32], char *buffer, std::size_t buffsize ) {
     assert( buffer && buffsize > 0 );
     assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );

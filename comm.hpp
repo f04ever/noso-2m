@@ -24,6 +24,15 @@ struct CPoolInfo {
     CPoolInfo( const char *pi );
 };
 
+struct CPoolPublic {
+    std::string pool_version;
+    std::uint32_t pool_ips_count;
+    std::uint32_t pool_max_shares;
+    std::uint32_t pool_pay_blocks;
+    std::string pool_miner_ip;
+    CPoolPublic( const char *pp );
+};
+
 struct CPoolStatus {
     std::uint32_t blck_no;
     std::string lb_hash;
@@ -38,7 +47,10 @@ struct CPoolStatus {
     std::string payment_order_id;
     std::uint64_t mnet_hashrate;
     std::uint32_t pool_fee;
-    std::time_t utctime;
+    std::time_t utc_time;
+    std::uint32_t num_miners;
+    std::uint64_t sum_amount;
+    std::uint32_t max_shares;
     CPoolStatus( const char *ps );
 };
 
