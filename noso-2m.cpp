@@ -22,7 +22,7 @@
 std::atomic<bool> g_still_running { true };
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
-std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
+std::vector<pool_specs_t> g_mining_pools;
 std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 
 int main( int argc, char *argv[] ) {
@@ -65,6 +65,13 @@ int main( int argc, char *argv[] ) {
     }
     try {
         process_options( parsed_options );
+        if ( g_mining_pools.size() <= 0 ) {
+            std::string msg { "No pool provided!" };
+            NOSO_LOG_ERROR << msg << std::endl;
+            NOSO_TUI_OutputHistPad( msg.c_str() );
+            NOSO_TUI_OutputHistWin();
+            throw std::bad_exception();
+        }
     } catch( const std::bad_exception& e ) {
         NOSO_TUI_WaitKeyPress();
         NOSO_LOG_INFO << "===================================================" << std::endl;
@@ -127,16 +134,22 @@ int main( int argc, char *argv[] ) {
     NOSO_TUI_OutputHistWin();
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
-        std::thread comm_thread( &CCommThread::Communicate, CCommThread::GetInstance() );
+        std::vector<std::thread> comm_threads;
+        for ( auto pool : g_mining_pools ) {
+            auto comm_object { std::make_shared<CCommThread>( g_threads_count - 1, pool ) };
+            comm_threads.emplace_back( &CCommThread::Communicate, comm_object );
+        }
 #ifdef NO_TEXTUI
         signal( SIGINT, []( int /* signum */ ) {
             if ( !g_still_running ) return;
             std::string msg { "Ctrl+C pressed! Wait for finishing all threads..." };
             NOSO_LOG_WARN << msg << std::endl;
-            g_still_running = false; } );
+            g_still_running = false;
+            awaiting_tasks_notify( ); } );
 #else // OF #ifdef NO_TEXTUI
         int last_key = NOSO_TUI_HandleEventLoop();
         g_still_running = false;
+        awaiting_tasks_notify( );
         std::string msg { "Wait for finishing all threads..." };
         if ( last_key == KEY_CTRL( 'c' ) ) msg = "Ctrl+C pressed! " + msg;
         else  msg = "Commanded exit! " + msg;
@@ -146,7 +159,7 @@ int main( int argc, char *argv[] ) {
         NOSO_TUI_OutputStatPad( msg.c_str() );
         NOSO_TUI_OutputStatWin();
 #endif // OF #ifdef NO_TEXTUI ... #else
-        comm_thread.join();
+        for ( auto &comm_thread : comm_threads ) comm_thread.join();
         inet_cleanup();
         NOSO_LOG_INFO << "===================================================" << std::endl;
         return EXIT_SUCCESS;

@@ -9,6 +9,7 @@
 #include <cassert>
 #include <condition_variable>
 
+#include "noso-2m.hpp"
 #include "hashing.hpp"
 
 struct CSolution {
@@ -59,6 +60,8 @@ struct CPoolTarget : public CTarget {
     }
 };
 
+class CCommThread;
+
 class CMineThread {
 public:
     std::uint32_t const m_thread_id;
@@ -85,7 +88,7 @@ public:
     void NewTarget( const std::shared_ptr<CTarget> &target );
     void SetBlockSummary( std::uint32_t hashes_count, double duration );
     std::tuple<std::uint32_t, double> GetBlockSummary();
-    virtual void Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>& ) );
+    virtual void Mine( CCommThread * pCommThread );
 };
 
 #endif // __NOSO2M__MINING_HPP__

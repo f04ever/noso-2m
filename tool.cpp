@@ -11,7 +11,7 @@
 #include "util.hpp"
 #include "output.hpp"
 
-int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string, std::string>> const & mining_pools ) {
+int CTools::ShowPoolInformation( std::vector<pool_specs_t> const & mining_pools ) {
     char inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     char msg[200];
     std::snprintf( msg, 200, "POOL INFORMATION" );

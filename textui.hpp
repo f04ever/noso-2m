@@ -35,7 +35,7 @@
 | Paid AMOUNT(14.8) NOSO                            | <-- logs: pool
 | ORDER_ID(52)                                      | <-- logs: pool
 **/
-extern std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
+extern std::vector<pool_specs_t> g_mining_pools;
 extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 
 class CTextUI { // A singleton pattern class

@@ -3,9 +3,11 @@
 #endif
 
 #include <mutex>
+#include <thread>
 #include <cstring>
 
-#include "noso-2m.hpp"
+#include "comm.hpp"
+#include "misc.hpp"
 #include "mining.hpp"
 
 extern std::atomic<bool> g_still_running;
@@ -73,7 +75,8 @@ void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
     m_condv_blck_no.notify_one();
 }
 
-void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>& ) ) {
+void CMineThread::Mine( CCommThread * pCommThread ) {
+    std::mutex mutex_wait;
     m_exited = 0;
     char best_diff[33];
     while ( g_still_running ) {
@@ -89,14 +92,29 @@ void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>&
         auto begin_mining { std::chrono::steady_clock::now() };
         while ( g_still_running
                 && NOSO_BLOCK_IS_IN_MINING_AGE ) {
-            const char *base { m_hasher.GetBase( hashes_counter++ ) };
-            const char *hash { m_hasher.GetHash() };
-            assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 );
-            if ( std::strncmp( hash, m_lb_hash, match_len ) == 0 ) {
-                NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, "" ) );
+            if ( pCommThread->AcceptedSolutionsCount() >= DEFAULT_POOL_SHARES_LIMIT ) {
+                {
+                auto condv_wait = std::make_shared<std::condition_variable>();
+                awaiting_tasks_append( "CMineThread" + std::get<0>( pCommThread->m_pool ), condv_wait );
+                std::unique_lock<std::mutex> unique_lock_wait( mutex_wait );
+                condv_wait->wait_for( unique_lock_wait,
+                        std::chrono::milliseconds( static_cast<int>(
+                                1'000 * ( 585 - NOSO_BLOCK_AGE + 1 ) ) ),
+                        [&]() { return !g_still_running || ! NOSO_BLOCK_IS_IN_MINING_AGE; } );
+                unique_lock_wait.unlock();
+                awaiting_tasks_remove( "CMineThread" + std::get<0>( pCommThread->m_pool ) );
+                }
+            } else {
+                const char *base { m_hasher.GetBase( hashes_counter++ ) };
+                const char *hash { m_hasher.GetHash() };
+                assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 );
+                if ( std::strncmp( hash, m_lb_hash, match_len ) == 0 ) {
+                    pCommThread->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, "" ) );
+                }
             }
         }
-        std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
+        auto end_mining { std::chrono::steady_clock::now() };
+        std::chrono::duration<double> elapsed_mining { end_mining - begin_mining };
         this->SetBlockSummary( hashes_counter, elapsed_mining.count() );
         this->DoneTarget();
     } // END while ( g_still_running ) {

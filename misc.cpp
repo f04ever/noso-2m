@@ -6,10 +6,10 @@
 
 #include "misc.hpp"
 #include "output.hpp"
-#include "noso-2m.hpp"
 
 extern char g_miner_address[];
 extern std::uint32_t g_threads_count;
+extern std::vector<pool_specs_t> g_mining_pools;
 
 inline
 bool is_valid_address( std::string const & address ) {
@@ -24,7 +24,7 @@ bool is_valid_threads( std::uint32_t count ) {
 }
 
 inline
-std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( std::string const & poolstr ) {
+std::vector<pool_specs_t> parse_pools_argv( std::string const & poolstr ) {
     const std::regex re_pool1 { ";|[[:space:]]" };
     const std::regex re_pool2 {
         "^"
@@ -52,7 +52,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
         ")?"
         "$"
     };
-    std::vector<std::tuple<std::string, std::string, std::string>> mining_pools;
+    std::vector<pool_specs_t> mining_pools;
     std::for_each(
             std::sregex_token_iterator { poolstr.begin(), poolstr.end(), re_pool1 , -1 },
             std::sregex_token_iterator {}, [&]( const auto &tok ) {
@@ -160,3 +160,37 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
     g_mining_pools = parse_pools_argv( sel_pools );
 }
 
+std::mutex g_awaiting_tasks_mutex;
+std::unordered_map<std::string, std::shared_ptr<std::condition_variable>> g_awaiting_tasks_uomap{};
+
+bool awaiting_tasks_append( std::string const & tag,
+        std::shared_ptr<std::condition_variable> const & wait ) {
+    assert( tag.size() && wait );
+    std::unique_lock lock_awaiting_tasks( g_awaiting_tasks_mutex );
+    auto await_itor { g_awaiting_tasks_uomap.find( tag ) };
+    assert ( await_itor == g_awaiting_tasks_uomap.end() );
+    if ( await_itor == g_awaiting_tasks_uomap.end() ) {
+        g_awaiting_tasks_uomap[tag] = wait;
+        return true;
+    }
+    return false;
+}
+
+bool awaiting_tasks_remove( std::string const & tag ) {
+    assert( tag.size() );
+    std::unique_lock lock_awaiting_tasks( g_awaiting_tasks_mutex );
+    auto await_itor { g_awaiting_tasks_uomap.find( tag ) };
+    assert ( await_itor != g_awaiting_tasks_uomap.end() );
+    if ( await_itor != g_awaiting_tasks_uomap.end() ) {
+        g_awaiting_tasks_uomap.erase(await_itor);
+        return true;
+    }
+    return false;
+}
+
+void awaiting_tasks_notify( ) {
+    std::unique_lock lock_awaiting_tasks( g_awaiting_tasks_mutex );
+    std::for_each( g_awaiting_tasks_uomap.begin(), g_awaiting_tasks_uomap.end(),
+            []( std::pair<std::string, std::shared_ptr<std::condition_variable>> element ){
+                    element.second->notify_all(); } );
+}

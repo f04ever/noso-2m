@@ -11,6 +11,7 @@
 #include "inet.hpp"
 #include "comm.hpp"
 #include "util.hpp"
+#include "misc.hpp"
 #include "output.hpp"
 
 inline
@@ -109,24 +110,16 @@ CPoolStatus::CPoolStatus( const char *ps ) {
 }
 
 extern char g_miner_address[];
-extern std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
-extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 extern std::atomic<bool> g_still_running;
-extern std::uint32_t g_threads_count;
+extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 
-CCommThread::CCommThread()
-    :    m_mining_pools { g_mining_pools }, m_mining_pools_id { 0 } {
-    auto const NewSolFunc { []( const std::shared_ptr<CSolution>& solution ){
-            CCommThread::GetInstance()->AddSolution( solution ); } };
-    for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
-        m_mine_objects.push_back( std::make_shared<CMineThread>( thread_id ) );
-    for ( std::uint32_t thread_id = 0; thread_id < g_threads_count - 1; ++thread_id )
-        m_mine_threads.emplace_back( &CMineThread::Mine, m_mine_objects[thread_id], NewSolFunc );
-}
-
-std::shared_ptr<CCommThread> CCommThread::GetInstance() {
-    static std::shared_ptr<CCommThread> singleton { new CCommThread() };
-    return singleton;
+CCommThread::CCommThread( std::uint32_t threads_count, pool_specs_t const &pool )
+    :    m_pool { pool } {
+    for ( std::uint32_t thread_id = 0; thread_id < threads_count; ++thread_id ) {
+        auto mine_object { std::make_shared<CMineThread>( thread_id ) };
+        m_mine_objects.push_back( mine_object );
+        m_mine_threads.emplace_back( &CMineThread::Mine, mine_object, this );
+    }
 }
 
 inline
@@ -309,6 +302,15 @@ void CCommThread::ClearSolutions() {
 }
 
 inline
+std::size_t CCommThread::SolutionsCount() {
+    std::size_t size { 0 };
+    m_mutex_solutions.lock();
+    size = m_pool_solutions.size();
+    m_mutex_solutions.unlock();
+    return size;
+}
+
+inline
 const std::shared_ptr<CSolution> CCommThread::GetSolution() {
     std::shared_ptr<CSolution> good_solution { nullptr };
     m_mutex_solutions.lock();
@@ -320,14 +322,17 @@ const std::shared_ptr<CSolution> CCommThread::GetSolution() {
     return good_solution;
 }
 
+std::size_t CCommThread::AcceptedSolutionsCount() {
+    return m_accepted_solutions_count;
+}
+
 inline
 std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[32] ) {
     assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
-    auto pool { m_mining_pools[m_mining_pools_id] };
     CPoolInet inet {
-            std::get<0>( pool ),
-            std::get<1>( pool ),
-            std::get<2>( pool ),
+            std::get<0>( m_pool ),
+            std::get<1>( m_pool ),
+            std::get<2>( m_pool ),
             DEFAULT_POOL_INET_TIMEOSEC };
     int rsize { inet.RequestSource( address, m_inet_buffer,
             DEFAULT_INET_BUFFER_SIZE ) };
@@ -353,7 +358,7 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
                 ps.payment_amount,
                 ps.payment_order_id,
                 ps.mnet_hashrate,
-                std::get<0>( pool )
+                std::get<0>( m_pool )
             );
         }
         catch ( const std::exception &e ) {
@@ -372,15 +377,14 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
 inline
 std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetRetrying() {
     std::uint32_t tries_count { 1 };
-    auto pool { m_mining_pools[m_mining_pools_id] };
     std::shared_ptr<CPoolTarget> pool_target = this->RequestPoolTarget( g_miner_address );
     while ( g_still_running
             && NOSO_BLOCK_IS_IN_MINING_AGE
             && pool_target == nullptr ) {
         NOSO_LOG_DEBUG
             << "WAITING ON POOL "
-            << std::get<0>( pool )
-            << "(" << std::get<1>( pool ) << ":" << std::get<2>( pool ) << ")"
+            << std::get<0>( m_pool )
+            << "(" << std::get<1>( m_pool ) << ":" << std::get<2>( m_pool ) << ")"
             << " (Retries " << tries_count << "/" << DEFAULT_POOL_RETRIES_COUNT << ")"
             << std::endl;
         NOSO_TUI_OutputStatPad( "Waiting on pool ..." );
@@ -398,12 +402,13 @@ std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetRetrying() {
 inline
 std::shared_ptr<CTarget> CCommThread::GetTarget( const char prev_lb_hash[32] ) {
     assert( std::strlen( prev_lb_hash ) == 32 );
-        std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
     std::shared_ptr<CTarget> target = this->GetPoolTargetRetrying();
     while ( g_still_running
             && NOSO_BLOCK_IS_IN_MINING_AGE
             && ( target !=nullptr
                     && target->lb_hash == prev_lb_hash ) ) {
+        std::this_thread::sleep_for( std::chrono::milliseconds(
+                static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
         target = this->GetPoolTargetRetrying();
     }
     return target;
@@ -414,11 +419,10 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
     assert( std::strlen( base ) == 18
             && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
     static const int max_tries_count { 5 };
-    auto pool { m_mining_pools[m_mining_pools_id] };
     CPoolInet inet {
-            std::get<0>( pool ),
-            std::get<1>( pool ),
-            std::get<2>( pool ),
+            std::get<0>( m_pool ),
+            std::get<1>( m_pool ),
+            std::get<2>( m_pool ),
             DEFAULT_POOL_INET_TIMEOSEC };
     int ret_code { -1 };
     for (   int tries_count = 0;
@@ -518,26 +522,43 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution ) {
 }
 
 void CCommThread::Communicate() {
+    std::mutex mutex_wait;
     char prev_lb_hash[33] { NOSO_NUL_HASH };
     auto begin_blck = std::chrono::steady_clock::now();
+    auto end_blck = std::chrono::steady_clock::now();
     while ( g_still_running ) {
         if ( ! NOSO_BLOCK_IS_IN_MINING_AGE ) {
             NOSO_TUI_OutputStatPad( "Wait next block..." );
             NOSO_TUI_OutputStatWin();
+            NOSO_LOG_DEBUG << "Wait next block..." << std::endl;
             do {
-                std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
+                std::this_thread::sleep_for( std::chrono::milliseconds(
+                        static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
             } while ( g_still_running
                     && ! NOSO_BLOCK_IS_IN_MINING_AGE );
+            NOSO_LOG_DEBUG << "End wait block..." << std::endl;
             if ( !g_still_running ) break;
         }
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         if ( !g_still_running ) break;
         if ( target == nullptr ) {
-            if ( NOSO_BLOCK_IS_IN_MINING_AGE ) break;
+            NOSO_LOG_DEBUG << "No target. Wait the next session..." << std::endl;
+            {
+            auto condv_wait = std::make_shared<std::condition_variable>();
+            awaiting_tasks_append( "CCommThread" + std::get<0>( m_pool ), condv_wait );
+            std::unique_lock<std::mutex> unique_lock_wait( mutex_wait );
+            condv_wait->wait_for( unique_lock_wait,
+                    std::chrono::milliseconds( static_cast<int>(
+                            1'000 * ( 585 - NOSO_BLOCK_AGE + 1 ) ) ),
+                    [&]() { return !g_still_running || ! NOSO_BLOCK_IS_IN_MINING_AGE; } );
+            unique_lock_wait.unlock();
+            awaiting_tasks_remove( "CCommThread" + std::get<0>( m_pool ) );
+            }
+            NOSO_LOG_DEBUG << "Let next session..." << std::endl;
             continue;
         }
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
-        begin_blck = std::chrono::steady_clock::now();
+        end_blck = begin_blck = std::chrono::steady_clock::now();
         for ( auto const & mo : m_mine_objects ) mo->NewTarget( target );
         this->_ReportMiningTarget( target );
         while ( g_still_running
@@ -546,13 +567,32 @@ void CCommThread::Communicate() {
             std::shared_ptr<CSolution> solution = this->GetSolution();
             if ( solution != nullptr && solution->diff < target->mn_diff )
                 this->SubmitSolution( solution );
-            std::chrono::duration<double> elapsed_submit = std::chrono::steady_clock::now() - begin_submit;
-            if ( elapsed_submit.count() < DEFAULT_INET_CIRCLE_SECONDS ) {
-                std::this_thread::sleep_for( std::chrono::milliseconds(
-                        static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
+            if ( this->AcceptedSolutionsCount() >= DEFAULT_POOL_SHARES_LIMIT ) {
+                NOSO_LOG_DEBUG << "Done target. Take a rest..." << std::endl;
+                {
+                auto condv_wait = std::make_shared<std::condition_variable>();
+                awaiting_tasks_append( "CCommThread" + std::get<0>( m_pool ), condv_wait );
+                std::unique_lock<std::mutex> unique_lock_wait( mutex_wait );
+                condv_wait->wait_for( unique_lock_wait,
+                        std::chrono::milliseconds( static_cast<int>(
+                                1'000 * ( 585 - NOSO_BLOCK_AGE + 1 ) ) ),
+                        [&]() { return !g_still_running || ! NOSO_BLOCK_IS_IN_MINING_AGE; } );
+                unique_lock_wait.unlock();
+                awaiting_tasks_remove( "CCommThread" + std::get<0>( m_pool ) );
+                }
+                NOSO_LOG_DEBUG << "End the rest. Let next target..." << std::endl;
+                end_blck = std::chrono::steady_clock::now();
+            } else {
+                if ( this->SolutionsCount() > 0 ) continue;
+                auto end_submit = std::chrono::steady_clock::now();
+                std::chrono::duration<double> elapsed_submit = end_submit - begin_submit;
+                if ( elapsed_submit.count() < DEFAULT_INET_CIRCLE_SECONDS ) {
+                    std::this_thread::sleep_for( std::chrono::milliseconds(
+                            static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
+                }
             }
         }
-        this->CloseMiningBlock( std::chrono::steady_clock::now() - begin_blck );
+        this->CloseMiningBlock( end_blck - begin_blck );
         this->_ReportTargetSummary( target );
         this->ResetMiningBlock();
     } // END while ( g_still_running ) {
