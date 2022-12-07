@@ -179,6 +179,7 @@ void CCommThread::ResetMiningBlock() {
     m_accepted_solutions_count = 0;
     m_rejected_solutions_count = 0;
     m_failured_solutions_count = 0;
+    m_reached_pool_max_shares = false;
     this->ClearSolutions();
 };
 
@@ -378,10 +379,12 @@ const std::shared_ptr<CSolution> CCommThread::GetSolution() {
 }
 
 std::size_t CCommThread::AcceptedSolutionsReachedMaxShares() {
-    return !(   ( g_pool_shares_limit <= 0
-                    && m_accepted_solutions_count <= m_pool_max_shares )
-                || ( g_pool_shares_limit > 0
-                        && m_accepted_solutions_count < g_pool_shares_limit ) );
+    return m_reached_pool_max_shares
+            || !(   ( g_pool_shares_limit <= 0
+                            && m_accepted_solutions_count <= m_pool_max_shares )
+                    || ( g_pool_shares_limit > 0
+                            && m_accepted_solutions_count < g_pool_shares_limit )
+                );
 }
 
 inline
@@ -604,6 +607,9 @@ void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution ) {
         std::snprintf( msg, 100,
                 "A submission (%u) failured! The solution will be re-submited.",
                 m_failured_solutions_count );
+    }
+    if ( code == 9 ) {
+        m_reached_pool_max_shares = true;
     }
     if ( msg[0] ) NOSO_TUI_OutputStatPad( msg );
     NOSO_TUI_OutputStatWin();
