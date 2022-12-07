@@ -92,7 +92,7 @@ void CMineThread::Mine( CCommThread * pCommThread ) {
         auto begin_mining { std::chrono::steady_clock::now() };
         while ( g_still_running
                 && NOSO_BLOCK_IS_IN_MINING_AGE ) {
-            if ( pCommThread->AcceptedSolutionsCount() >= DEFAULT_POOL_SHARES_LIMIT ) {
+            if ( pCommThread->AcceptedSolutionsReachedMaxShares() ) {
                 {
                 auto condv_wait = std::make_shared<std::condition_variable>();
                 awaiting_tasks_append( "CMineThread" + std::get<0>( pCommThread->m_pool ), condv_wait );

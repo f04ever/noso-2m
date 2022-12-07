@@ -22,6 +22,7 @@
 std::atomic<bool> g_still_running { true };
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::uint32_t g_threads_count { DEFAULT_THREADS_COUNT };
+std::uint32_t g_pool_shares_limit { DEFAULT_POOL_SHARES_LIMIT };
 std::vector<pool_specs_t> g_mining_pools;
 std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 

@@ -140,6 +140,7 @@ CPoolStatus::CPoolStatus( const char *ps ) {
 
 extern char g_miner_address[];
 extern std::atomic<bool> g_still_running;
+extern std::uint32_t g_pool_shares_limit;
 extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 
 CCommThread::CCommThread( std::uint32_t threads_count, pool_specs_t const &pool )
@@ -376,8 +377,11 @@ const std::shared_ptr<CSolution> CCommThread::GetSolution() {
     return good_solution;
 }
 
-std::size_t CCommThread::AcceptedSolutionsCount() {
-    return m_accepted_solutions_count;
+std::size_t CCommThread::AcceptedSolutionsReachedMaxShares() {
+    return !(   ( g_pool_shares_limit <= 0
+                    && m_accepted_solutions_count <= m_pool_max_shares )
+                || ( g_pool_shares_limit > 0
+                        && m_accepted_solutions_count < g_pool_shares_limit ) );
 }
 
 inline
@@ -645,13 +649,15 @@ void CCommThread::Communicate() {
         end_blck = begin_blck = std::chrono::steady_clock::now();
         for ( auto const & mo : m_mine_objects ) mo->NewTarget( target );
         this->_ReportMiningTarget( target );
+        std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
+        m_pool_max_shares = pool_target->max_shares;
         while ( g_still_running
                 && NOSO_BLOCK_IS_IN_MINING_AGE ) {
             auto begin_submit = std::chrono::steady_clock::now();
             std::shared_ptr<CSolution> solution = this->GetSolution();
             if ( solution != nullptr && solution->diff < target->mn_diff )
                 this->SubmitSolution( solution );
-            if ( this->AcceptedSolutionsCount() >= DEFAULT_POOL_SHARES_LIMIT ) {
+            if ( this->AcceptedSolutionsReachedMaxShares() ) {
                 NOSO_LOG_DEBUG << "Done target. Take a rest..." << std::endl;
                 {
                 auto condv_wait = std::make_shared<std::condition_variable>();

@@ -65,6 +65,7 @@ private:
     std::uint64_t m_last_block_hashes_count { 0 };
     double m_last_block_elapsed_secs { 0. };
     double m_last_block_hashrate { 0. };
+    std::uint32_t m_pool_max_shares { DEFAULT_POOL_SHARES_LIMIT };
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
@@ -91,7 +92,7 @@ public:
     CCommThread& operator=( CCommThread&& ) = delete; // Move assignment prohibited
     void AddSolution( const std::shared_ptr<CSolution>& solution );
     void SubmitSolution( const std::shared_ptr<CSolution> &solution );
-    std::size_t AcceptedSolutionsCount();
+    std::size_t AcceptedSolutionsReachedMaxShares();
     void Communicate();
 };
 
