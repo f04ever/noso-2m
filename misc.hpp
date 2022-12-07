@@ -31,10 +31,9 @@ void process_options( cxxopts::ParseResult const & parsed_options );
 void process_arg_options( cxxopts::ParseResult const & parsed_options );
 void process_cfg_options( cxxopts::ParseResult const & parsed_options );
 
-bool awaiting_tasks_append( std::string const & tag,
-        std::shared_ptr<std::condition_variable> const & wait );
-bool awaiting_tasks_remove( std::string const & tag );
-void awaiting_tasks_notify( );
+void awaiting_threads_notify( );
+void awaiting_threads_wait( std::mutex & mutex_wait, bool ( * wake_up )() );
+void awaiting_threads_wait_for( int sec, std::mutex & mutex_wait, bool ( * wake_up )() );
 
 #endif // __NOSO2M_MISC_HPP__
 

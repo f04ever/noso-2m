@@ -3,6 +3,7 @@
 #endif
 
 #include <regex>
+#include <thread>
 
 #include "misc.hpp"
 #include "output.hpp"
@@ -160,37 +161,54 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
     g_mining_pools = parse_pools_argv( sel_pools );
 }
 
-std::mutex g_awaiting_tasks_mutex;
-std::unordered_map<std::string, std::shared_ptr<std::condition_variable>> g_awaiting_tasks_uomap{};
+std::mutex _g_awaiting_threads_mutex;
+std::unordered_map<std::thread::id, std::shared_ptr<std::condition_variable>> _g_awaiting_threads_uomap {};
 
-bool awaiting_tasks_append( std::string const & tag,
-        std::shared_ptr<std::condition_variable> const & wait ) {
-    assert( tag.size() && wait );
-    std::unique_lock lock_awaiting_tasks( g_awaiting_tasks_mutex );
-    auto await_itor { g_awaiting_tasks_uomap.find( tag ) };
-    assert ( await_itor == g_awaiting_tasks_uomap.end() );
-    if ( await_itor == g_awaiting_tasks_uomap.end() ) {
-        g_awaiting_tasks_uomap[tag] = wait;
+inline
+bool _awaiting_threads_append( std::shared_ptr<std::condition_variable> const & wait ) {
+    assert( wait );
+    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
+    auto await_itor { _g_awaiting_threads_uomap.find( std::this_thread::get_id() ) };
+    assert ( await_itor == _g_awaiting_threads_uomap.end() );
+    if ( await_itor == _g_awaiting_threads_uomap.end() ) {
+        _g_awaiting_threads_uomap[std::this_thread::get_id()] = wait;
         return true;
     }
     return false;
 }
 
-bool awaiting_tasks_remove( std::string const & tag ) {
-    assert( tag.size() );
-    std::unique_lock lock_awaiting_tasks( g_awaiting_tasks_mutex );
-    auto await_itor { g_awaiting_tasks_uomap.find( tag ) };
-    assert ( await_itor != g_awaiting_tasks_uomap.end() );
-    if ( await_itor != g_awaiting_tasks_uomap.end() ) {
-        g_awaiting_tasks_uomap.erase(await_itor);
+inline
+bool _awaiting_threads_remove( ) {
+    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
+    auto await_itor { _g_awaiting_threads_uomap.find( std::this_thread::get_id() ) };
+    assert ( await_itor != _g_awaiting_threads_uomap.end() );
+    if ( await_itor != _g_awaiting_threads_uomap.end() ) {
+        _g_awaiting_threads_uomap.erase(await_itor);
         return true;
     }
     return false;
 }
 
-void awaiting_tasks_notify( ) {
-    std::unique_lock lock_awaiting_tasks( g_awaiting_tasks_mutex );
-    std::for_each( g_awaiting_tasks_uomap.begin(), g_awaiting_tasks_uomap.end(),
-            []( std::pair<std::string, std::shared_ptr<std::condition_variable>> element ){
+void awaiting_threads_notify( ) {
+    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
+    std::for_each( _g_awaiting_threads_uomap.begin(), _g_awaiting_threads_uomap.end(),
+            []( std::pair<std::thread::id, std::shared_ptr<std::condition_variable>> element ){
                     element.second->notify_all(); } );
+}
+
+void awaiting_threads_wait( std::mutex & mutex_wait, bool ( * wake_up )() ) {
+    auto condv_wait = std::make_shared<std::condition_variable>();
+    std::unique_lock<std::mutex> lock_wait( mutex_wait );
+    _awaiting_threads_append( condv_wait );
+    condv_wait->wait( lock_wait, wake_up );
+    _awaiting_threads_remove( );
+}
+
+void awaiting_threads_wait_for( int sec, std::mutex & mutex_wait, bool ( * wake_up )() ) {
+    if ( sec < 0 ) return;
+    auto condv_wait = std::make_shared<std::condition_variable>();
+    std::unique_lock<std::mutex> lock_wait( mutex_wait );
+    _awaiting_threads_append( condv_wait );
+    condv_wait->wait_for( lock_wait, std::chrono::milliseconds( 1'000 * sec ), wake_up );
+    _awaiting_threads_remove( );
 }

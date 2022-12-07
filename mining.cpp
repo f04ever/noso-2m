@@ -91,19 +91,13 @@ void CMineThread::Mine( CCommThread * pCommThread ) {
         std::uint32_t hashes_counter { 0 };
         auto begin_mining { std::chrono::steady_clock::now() };
         while ( g_still_running
-                && NOSO_BLOCK_IS_IN_MINING_AGE ) {
-            if ( pCommThread->AcceptedSolutionsReachedMaxShares() ) {
-                {
-                auto condv_wait = std::make_shared<std::condition_variable>();
-                awaiting_tasks_append( "CMineThread" + std::get<0>( pCommThread->m_pool ), condv_wait );
-                std::unique_lock<std::mutex> unique_lock_wait( mutex_wait );
-                condv_wait->wait_for( unique_lock_wait,
-                        std::chrono::milliseconds( static_cast<int>(
-                                1'000 * ( 585 - NOSO_BLOCK_AGE + 1 ) ) ),
-                        [&]() { return !g_still_running || ! NOSO_BLOCK_IS_IN_MINING_AGE; } );
-                unique_lock_wait.unlock();
-                awaiting_tasks_remove( "CMineThread" + std::get<0>( pCommThread->m_pool ) );
-                }
+                && NOSO_BLOCK_AGE_INNER_MINING_PERIOD ) {
+            if ( pCommThread->IsBandedByPool() ) {
+                break;
+            } else if ( pCommThread->ReachedMaxShares() ) {
+                awaiting_threads_wait_for( ( 585 - NOSO_BLOCK_AGE ) + 1,
+                        mutex_wait, []() -> bool { return !g_still_running
+                                || NOSO_BLOCK_AGE_OUTER_MINING_PERIOD; } );
             } else {
                 const char *base { m_hasher.GetBase( hashes_counter++ ) };
                 const char *hash { m_hasher.GetHash() };
@@ -117,6 +111,9 @@ void CMineThread::Mine( CCommThread * pCommThread ) {
         std::chrono::duration<double> elapsed_mining { end_mining - begin_mining };
         this->SetBlockSummary( hashes_counter, elapsed_mining.count() );
         this->DoneTarget();
+        if ( pCommThread->IsBandedByPool() ) {
+            break;
+        }
     } // END while ( g_still_running ) {
     m_exited = 1;
 }

@@ -146,11 +146,11 @@ int main( int argc, char *argv[] ) {
             std::string msg { "Ctrl+C pressed! Wait for finishing all threads..." };
             NOSO_LOG_WARN << msg << std::endl;
             g_still_running = false;
-            awaiting_tasks_notify( ); } );
+            awaiting_threads_notify( ); } );
 #else // OF #ifdef NO_TEXTUI
         int last_key = NOSO_TUI_HandleEventLoop();
         g_still_running = false;
-        awaiting_tasks_notify( );
+        awaiting_threads_notify( );
         std::string msg { "Wait for finishing all threads..." };
         if ( last_key == KEY_CTRL( 'c' ) ) msg = "Ctrl+C pressed! " + msg;
         else  msg = "Commanded exit! " + msg;
