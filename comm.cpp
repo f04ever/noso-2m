@@ -8,8 +8,8 @@
 #include <cstring>
 #include <algorithm>
 
-#include "inet.hpp"
 #include "comm.hpp"
+#include "inet.hpp"
 #include "util.hpp"
 #include "misc.hpp"
 #include "output.hpp"
@@ -72,19 +72,19 @@ CPoolStatus::CPoolStatus( const char *ps ) {
     // 1{prefix}
     next_status_token( ' ', p_pos, c_pos, status );
     this->prefix = extract_status_token( p_pos, c_pos, status );
-    if ( this->prefix.length() != 3 ) throw std::out_of_range( "Wrong receiving pool prefix" );
+    if ( this->prefix.length() != 3 ) throw std::out_of_range( "Wrong pool prefix" );
     // 2{address}
     next_status_token( ' ', p_pos, c_pos, status );
     this->address = extract_status_token( p_pos, c_pos, status );
-    if ( this->address.length() != 30 && this->address.length() != 31 )  throw std::out_of_range( "Wrong receiving pool address" );
+    if ( this->address.length() != 30 && this->address.length() != 31 )  throw std::out_of_range( "Wrong pool address" );
     // 3{mn_diff}
     next_status_token( ' ', p_pos, c_pos, status );
     this->mn_diff = extract_status_token( p_pos, c_pos, status );
-    if ( this->mn_diff.length() != 32 ) throw std::out_of_range( "Wrong receiving pool diff" );
+    if ( this->mn_diff.length() != 32 ) throw std::out_of_range( "Wrong pool diff" );
     // 4{lb_hash}
     next_status_token( ' ', p_pos, c_pos, status );
     this->lb_hash = extract_status_token( p_pos, c_pos, status );
-    if (this->lb_hash.length() != 32 ) throw std::out_of_range( "Wrong receiving lb_hash" );
+    if (this->lb_hash.length() != 32 ) throw std::out_of_range( "Wrong lb_hash" );
     // 5{blck_no}
     next_status_token( ' ', p_pos, c_pos, status );
     this->blck_no = std::stoul( extract_status_token( p_pos, c_pos, status ) );
@@ -185,41 +185,48 @@ void CCommThread::ResetMiningBlock() {
 
 inline
 void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) {
-    char msg[100];
+    char msgbuf[100];
     if ( m_last_block_elapsed_secs > 0 ) {
         NOSO_LOG_DEBUG
-            << " Computed " << m_last_block_hashes_count << " hashes within "
-            << std::fixed << std::setprecision( 2 ) << m_last_block_elapsed_secs / 60 << " minutes"
-            << std::endl;
-        std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
-        std::snprintf( msg, 100, " Hashrate(Miner/Pool/Mnet) %5.01f%c / %5.01f%c / %5.01f%c",
-                hashrate_pretty_value( m_last_block_hashrate ),      hashrate_pretty_unit( m_last_block_hashrate ),
-                hashrate_pretty_value( pool_target->pool_hashrate ), hashrate_pretty_unit( pool_target->pool_hashrate ),
-                hashrate_pretty_value( pool_target->mnet_hashrate ), hashrate_pretty_unit( pool_target->mnet_hashrate ) );
-        NOSO_LOG_INFO << msg << std::endl;
-        NOSO_TUI_OutputHistPad( msg );
+                << " Computed " << m_last_block_hashes_count << " hashes within "
+                << std::fixed << std::setprecision( 2 )
+                << m_last_block_elapsed_secs / 60 << " minutes"
+                << std::endl;
+        auto pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
+        std::snprintf( msgbuf, 100,
+                " Hashrate(Miner/Pool/Mnet) %5.01f%c / %5.01f%c / %5.01f%c",
+                hashrate_pretty_value( m_last_block_hashrate ),
+                hashrate_pretty_unit( m_last_block_hashrate ),
+                hashrate_pretty_value( pool_target->pool_hashrate ),
+                hashrate_pretty_unit( pool_target->pool_hashrate ),
+                hashrate_pretty_value( pool_target->mnet_hashrate ),
+                hashrate_pretty_unit( pool_target->mnet_hashrate ) );
+        NOSO_LOG_INFO << msgbuf << std::endl;
+        NOSO_TUI_OutputHistPad( msgbuf );
         if ( pool_target->payment_block == pool_target->blck_no ) {
-            std::snprintf( msg, 100, " Paid %.8g NOSO", pool_target->payment_amount / 100'000'000.0 );
-            NOSO_LOG_INFO << msg << std::endl;
-            NOSO_TUI_OutputHistPad( msg );
-            std::snprintf( msg, 100, " %s", pool_target->payment_order_id.c_str() );
-            NOSO_LOG_INFO << msg << std::endl;
-            NOSO_TUI_OutputHistPad( msg );
+            std::snprintf( msgbuf, 100, " Paid %.8g NOSO",
+                    pool_target->payment_amount / 100'000'000.0 );
+            NOSO_LOG_INFO << msgbuf << std::endl;
+            NOSO_TUI_OutputHistPad( msgbuf );
+            std::snprintf( msgbuf, 100, " Order %s",
+                    pool_target->payment_order_id.c_str() );
+            NOSO_LOG_INFO << msgbuf << std::endl;
+            NOSO_TUI_OutputHistPad( msgbuf );
         }
         NOSO_TUI_OutputHistWin();
     }
-    std::snprintf( msg, 100, "---------------------------------------------------" );
-    NOSO_LOG_INFO << msg << std::endl;
-    std::snprintf( msg, 100, "BLOCK %06u       %-32s",
+    std::snprintf( msgbuf, 100, "---------------------------------------------------" );
+    NOSO_LOG_INFO << msgbuf << std::endl;
+    std::snprintf( msgbuf, 100, "BLOCK %06u       %-32s",
             target->blck_no + 1, target->lb_hash.substr( 0, 32 ).c_str() );
-    NOSO_LOG_INFO << msg << std::endl;
+    NOSO_LOG_INFO << msgbuf << std::endl;
     NOSO_TUI_OutputActiWinBlockNum( target->blck_no + 1 );
     NOSO_TUI_OutputActiWinLastHash( target->lb_hash.substr( 0, 32 ) );
-    std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
-    std::snprintf( msg, 100, " Pool %-12s %-32s",
+    auto pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
+    std::snprintf( msgbuf, 100, " Pool %-12s %-32s",
             pool_target->pool_name.substr( 0, 12 ).c_str(),
             pool_target->mn_diff.substr( 0, 32).c_str() );
-    NOSO_LOG_INFO << msg << std::endl;
+    NOSO_LOG_INFO << msgbuf << std::endl;
     NOSO_TUI_OutputActiWinMiningDiff( target->mn_diff.substr( 0, 32 ) );
     NOSO_TUI_OutputActiWinAcceptedSol( m_accepted_solutions_count );
     NOSO_TUI_OutputActiWinRejectedSol( m_rejected_solutions_count );
@@ -233,126 +240,25 @@ void CCommThread::_ReportMiningTarget( const std::shared_ptr<CTarget>& target ) 
 
 inline
 void CCommThread::_ReportTargetSummary( const std::shared_ptr<CTarget>& target ) {
-    char msg[100];
-    std::snprintf( msg, 100, "---------------------------------------------------" );
-    NOSO_TUI_OutputHistPad( msg );
-    std::snprintf( msg, 100, "BLOCK %06u       %-32s",
+    char msgbuf[100];
+    std::snprintf( msgbuf, 100, "---------------------------------------------------" );
+    NOSO_TUI_OutputHistPad( msgbuf );
+    std::snprintf( msgbuf, 100, "BLOCK %06u       %-32s",
             target->blck_no + 1, target->lb_hash.substr( 0, 32 ).c_str() );
-    NOSO_TUI_OutputHistPad( msg );
-    std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
-    std::snprintf( msg, 100, " Pool %-12s %-32s",
+    NOSO_TUI_OutputHistPad( msgbuf );
+    auto pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
+    std::snprintf( msgbuf, 100, " Pool %-12s %-32s",
             pool_target->pool_name.substr( 0, 12 ).c_str(),
             pool_target->mn_diff.substr( 0, 32).c_str() );
-    NOSO_TUI_OutputHistPad( msg );
-    std::snprintf( msg, 100, " Sent %5u / %4u / %3u | %14.8g NOSO [%2u]",
+    NOSO_TUI_OutputHistPad( msgbuf );
+    std::snprintf( msgbuf, 100, " Sent %5u / %4u / %3u | %14.8g NOSO [%2u]",
             m_accepted_solutions_count, m_rejected_solutions_count, m_failured_solutions_count,
             pool_target->till_balance / 100'000'000.0, pool_target->till_payment );
-    NOSO_LOG_INFO << msg << std::endl;
-    NOSO_TUI_OutputHistPad( msg );
+    NOSO_LOG_INFO << msgbuf << std::endl;
+    NOSO_TUI_OutputHistPad( msgbuf );
     NOSO_TUI_OutputHistWin();
     NOSO_TUI_OutputActiWinDefault();
 };
-
-inline
-void CCommThread::_ReportErrorSubmitting( int code, const std::shared_ptr<CSolution> &solution ) {
-    char msg[100];
-    if      ( code == 1 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Wrong block#" << solution->blck << " submitted!"
-            << std::endl;
-        std::snprintf( msg, 100, "Wrong block#%06u submitted!", solution->blck );
-        NOSO_TUI_OutputStatPad( msg );
-    } else if ( code == 2 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Incorrect timestamp submitted!"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "Incorrect timestamp submitted!" );
-    } else if ( code == 3 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Invalid address (" << g_miner_address << ") submitted!"
-            << std::endl;
-        std::snprintf( msg, 100, "Invalid address (%s) submitted!",
-                g_miner_address );
-        NOSO_TUI_OutputStatPad( msg );
-    } else if ( code == 7 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Wrong base submitted!"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "Wrong base submitted!" );
-    } else if ( code == 4 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Duplicate share submitted!"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "Duplicate share submitted!" );
-    } else if ( code == 5 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Wrong diff submitted!"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "Wrong diff submitted!" );
-    } else if ( code == 9 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Reached max shares!"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "Reached max shares!" );
-    } else if ( code == 11 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Banned for using TOR!"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "Banned for using TOR!" );
-    } else if ( code == 12 ) {
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]Banned for using VPN!"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "Banned for using VPN!" );
-    } else {
-        std::string msg { "Unknown response (code=" + std::to_string( code ) + ")!" };
-        NOSO_LOG_ERROR
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-            << "]   ERROR(--"
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]" << msg.c_str()
-            << std::endl;
-        NOSO_TUI_OutputStatPad( msg.c_str() );
-    }
-    NOSO_TUI_OutputStatWin();
-}
 
 void CCommThread::AddSolution( const std::shared_ptr<CSolution>& solution ) {
     m_mutex_solutions.lock();
@@ -404,6 +310,7 @@ bool CCommThread::ReachedMaxShares() {
 inline
 std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[32] ) {
     assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
+    char msgbuf[100];
     CPoolInet inet {
             std::get<0>( m_pool ),
             std::get<1>( m_pool ),
@@ -412,11 +319,11 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
     int rsize { inet.RequestSource( address, m_inet_buffer,
             DEFAULT_INET_BUFFER_SIZE ) };
     if ( rsize <= 0 ) {
-        NOSO_LOG_DEBUG
-            << "CCommThread::RequestPoolTarget Poor connecting with pool "
-            << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with pool!" );
+        std::snprintf( msgbuf, 100,
+                "Poor connection with pool %s(%s:%s)",
+                inet.m_name.c_str(), inet.m_host.c_str(), inet.m_port.c_str() );
+        NOSO_LOG_DEBUG << msgbuf << std::endl;
+        NOSO_TUI_OutputStatPad( msgbuf );
     } else {
         try {
             CPoolStatus ps( m_inet_buffer );
@@ -441,22 +348,23 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
                 std::get<0>( m_pool )
             );
         }
-        catch ( const std::exception &e ) {
+        catch ( const std::exception & e ) {
             if ( rsize >= 13
                     && std::strncmp( m_inet_buffer, "WRONG_ADDRESS", 13 ) == 0 ) {
-                std::string msg = "Submission uses a wrong wallet address" + std::string( address );
-                NOSO_LOG_DEBUG
-                    << msg
-                    << std::endl;
-                NOSO_TUI_OutputStatPad( msg.c_str() );
+                std::snprintf( msgbuf, 100,
+                        "Submit by a wrong address %s", address );
             } else {
+                std::snprintf( msgbuf, 100,
+                        "Unrecognised response from pool %s(%s:%s)",
+                        inet.m_name.c_str(), inet.m_host.c_str(), inet.m_port.c_str() );
                 NOSO_LOG_DEBUG
-                    << "CCommThread::RequestPoolTarget Unrecognised response from pool "
-                    << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
-                    << "[" << m_inet_buffer << "](size=" << rsize << ")" << e.what()
-                    << std::endl;
-                NOSO_TUI_OutputStatPad( "An unrecognised response from pool!" );
+                        << "[" << m_inet_buffer << "](size=" << rsize << ")" << e.what()
+                        << std::endl;
             }
+            NOSO_LOG_ERROR << msgbuf << std::endl;
+            NOSO_TUI_OutputHistPad( msgbuf );
+            NOSO_TUI_OutputStatPad( msgbuf );
+            NOSO_TUI_OutputHistWin();
         }
     }
     NOSO_TUI_OutputStatWin();
@@ -465,25 +373,24 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
 
 inline
 std::shared_ptr<CPoolTarget> CCommThread::GetPoolTargetRetrying() {
-    std::uint32_t tries_count { 1 };
+    char msgbuf[100];
     std::shared_ptr<CPoolTarget> pool_target = this->RequestPoolTarget( g_miner_address );
+    std::uint32_t tries_count { 0 };
     while ( g_still_running
-            && NOSO_BLOCK_AGE_INNER_MINING_PERIOD
+                && NOSO_BLOCK_AGE_INNER_MINING_PERIOD
+                && tries_count < std::uint32_t( DEFAULT_POOL_RETRIES_COUNT )
             && pool_target == nullptr ) {
-        NOSO_LOG_DEBUG
-            << "WAITING ON POOL "
-            << std::get<0>( m_pool )
-            << "(" << std::get<1>( m_pool ) << ":" << std::get<2>( m_pool ) << ")"
-            << " (Retries " << tries_count << "/" << DEFAULT_POOL_RETRIES_COUNT << ")"
-            << std::endl;
-        NOSO_TUI_OutputStatPad( "Waiting on pool ..." );
+        std::snprintf( msgbuf, 100,
+                "Retry (%d/%d) sourcing from pool %s...",
+                tries_count + 1, DEFAULT_POOL_RETRIES_COUNT,
+                std::get<0>( m_pool ).c_str() );
+        NOSO_LOG_WARN << msgbuf << std::endl;
+        NOSO_TUI_OutputStatPad( msgbuf );
         NOSO_TUI_OutputStatWin();
         std::this_thread::sleep_for( std::chrono::milliseconds(
                 static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
         pool_target = this->RequestPoolTarget( g_miner_address );
         ++tries_count;
-        if ( tries_count > std::uint32_t( DEFAULT_POOL_RETRIES_COUNT ) )
-            break;
     }
     return pool_target;
 }
@@ -507,26 +414,32 @@ inline
 int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19], const char address[32] ) {
     assert( std::strlen( base ) == 18
             && ( std::strlen( address ) == 30 || std::strlen( address ) == 31 ) );
-    static const int max_tries_count { 5 };
+    int ret_code { -1 };
+    char msgbuf[100];
     CPoolInet inet {
             std::get<0>( m_pool ),
             std::get<1>( m_pool ),
             std::get<2>( m_pool ),
             DEFAULT_POOL_INET_TIMEOSEC };
-    int ret_code { -1 };
-    for (   int tries_count = 0;
+    for (   std::uint32_t tries_count { 0 };
             g_still_running
-                && tries_count < max_tries_count;
+                && NOSO_BLOCK_AGE_INNER_MINING_PERIOD
+                && tries_count < std::uint32_t( DEFAULT_POOL_RETRIES_COUNT );
             ++tries_count ) {
         int rsize { inet.SubmitSolution( blck_no, base, address,
                 m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
         if ( rsize <= 0 ) {
-            NOSO_LOG_DEBUG
-                << "CCommThread::SubmitPoolSolution Poor connecting with pool "
-                << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
-                << " Retrying " << tries_count + 1 << "/" << max_tries_count
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "A poor connectivity while connecting with pool!" );
+            std::snprintf( msgbuf, 100,
+                    "Poor connection with pool %s(%s:%s)",
+                    inet.m_name.c_str(), inet.m_host.c_str(), inet.m_port.c_str() );
+            NOSO_LOG_DEBUG << msgbuf << std::endl;
+            NOSO_TUI_OutputStatPad( msgbuf );
+            std::snprintf( msgbuf, 100,
+                    "Retry (%d/%d) submitting to pool %s...",
+                    tries_count + 1, DEFAULT_POOL_RETRIES_COUNT,
+                    std::get<0>( m_pool ).c_str() );
+            NOSO_LOG_WARN << msgbuf << std::endl;
+            NOSO_TUI_OutputStatPad( msgbuf );
         } else {
             // try {
             // m_inet_buffer ~ len=(4+2)~[True\r\n] OR len=(7+2)~[False Code#(1-2)\r\n]
@@ -564,13 +477,17 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
                 }
             }
             // } catch ( const std::exception &e ) {}
+            std::snprintf( msgbuf, 100,
+                    "Unrecognised response from pool %s(%s:%s)",
+                    inet.m_name.c_str(), inet.m_host.c_str(), inet.m_port.c_str() );
             NOSO_LOG_DEBUG
-                << "CCommThread::SubmitPoolSolution Unrecognised response from pool "
-                << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
-                << "[" << m_inet_buffer << "](size=" << rsize << ")"
-                << std::endl;
-            NOSO_TUI_OutputStatPad( "An unrecognised response from pool!" );
+                    << "[" << m_inet_buffer << "](size=" << rsize << ")"
+                    << std::endl;
+            NOSO_LOG_WARN << msgbuf << std::endl;
+            NOSO_TUI_OutputHistPad( msgbuf );
+            NOSO_TUI_OutputStatPad( msgbuf );
         }
+        NOSO_TUI_OutputHistWin();
         NOSO_TUI_OutputStatWin();
         std::this_thread::sleep_for( std::chrono::milliseconds(
                 static_cast<int>( 1'000 * DEFAULT_INET_CIRCLE_SECONDS ) ) );
@@ -579,123 +496,160 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
 }
 
 inline
-void CCommThread::SubmitSolution( const std::shared_ptr<CSolution> &solution ) {
-    int code = this->SubmitPoolSolution( solution->blck, solution->base.c_str(), g_miner_address );
-    if ( code > 0 ) this->_ReportErrorSubmitting( code, solution ); // rest other error codes 1, 2, 3, 4, 7
-    char msg[100] { "" };
+void CCommThread::SubmitSolution( std::shared_ptr<CSolution> const & solution,
+            std::shared_ptr<CTarget> const & target ) {
+    int code = this->SubmitPoolSolution( solution->blck,
+            solution->base.c_str(), g_miner_address );
+    char msgbuf[100];
+    auto  pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
     if ( code == 0 ) {
         m_accepted_solutions_count ++;
-        NOSO_LOG_INFO
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
+        std::snprintf( msgbuf, 100,
+                "Pool %s accepts the %u%s of %u max shares",
+                std::get<0>( m_pool ).c_str(),
+                m_accepted_solutions_count,
+                m_accepted_solutions_count == 1 ? "st"
+                      : m_accepted_solutions_count == 2 ? "nd"
+                            : m_accepted_solutions_count == 3 ? "rd" : "th",
+                pool_target->max_shares );
+        NOSO_LOG_INFO << msgbuf << std::endl;
+        NOSO_LOG_DEBUG
+            << "POOL[" << std::get<0>( m_pool )
             << "]ACCEPTED("
-            << std::setfill( '0' ) << std::setw( 2 ) << m_accepted_solutions_count
+            << std::setfill( '0' ) << std::setw( 2 )
+            << m_accepted_solutions_count
             << ")base[" << solution->base
             << "]hash[" << solution->hash
             << "]"
             << std::endl;
         NOSO_TUI_OutputActiWinAcceptedSol( m_accepted_solutions_count );
-        std::snprintf( msg, 100, "A submission (%u) accepted!",
-                m_accepted_solutions_count );
-    } else if ( code > 0) {
+    } else if ( code > 0 ) {
         m_rejected_solutions_count ++;
-        NOSO_LOG_INFO
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
+        std::snprintf( msgbuf, 100, "Pool %s rejects",
+                std::get<0>( m_pool ).c_str() );
+        if      ( code == 1 )
+            std::snprintf( msgbuf, 100, "%s the wrong block number share", msgbuf );
+        else if ( code == 2 )
+            std::snprintf( msgbuf, 100, "%s the wrong timestamp share", msgbuf );
+        else if ( code == 3 )
+            std::snprintf( msgbuf, 100, "%s the wrong noso address share", msgbuf );
+        else if ( code == 4 )
+            std::snprintf( msgbuf, 100, "%s the duplicate hash share", msgbuf );
+        else if ( code == 5 )
+            std::snprintf( msgbuf, 100, "%s the wrong hashdiff share", msgbuf );
+        else if ( code == 7 )
+            std::snprintf( msgbuf, 100, "%s the wrong hashbase share", msgbuf );
+        else if ( code == 9 )
+            std::snprintf( msgbuf, 100, "%s the exceeded limit share", msgbuf );
+        else if ( code == 11 )
+            std::snprintf( msgbuf, 100, "%s the used TOR share (BANNED!!!)", msgbuf );
+        else if ( code == 12 )
+            std::snprintf( msgbuf, 100, "%s the used VPN share (BANNED!!!)", msgbuf );
+        else
+            std::snprintf( msgbuf, 100, "%s as the unknown response", msgbuf );
+        NOSO_LOG_WARN << msgbuf << std::endl;
+        NOSO_LOG_DEBUG
+            << "POOL[" << std::get<0>( m_pool )
             << "]REJECTED("
-            << std::setfill( '0' ) << std::setw( 2 ) << m_rejected_solutions_count
+            << std::setfill( '0' ) << std::setw( 2 )
+            << m_rejected_solutions_count
             << ")base[" << solution->base
             << "]hash[" << solution->hash
             << "]"
             << std::endl;
         NOSO_TUI_OutputActiWinRejectedSol( m_rejected_solutions_count );
-        std::snprintf( msg, 100, "A submission (%u) rejected!",
-                m_rejected_solutions_count );
-    } else {
+    } else { /* code < 0 */
         this->AddSolution( solution );
         m_failured_solutions_count ++;
-        NOSO_LOG_INFO
+        std::snprintf( msgbuf, 100, "Pool %s fails %u share(s)",
+                std::get<0>( m_pool ).c_str(), m_failured_solutions_count );
+        NOSO_LOG_INFO << msgbuf << std::endl;
+        NOSO_LOG_DEBUG
             << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
             << "]FAILURED("
             << std::setfill( '0' ) << std::setw( 2 ) << m_failured_solutions_count
             << ")base[" << solution->base
             << "]hash[" << solution->hash
-            << "]Will retry submitting!"
+            << "]"
             << std::endl;
         NOSO_TUI_OutputActiWinFailuredSol( m_failured_solutions_count );
-        std::snprintf( msg, 100,
-                "A submission (%u) failured! The solution will be re-submited.",
-                m_failured_solutions_count );
     }
+    NOSO_TUI_OutputStatPad( msgbuf );
+    NOSO_TUI_OutputStatWin();
     if ( code == 9 ) {
         m_reached_pool_max_shares = true;
     } else if ( code == 11 || code == 12 ) {
         m_been_banded_by_pool = true;
     }
-    if ( msg[0] ) NOSO_TUI_OutputStatPad( msg );
-    NOSO_TUI_OutputStatWin();
 }
 
 void CCommThread::Communicate() {
+    char msgbuf[100];
     std::mutex mutex_wait;
     char prev_lb_hash[33] { NOSO_NUL_HASH };
     auto begin_blck = std::chrono::steady_clock::now();
     auto end_blck = std::chrono::steady_clock::now();
     while ( g_still_running ) {
+        std::snprintf( msgbuf, 100,
+                "Wait target from pool %s...",
+                std::get<0>( m_pool ).c_str() );
+        NOSO_LOG_INFO << msgbuf << std::endl;
+        NOSO_TUI_OutputHistPad( msgbuf );
+        NOSO_TUI_OutputStatPad( msgbuf );
+        NOSO_TUI_OutputHistWin();
+        NOSO_TUI_OutputStatWin();
         if ( NOSO_BLOCK_AGE_OUTER_MINING_PERIOD ) {
-            NOSO_TUI_OutputStatPad( "Wait next block..." );
-            NOSO_TUI_OutputStatWin();
-            NOSO_LOG_DEBUG
-                    << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-                    << "]Wait next block..." << std::endl;
             awaiting_threads_wait_for(
                     ( NOSO_BLOCK_AGE_BEHIND_MINING_PERIOD
                             ? ( 600 - NOSO_BLOCK_AGE + 10 )
                             : ( 10 - NOSO_BLOCK_AGE ) ) + 1,
                     mutex_wait, []() -> bool { return !g_still_running
                             || NOSO_BLOCK_AGE_INNER_MINING_PERIOD; } );
-            NOSO_LOG_DEBUG
-                    << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-                    << "]End wait block..." << std::endl;
             if ( !g_still_running ) break;
         }
         std::shared_ptr<CTarget> target = this->GetTarget( prev_lb_hash );
         if ( !g_still_running ) break;
         if ( target == nullptr ) {
-            NOSO_LOG_DEBUG
-                    << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-                    << "]None target. Take a rest..." << std::endl;
+            std::snprintf( msgbuf, 100,
+                    "None target from pool %s. Take a rest",
+                    std::get<0>( m_pool ).c_str() );
+            NOSO_LOG_INFO << msgbuf << std::endl;
+            NOSO_TUI_OutputHistPad( msgbuf );
+            NOSO_TUI_OutputStatPad( msgbuf );
+            NOSO_TUI_OutputHistWin();
+            NOSO_TUI_OutputStatWin();
             awaiting_threads_wait_for( ( 585 - NOSO_BLOCK_AGE ) + 1,
                     mutex_wait, []() -> bool { return !g_still_running
                             || NOSO_BLOCK_AGE_OUTER_MINING_PERIOD; } );
-            NOSO_LOG_DEBUG
-                    << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-                    << "]Rest ended. Let next session." << std::endl;
             continue;
         }
         std::strcpy( prev_lb_hash, target->lb_hash.c_str() );
         end_blck = begin_blck = std::chrono::steady_clock::now();
         for ( auto const & mo : m_mine_objects ) mo->NewTarget( target );
         this->_ReportMiningTarget( target );
-        std::shared_ptr<CPoolTarget> pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
+        auto  pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
         m_pool_max_shares = pool_target->max_shares;
         while ( g_still_running
                 && NOSO_BLOCK_AGE_INNER_MINING_PERIOD ) {
             auto begin_submit = std::chrono::steady_clock::now();
             std::shared_ptr<CSolution> solution = this->GetSolution();
             if ( solution != nullptr && solution->diff < target->mn_diff )
-                this->SubmitSolution( solution );
+                this->SubmitSolution( solution, target );
             if ( this->IsBandedByPool() ) {
                 break;
             } else if ( this->ReachedMaxShares() ) {
                 end_blck = std::chrono::steady_clock::now();
-                NOSO_LOG_DEBUG
-                        << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-                        << "]Done target. Take a rest..." << std::endl;
+                std::snprintf( msgbuf, 100,
+                        "Done target from pool %s. Take a rest",
+                        std::get<0>( m_pool ).c_str() );
+                NOSO_LOG_INFO << msgbuf << std::endl;
+                NOSO_TUI_OutputHistPad( msgbuf );
+                NOSO_TUI_OutputStatPad( msgbuf );
+                NOSO_TUI_OutputHistWin();
+                NOSO_TUI_OutputStatWin();
                 awaiting_threads_wait_for( ( 585 - NOSO_BLOCK_AGE ) + 1,
                         mutex_wait, []() -> bool { return !g_still_running
                                 || NOSO_BLOCK_AGE_OUTER_MINING_PERIOD; } );
-                NOSO_LOG_DEBUG
-                        << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
-                        << "]Rest ended. Let next session." << std::endl;
             } else {
                 if ( this->SolutionsCount() > 0 ) continue;
                 auto end_submit = std::chrono::steady_clock::now();

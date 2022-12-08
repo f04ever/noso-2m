@@ -9,8 +9,8 @@
 #include <iostream>
 
 #include "noso-2m.hpp"
-#include "logging.hpp"
 #include "textui.hpp"
+#include "logging.hpp"
 
 #define NOSO_STDOUT std::cout
 #define NOSO_STDERR std::cerr
@@ -19,7 +19,7 @@
 static std::shared_ptr<CTextUI> _TEXTUI { CTextUI::GetInstance() };
 #define NOSO_TUI_StartTUI()         _TEXTUI->StartTUI()
 #define NOSO_TUI_WaitKeyPress()     _TEXTUI->WaitKeyPress()
-#define NOSO_TUI_HandleEventLoop()  _TEXTUI->HandleEventLoop()
+#define NOSO_TUI_HandleEventLoop( hlr ) _TEXTUI->HandleEventLoop( (hlr) )
 #define NOSO_TUI_OutputHeadPad( msg )   _TEXTUI->OutputHeadPad( (msg) )
 #define NOSO_TUI_OutputHeadWin()        _TEXTUI->OutputHeadWin()
 #define NOSO_TUI_OutputHistPad( msg )   _TEXTUI->OutputHistPad( (msg) )
@@ -44,7 +44,7 @@ static CLogFile _NOSO_LOGGING_LOGSTREAM( _NOSO_LOGGING_OFS );
 #else // OF #ifndef NO_TEXTUI
 #define NOSO_TUI_StartTUI()         ((void)0)
 #define NOSO_TUI_WaitKeyPress()     ((void)0)
-#define NOSO_TUI_HandleEventLoop()  (0)
+#define NOSO_TUI_HandleEventLoop( hlr ) ((void)0)
 #define NOSO_TUI_OutputHeadPad( msg )   ((void)0)
 #define NOSO_TUI_OutputHeadWin()        ((void)0)
 #define NOSO_TUI_OutputHistPad( msg )   ((void)0)

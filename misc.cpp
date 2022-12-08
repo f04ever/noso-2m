@@ -4,13 +4,14 @@
 
 #include <regex>
 #include <thread>
+#include <cassert>
 
 #include "misc.hpp"
 #include "output.hpp"
 
 extern char g_miner_address[];
 extern std::uint32_t g_pool_shares_limit;
-extern std::uint32_t g_threads_count;
+extern std::uint32_t g_pool_threads_count;
 extern std::vector<pool_specs_t> g_mining_pools;
 
 inline
@@ -76,27 +77,32 @@ std::vector<pool_specs_t> parse_pools_argv( std::string const & poolstr ) {
     return mining_pools;
 }
 
-mining_options_t
-    g_arg_options = {
+struct _mining_options_t {
+    int shares;
+    int threads;
+    std::string address;
+    std::string pools;
+    std::string filename;
+}   _g_arg_options = {
         .shares = DEFAULT_POOL_SHARES_LIMIT,
-        .threads = DEFAULT_THREADS_COUNT,
+        .threads = DEFAULT_POOL_THREADS_COUNT,
     },
-    g_cfg_options = {
+    _g_cfg_options = {
         .shares = DEFAULT_POOL_SHARES_LIMIT,
-        .threads = DEFAULT_THREADS_COUNT,
+        .threads = DEFAULT_POOL_THREADS_COUNT,
     };
 
 inline
 void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
     try {
-        g_arg_options.address = parsed_options["address"].as<std::string>();
-        if ( !is_valid_address( g_arg_options.address ) )
+        _g_arg_options.address = parsed_options["address"].as<std::string>();
+        if ( !is_valid_address( _g_arg_options.address ) )
             throw std::invalid_argument( "Invalid miner address option" );
-        g_arg_options.threads = parsed_options["threads"].as<std::uint32_t>();
-        if ( !is_valid_threads( g_arg_options.threads ) )
+        _g_arg_options.threads = parsed_options["threads"].as<std::uint32_t>();
+        if ( !is_valid_threads( _g_arg_options.threads ) )
             throw std::invalid_argument( "Invalid threads count option" );
-        g_arg_options.shares = parsed_options["shares"].as<std::uint32_t>();
-        g_arg_options.pools = parsed_options["pools"].as<std::string>();
+        _g_arg_options.shares = parsed_options["shares"].as<std::uint32_t>();
+        _g_arg_options.pools = parsed_options["pools"].as<std::string>();
     } catch( const std::invalid_argument& e ) {
         std::string msg { e.what() };
         NOSO_LOG_FATAL << msg << std::endl;
@@ -107,19 +113,19 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
 
 inline
 void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
-    g_cfg_options.filename = parsed_options["config"].as<std::string>();
-    std::ifstream cfg_istream( g_cfg_options.filename );
+    _g_cfg_options.filename = parsed_options["config"].as<std::string>();
+    std::ifstream cfg_istream( _g_cfg_options.filename );
     if( !cfg_istream.good() ) {
-        std::string msg { "Config file '" + g_cfg_options.filename + "' not found!" };
+        std::string msg { "Config file '" + _g_cfg_options.filename + "' not found!" };
         NOSO_LOG_WARN << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
-        if ( g_cfg_options.filename != DEFAULT_CONFIG_FILENAME ) throw std::bad_exception();
+        if ( _g_cfg_options.filename != DEFAULT_CONFIG_FILENAME ) throw std::bad_exception();
         msg = "Use default options";
         NOSO_LOG_INFO << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
         NOSO_TUI_OutputHistWin();
     } else {
-        std::string msg { "Load config file '" + g_cfg_options.filename + "'" };
+        std::string msg { "Load config file '" + _g_cfg_options.filename + "'" };
         NOSO_LOG_INFO << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
         NOSO_TUI_OutputHistWin();
@@ -129,22 +135,22 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
             while ( std::getline( cfg_istream, line_str ) ) {
                 line_no++;
                 if        ( line_str.rfind( "address ", 0 ) == 0 ) {
-                    g_cfg_options.address = line_str.substr( 8 );
-                    if ( !is_valid_address( g_cfg_options.address ) )
+                    _g_cfg_options.address = line_str.substr( 8 );
+                    if ( !is_valid_address( _g_cfg_options.address ) )
                         throw std::invalid_argument( "Invalid address config" );
                 } else if ( line_str.rfind( "threads ", 0 ) == 0 ) {
-                    g_cfg_options.threads = std::stoul( line_str.substr( 8 ) );
-                    if ( !is_valid_threads( g_cfg_options.threads ) )
+                    _g_cfg_options.threads = std::stoul( line_str.substr( 8 ) );
+                    if ( !is_valid_threads( _g_cfg_options.threads ) )
                         throw std::invalid_argument( "Invalid threads count config" );
                 } else if ( line_str.rfind( "shares ", 0 ) == 0 ) {
-                    g_cfg_options.shares = std::stoul( line_str.substr( 8 ) );
+                    _g_cfg_options.shares = std::stoul( line_str.substr( 8 ) );
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
-                    if ( g_cfg_options.pools.size() > 0 ) g_cfg_options.pools += ";";
-                    g_cfg_options.pools += line_str.substr( 6 );
+                    if ( _g_cfg_options.pools.size() > 0 ) _g_cfg_options.pools += ";";
+                    _g_cfg_options.pools += line_str.substr( 6 );
                 }
             }
         } catch( const std::invalid_argument& e ) {
-            std::string msg { std::string( e.what() ) + " in file '" + g_cfg_options.filename + "'" };
+            std::string msg { std::string( e.what() ) + " in file '" + _g_cfg_options.filename + "'" };
             NOSO_LOG_FATAL << msg << " line#" << line_no << "[" << line_str << "]" << std::endl;
             NOSO_TUI_OutputHistPad( msg.c_str() );
             throw std::bad_exception();
@@ -156,16 +162,16 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
     process_cfg_options( parsed_options );
     process_arg_options( parsed_options );
     std::string sel_address {
-        g_arg_options.address != DEFAULT_MINER_ADDRESS ? g_arg_options.address
-            : g_cfg_options.address.length() > 0 ? g_cfg_options.address : DEFAULT_MINER_ADDRESS };
+        _g_arg_options.address != DEFAULT_MINER_ADDRESS ? _g_arg_options.address
+            : _g_cfg_options.address.length() > 0 ? _g_cfg_options.address : DEFAULT_MINER_ADDRESS };
     std::string sel_pools {
-        g_arg_options.pools != DEFAULT_POOL_URL_LIST ? g_arg_options.pools
-            : g_cfg_options.pools.length() > 0 ? g_cfg_options.pools : DEFAULT_POOL_URL_LIST };
+        _g_arg_options.pools != DEFAULT_POOL_URL_LIST ? _g_arg_options.pools
+            : _g_cfg_options.pools.length() > 0 ? _g_cfg_options.pools : DEFAULT_POOL_URL_LIST };
     std::strcpy( g_miner_address, sel_address.c_str() );
-    g_pool_shares_limit = g_arg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? g_arg_options.shares
-        : g_cfg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? g_cfg_options.shares : DEFAULT_POOL_SHARES_LIMIT;
-    g_threads_count = g_arg_options.threads != DEFAULT_THREADS_COUNT ? g_arg_options.threads
-        : g_cfg_options.threads != DEFAULT_THREADS_COUNT ? g_cfg_options.threads : DEFAULT_THREADS_COUNT;
+    g_pool_shares_limit = _g_arg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? _g_arg_options.shares
+        : _g_cfg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? _g_cfg_options.shares : DEFAULT_POOL_SHARES_LIMIT;
+    g_pool_threads_count = _g_arg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_arg_options.threads
+        : _g_cfg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_cfg_options.threads : DEFAULT_POOL_THREADS_COUNT;
     g_mining_pools = parse_pools_argv( sel_pools );
 }
 

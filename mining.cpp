@@ -6,9 +6,9 @@
 #include <thread>
 #include <cstring>
 
+#include "mining.hpp"
 #include "comm.hpp"
 #include "misc.hpp"
-#include "mining.hpp"
 
 extern std::atomic<bool> g_still_running;
 

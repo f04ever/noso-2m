@@ -1,6 +1,12 @@
 #ifndef __NOSO2M_HPP__
 #define __NOSO2M_HPP__
 
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
+#include <tuple>
+
 #include "config.hpp"
 
 #define NOSO_NUL_HASH "00000000000000000000000000000000"
@@ -17,6 +23,8 @@
 #define NOSO_BLOCK_AGE_OUTER_MINING_PERIOD                      \
             (   ( NOSO_BLOCK_AGE_BEFORE_MINING_PERIOD )         \
                    || ( NOSO_BLOCK_AGE_BEHIND_MINING_PERIOD )   )
+
+typedef std::tuple<std::string, std::string, std::string> pool_specs_t;
 
 #endif // __NOSO2M_HPP__
 

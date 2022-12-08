@@ -85,7 +85,6 @@ private:
     void ResetMiningBlock();
     void _ReportMiningTarget( const std::shared_ptr<CTarget>& target );
     void _ReportTargetSummary( const std::shared_ptr<CTarget>& target );
-    void _ReportErrorSubmitting( int code, const std::shared_ptr<CSolution> &solution );
 public:
     CCommThread( std::uint32_t threads_count, pool_specs_t const &pool );
     CCommThread( const CCommThread& ) = delete; // Copy prohibited
@@ -93,7 +92,8 @@ public:
     void operator=( const CCommThread& ) = delete; // Assignment prohibited
     CCommThread& operator=( CCommThread&& ) = delete; // Move assignment prohibited
     void AddSolution( const std::shared_ptr<CSolution>& solution );
-    void SubmitSolution( const std::shared_ptr<CSolution> &solution );
+    void SubmitSolution( std::shared_ptr<CSolution> const & solution,
+            std::shared_ptr<CTarget> const & target );
     bool IsBandedByPool();
     bool ReachedMaxShares();
     void Communicate();

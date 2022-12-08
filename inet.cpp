@@ -13,9 +13,9 @@
 #include <fcntl.h>
 #endif // _WIN32
 
+#include "noso-2m.hpp"
 #include "inet.hpp"
 #include "output.hpp"
-#include "noso-2m.hpp"
 
 int inet_init() {
     #ifdef _WIN32

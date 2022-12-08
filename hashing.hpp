@@ -11,6 +11,8 @@
 
 #include "md5-c.hpp"
 
+#include "noso-2m.hpp"
+
 class CNosoHasher {
     char m_base[19];
     char m_hash[33];
