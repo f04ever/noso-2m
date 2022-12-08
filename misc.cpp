@@ -20,7 +20,7 @@ bool is_valid_address( std::string const & address ) {
 
 inline
 bool is_valid_threads( std::uint32_t count ) {
-    if ( count < 2 ) return false;
+    if ( count < 1 ) return false;
     return true;
 }
 
@@ -77,10 +77,10 @@ std::vector<pool_specs_t> parse_pools_argv( std::string const & poolstr ) {
 
 mining_options_t
     g_arg_options = {
-        .threads = 2,
+        .threads = DEFAULT_THREADS_COUNT,
     },
     g_cfg_options = {
-        .threads = 2,
+        .threads = DEFAULT_THREADS_COUNT,
     };
 
 inline
@@ -129,7 +129,7 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                     if ( !is_valid_address( g_cfg_options.address ) )
                         throw std::invalid_argument( "Invalid address config" );
                 } else if ( line_str.rfind( "threads ", 0 ) == 0 ) {
-                    g_cfg_options.threads = std::stoi( line_str.substr( 8 ) );
+                    g_cfg_options.threads = std::stoul( line_str.substr( 8 ) );
                     if ( !is_valid_threads( g_cfg_options.threads ) )
                         throw std::invalid_argument( "Invalid threads count config" );
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
@@ -156,8 +156,8 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
         g_arg_options.pools != DEFAULT_POOL_URL_LIST ? g_arg_options.pools
             : g_cfg_options.pools.length() > 0 ? g_cfg_options.pools : DEFAULT_POOL_URL_LIST };
     std::strcpy( g_miner_address, sel_address.c_str() );
-    g_threads_count = g_arg_options.threads > DEFAULT_THREADS_COUNT ? g_arg_options.threads
-        : g_cfg_options.threads > DEFAULT_THREADS_COUNT ? g_cfg_options.threads : DEFAULT_THREADS_COUNT;
+    g_threads_count = g_arg_options.threads != DEFAULT_THREADS_COUNT ? g_arg_options.threads
+        : g_cfg_options.threads != DEFAULT_THREADS_COUNT ? g_cfg_options.threads : DEFAULT_THREADS_COUNT;
     g_mining_pools = parse_pools_argv( sel_pools );
 }
 

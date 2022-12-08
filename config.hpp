@@ -12,7 +12,7 @@
 #define DEFAULT_POOL_URL_LIST           "" /* "f04ever:f04ever.com:8082" */
 #define DEFAULT_MINER_ADDRESS           "NbGP2VXhtkJSbEtHYz2uNfKRo34YDq"
 
-#define DEFAULT_THREADS_COUNT           2
+#define DEFAULT_THREADS_COUNT           1
 #define DEFAULT_POOL_RETRIES_COUNT      4
 #define DEFAULT_POOL_SHARES_LIMIT       15
 #define DEFAULT_POOL_INET_TIMEOSEC      60

@@ -31,8 +31,8 @@ int main( int argc, char *argv[] ) {
     command_options.add_options()
         ( "c,config",   "A configuration file",                 cxxopts::value<std::string>()->default_value( DEFAULT_CONFIG_FILENAME ) )
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
-        ( "t,threads",  "Threads count - 2 or more",            cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
         ( "p,pools",    "Mining pools list",                    cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
+        ( "t,threads",  "Hashing threads per pool", cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
@@ -88,7 +88,7 @@ int main( int argc, char *argv[] ) {
     msg = std::string( "-  Wallet address: " ) + g_miner_address;
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
-    msg = std::string( "-   Threads count: " ) + std::to_string( g_threads_count );
+    msg = std::string( "- Hashing threads: " ) + std::to_string( g_threads_count ) + " threads per pool";
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
     for( auto itor = std::begin( g_mining_pools );
@@ -137,7 +137,7 @@ int main( int argc, char *argv[] ) {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
         std::vector<std::thread> comm_threads;
         for ( auto pool : g_mining_pools ) {
-            auto comm_object { std::make_shared<CCommThread>( g_threads_count - 1, pool ) };
+            auto comm_object { std::make_shared<CCommThread>( g_threads_count, pool ) };
             comm_threads.emplace_back( &CCommThread::Communicate, comm_object );
         }
 #ifdef NO_TEXTUI
