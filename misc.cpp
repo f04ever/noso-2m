@@ -9,6 +9,7 @@
 #include "output.hpp"
 
 extern char g_miner_address[];
+extern std::uint32_t g_pool_shares_limit;
 extern std::uint32_t g_threads_count;
 extern std::vector<pool_specs_t> g_mining_pools;
 
@@ -77,9 +78,11 @@ std::vector<pool_specs_t> parse_pools_argv( std::string const & poolstr ) {
 
 mining_options_t
     g_arg_options = {
+        .shares = DEFAULT_POOL_SHARES_LIMIT,
         .threads = DEFAULT_THREADS_COUNT,
     },
     g_cfg_options = {
+        .shares = DEFAULT_POOL_SHARES_LIMIT,
         .threads = DEFAULT_THREADS_COUNT,
     };
 
@@ -92,6 +95,7 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
         g_arg_options.threads = parsed_options["threads"].as<std::uint32_t>();
         if ( !is_valid_threads( g_arg_options.threads ) )
             throw std::invalid_argument( "Invalid threads count option" );
+        g_arg_options.shares = parsed_options["shares"].as<std::uint32_t>();
         g_arg_options.pools = parsed_options["pools"].as<std::string>();
     } catch( const std::invalid_argument& e ) {
         std::string msg { e.what() };
@@ -132,6 +136,8 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                     g_cfg_options.threads = std::stoul( line_str.substr( 8 ) );
                     if ( !is_valid_threads( g_cfg_options.threads ) )
                         throw std::invalid_argument( "Invalid threads count config" );
+                } else if ( line_str.rfind( "shares ", 0 ) == 0 ) {
+                    g_cfg_options.shares = std::stoul( line_str.substr( 8 ) );
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
                     if ( g_cfg_options.pools.size() > 0 ) g_cfg_options.pools += ";";
                     g_cfg_options.pools += line_str.substr( 6 );
@@ -156,6 +162,8 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
         g_arg_options.pools != DEFAULT_POOL_URL_LIST ? g_arg_options.pools
             : g_cfg_options.pools.length() > 0 ? g_cfg_options.pools : DEFAULT_POOL_URL_LIST };
     std::strcpy( g_miner_address, sel_address.c_str() );
+    g_pool_shares_limit = g_arg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? g_arg_options.shares
+        : g_cfg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? g_cfg_options.shares : DEFAULT_POOL_SHARES_LIMIT;
     g_threads_count = g_arg_options.threads != DEFAULT_THREADS_COUNT ? g_arg_options.threads
         : g_cfg_options.threads != DEFAULT_THREADS_COUNT ? g_cfg_options.threads : DEFAULT_THREADS_COUNT;
     g_mining_pools = parse_pools_argv( sel_pools );

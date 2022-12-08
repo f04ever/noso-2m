@@ -21,6 +21,7 @@ typedef std::tuple<std::string, std::string, std::string> pool_specs_t;
 std::vector<pool_specs_t> parse_pools_argv( std::string const & poolstr );
 
 struct mining_options_t {
+    int shares;
     int threads;
     std::string address;
     std::string pools;

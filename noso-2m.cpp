@@ -32,7 +32,8 @@ int main( int argc, char *argv[] ) {
         ( "c,config",   "A configuration file",                 cxxopts::value<std::string>()->default_value( DEFAULT_CONFIG_FILENAME ) )
         ( "a,address",  "An original noso wallet address",      cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "p,pools",    "Mining pools list",                    cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
-        ( "t,threads",  "Hashing threads per pool", cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
+        ( "t,threads",  "Hashing threads per pool",     cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_THREADS_COUNT ) ) )
+        ( "s,shares",   "Shares limit per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_SHARES_LIMIT ) ) )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
@@ -89,6 +90,9 @@ int main( int argc, char *argv[] ) {
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
     msg = std::string( "- Hashing threads: " ) + std::to_string( g_threads_count ) + " threads per pool";
+    NOSO_LOG_INFO << msg << std::endl;
+    NOSO_TUI_OutputHistPad( msg.c_str() );
+    msg = std::string( "-    Shares limit: " ) + std::to_string( g_pool_shares_limit ) + " shares per pool";
     NOSO_LOG_INFO << msg << std::endl;
     NOSO_TUI_OutputHistPad( msg.c_str() );
     for( auto itor = std::begin( g_mining_pools );
