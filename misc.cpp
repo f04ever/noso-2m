@@ -13,6 +13,7 @@ extern char g_miner_address[];
 extern std::uint32_t g_pool_shares_limit;
 extern std::uint32_t g_pool_threads_count;
 extern std::vector<pool_specs_t> g_mining_pools;
+extern CLogLevel g_logging_level;
 
 inline
 bool is_valid_address( std::string const & address ) {
@@ -83,13 +84,16 @@ struct _mining_options_t {
     std::string address;
     std::string pools;
     std::string filename;
+    std::string logging;
 }   _g_arg_options = {
         .shares = DEFAULT_POOL_SHARES_LIMIT,
         .threads = DEFAULT_POOL_THREADS_COUNT,
+        .logging = DEFAULT_LOGGING_LEVEL,
     },
     _g_cfg_options = {
         .shares = DEFAULT_POOL_SHARES_LIMIT,
         .threads = DEFAULT_POOL_THREADS_COUNT,
+        .logging = DEFAULT_LOGGING_LEVEL,
     };
 
 inline
@@ -97,12 +101,16 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
     try {
         _g_arg_options.address = parsed_options["address"].as<std::string>();
         if ( !is_valid_address( _g_arg_options.address ) )
-            throw std::invalid_argument( "Invalid miner address option" );
+            throw std::invalid_argument( "Invalid miner address argument" );
         _g_arg_options.threads = parsed_options["threads"].as<std::uint32_t>();
         if ( !is_valid_threads( _g_arg_options.threads ) )
-            throw std::invalid_argument( "Invalid threads count option" );
+            throw std::invalid_argument( "Invalid threads count argument" );
         _g_arg_options.shares = parsed_options["shares"].as<std::uint32_t>();
         _g_arg_options.pools = parsed_options["pools"].as<std::string>();
+        _g_arg_options.logging = parsed_options["logging"].as<std::string>();
+        if ( _g_arg_options.logging != "info"
+                && _g_arg_options.logging != "debug" )
+            throw std::invalid_argument( "Invalid logging level argument" );
     } catch( const std::invalid_argument& e ) {
         std::string msg { e.what() };
         NOSO_LOG_FATAL << msg << std::endl;
@@ -147,6 +155,11 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
                     if ( _g_cfg_options.pools.size() > 0 ) _g_cfg_options.pools += ";";
                     _g_cfg_options.pools += line_str.substr( 6 );
+                } else if ( line_str.rfind( "logging ", 0 ) == 0 ) {
+                    _g_cfg_options.logging = line_str.substr( 8 );
+                    if ( _g_cfg_options.logging != "info"
+                            && _g_cfg_options.logging != "debug" )
+                        throw std::invalid_argument( "Invalid logging level config" );
                 }
             }
         } catch( const std::invalid_argument& e ) {
@@ -164,6 +177,9 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
     std::string sel_address {
         _g_arg_options.address != DEFAULT_MINER_ADDRESS ? _g_arg_options.address
             : _g_cfg_options.address.length() > 0 ? _g_cfg_options.address : DEFAULT_MINER_ADDRESS };
+    std::string sel_logging {
+        _g_arg_options.logging != DEFAULT_LOGGING_LEVEL ? _g_arg_options.logging
+            : _g_cfg_options.logging.length() > 0 ? _g_cfg_options.logging : DEFAULT_LOGGING_LEVEL };
     std::string sel_pools {
         _g_arg_options.pools != DEFAULT_POOL_URL_LIST ? _g_arg_options.pools
             : _g_cfg_options.pools.length() > 0 ? _g_cfg_options.pools : DEFAULT_POOL_URL_LIST };
@@ -172,6 +188,7 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
         : _g_cfg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? _g_cfg_options.shares : DEFAULT_POOL_SHARES_LIMIT;
     g_pool_threads_count = _g_arg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_arg_options.threads
         : _g_cfg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_cfg_options.threads : DEFAULT_POOL_THREADS_COUNT;
+    g_logging_level = sel_logging == "info" ? CLogLevel::INFO : CLogLevel::DEBUG;
     g_mining_pools = parse_pools_argv( sel_pools );
 }
 

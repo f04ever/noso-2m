@@ -15,6 +15,8 @@
 #include "comm.hpp"
 #include "output.hpp"
 
+CLogLevel g_logging_level { CLogLevel::INFO };
+
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::atomic<bool> g_still_running { true };
 std::uint32_t g_pool_shares_limit { DEFAULT_POOL_SHARES_LIMIT };
@@ -30,6 +32,7 @@ int main( int argc, char *argv[] ) {
         ( "p,pools",    "Mining pools list",        cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
         ( "s,shares",   "Shares limit per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_SHARES_LIMIT ) ) )
         ( "t,threads",  "Hashing threads per pool", cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_THREADS_COUNT ) ) )
+        ( "l,logging",  "Logging info/debug",       cxxopts::value<std::string>()->default_value( DEFAULT_LOGGING_LEVEL ) )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
