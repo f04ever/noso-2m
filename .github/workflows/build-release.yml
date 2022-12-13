@@ -49,27 +49,26 @@ jobs:
         wget -q https://dl.google.com/android/repository/android-ndk-r24-linux.zip
         unzip -q android-ndk-r24-linux.zip
         # wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-        # unzip -q android-ndk-r25b-linux.zip
-        #
+        # unzip -q android-ndk-r25b-linux.zip # --< exception during building
+
         clang++-14 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu \
           -L$(pwd)/clang+llvm-i386-linux-gnu/usr/lib/llvm-14/lib \
           -I$(pwd)/libncurses-dev_i386/usr/include \
           -L$(pwd)/libncurses-dev_i386/usr/lib/i386-linux-gnu \
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-linux-i686 \
-          -std=c++20 \
+          -DNDEBUG \
           -DNO_TEXTUI \
-          -g0 \
+          -Ofast \
+          -std=c++20 \
           --stdlib=libc++ \
           -fuse-ld=lld-14 \
-          -flto -finline-functions -funroll-loops -fvectorize \
+          -flto \
+          -finline-functions -funroll-loops -fvectorize \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
-          -static
-          # -s
-          # -Ofast \
-          # -DNDEBUG \
-        chmod +x noso-2m-linux-i686
+          -static \
+          -s
         file noso-2m-linux-i686
         #
         clang++-14 \
@@ -77,19 +76,18 @@ jobs:
           -L$(pwd)/libncurses-dev_amd64/usr/lib/x86-64-linux-gnu \
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-linux-x86_64 \
-          -std=c++20 \
-          -g0 \
+          -DNDEBUG \
           -DNO_TEXTUI \
+          -Ofast \
+          -std=c++20 \
           --stdlib=libc++ \
           -fuse-ld=lld-14 \
-          -flto -finline-functions -funroll-loops -fvectorize \
+          -flto \
+          -finline-functions -funroll-loops -fvectorize \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
-          -static
-          # -s
-          # -Ofast \
-          # -DNDEBUG \
-        chmod +x noso-2m-linux-x86_64
+          -static \
+          -s
         file noso-2m-linux-x86_64
         #
         clang++-14 --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf \
@@ -98,19 +96,17 @@ jobs:
           -L$(pwd)/libncurses-dev_armhf/usr/lib/arm-linux-gnueabihf \
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-linux-armv7a \
-          -std=c++20 \
-          -g0 \
+          -DNDEBUG \
           -DNO_TEXTUI \
+          -Ofast \
+          -std=c++20 \
           --stdlib=libc++ \
           -fuse-ld=lld-14 \
           -flto -finline-functions -funroll-loops -fvectorize \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
-          -static
-          # -s
-          # -Ofast \
-          # -DNDEBUG \
-        chmod +x noso-2m-linux-armv7a
+          -static \
+          -s
         file noso-2m-linux-armv7a
         #
         clang++-14 --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu \
@@ -119,19 +115,18 @@ jobs:
           -L$(pwd)/libncurses-dev_arm64/usr/lib/aarch64-linux-gnu \
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-linux-aarch64 \
-          -std=c++20 \
-          -g0 \
+          -DNDEBUG \
           -DNO_TEXTUI \
+          -Ofast \
+          -std=c++20 \
           --stdlib=libc++ \
           -fuse-ld=lld-14 \
-          -flto -finline-functions -funroll-loops -fvectorize \
+          -flto \
+          -finline-functions -funroll-loops -fvectorize \
           -lpthread -lc++ -lc++abi \
           -lncurses -lform -ltermcap \
-          -static
-          # -s
-          # -Ofast \
-          # -DNDEBUG \
-        chmod +x noso-2m-linux-aarch64
+          -static \
+          -s
         file noso-2m-linux-aarch64
         #
         wget -q https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.3.tar.gz
@@ -169,17 +164,16 @@ jobs:
           -L$(pwd)/armv7a-linux-androideabi-ncurses/lib \
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-android-armv7a \
-          -std=c++20 \
-          -g0 \
+          -DNDEBUG \
           -DNO_TEXTUI \
+          -Ofast \
+          -std=c++20 \
+          -finline-functions -funroll-loops -fvectorize \
           -fuse-ld=lld-14 \
-          -flto -finline-functions -funroll-loops -fvectorize \
           -lncurses -lform \
-          -static
-          # -s
-          # -Ofast \
-          # -DNDEBUG \
-        chmod +x noso-2m-android-armv7a
+          -static \
+          -s
+          # -flto \ # --> causes exception for cxxopts option format
         file noso-2m-android-armv7a
         #
         # android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang++ \
@@ -189,17 +183,16 @@ jobs:
           -L$(pwd)/aarch64-linux-android-ncurses/lib \
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-android-aarch64 \
-          -std=c++20 \
-          -g0 \
+          -DNDEBUG \
           -DNO_TEXTUI \
+          -Ofast \
+          -std=c++20 \
+          -finline-functions -funroll-loops -fvectorize \
           -fuse-ld=lld-14 \
-          -flto -finline-functions -funroll-loops -fvectorize \
           -lncurses -lform \
-          -static
-          # -s
-          # -Ofast \
-          # -DNDEBUG \
-        chmod +x noso-2m-android-aarch64
+          -static \
+          -s
+          # -flto \ # --> causes exception for cxxopts option format
         file noso-2m-android-aarch64
       shell: bash
     - name: Upload artifacs
@@ -270,7 +263,6 @@ jobs:
           -flto -finline-functions -funroll-loops -fvectorize \
           -lncurses -lform -ltermcap
         strip -x noso-2m-darwin
-        chmod +x noso-2m-darwin
         file noso-2m-darwin
       shell: bash
     - name: Upload artifacs
@@ -297,27 +289,27 @@ jobs:
           cp ubuntu-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
           #
           cp ubuntu-latest/noso-2m-linux-i686 noso-2m
-          # chmod +x noso-2m
+          chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-i686.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-x86_64 noso-2m
-          # chmod +x noso-2m
+          chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-x86_64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-armv7a noso-2m
-          # chmod +x noso-2m
+          chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-armv7a.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-aarch64 noso-2m
-          # chmod +x noso-2m
+          chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-aarch64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-android-armv7a noso-2m
-          # chmod +x noso-2m
+          chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-android-armv7a.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-android-aarch64 noso-2m
-          # chmod +x noso-2m
+          chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-android-aarch64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
         shell: bash
       - name: Upload artifacts
@@ -342,7 +334,7 @@ jobs:
           cp macos-latest/README.md README.md
           cp macos-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
           cp macos-latest/noso-2m-darwin noso-2m
-          # chmod +x noso-2m
+          chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
         shell: bash
       - name: Upload artifacts
