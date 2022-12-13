@@ -8,9 +8,12 @@
 #include <string>
 #include <vector>
 
+#include "noso-2m.hpp"
+#include "misc.hpp"
+
 class CTools {
 public:
-    static int ShowPoolInformation( std::vector<std::tuple<std::string, std::string, std::string>> const & mining_pools );
+    static int ShowPoolInformation( std::vector<pool_specs_t> const & mining_pools );
     static int ShowThreadHashrates( std::vector<std::tuple<std::uint32_t, double>> const & thread_hashrates );
 };
 

@@ -3,12 +3,14 @@
 #endif
 
 #include <mutex>
+#include <thread>
 #include <cstring>
 
-#include "noso-2m.hpp"
 #include "mining.hpp"
+#include "comm.hpp"
+#include "misc.hpp"
 
-extern bool g_still_running;
+extern std::atomic<bool> g_still_running;
 
 CMineThread::CMineThread( std::uint32_t thread_id )
     :   m_thread_id { thread_id } {
@@ -30,7 +32,7 @@ void CMineThread::SetBlockSummary( std::uint32_t hashes_count, double duration )
 std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
     std::unique_lock<std::mutex> unique_lock_summary_lock( m_mutex_summary );
     m_condv_summary.wait( unique_lock_summary_lock, [&]() {
-                             return !g_still_running || m_computed_hashes_count > 0; } );
+            return !g_still_running || m_computed_hashes_count > 0; } );
     auto summary = std::make_tuple( m_computed_hashes_count, m_block_mining_duration );
     m_computed_hashes_count = 0;
     m_block_mining_duration = 0.;
@@ -41,7 +43,8 @@ std::tuple<std::uint32_t, double> CMineThread::GetBlockSummary() {
 inline
 void CMineThread::WaitTarget() {
     std::unique_lock<std::mutex> unique_lock_blck_no( m_mutex_blck_no );
-    m_condv_blck_no.wait( unique_lock_blck_no, [&]() { return !g_still_running || m_blck_no > 0; } );
+    m_condv_blck_no.wait( unique_lock_blck_no, [&]() {
+            return !g_still_running || m_blck_no > 0; } );
     unique_lock_blck_no.unlock();
 }
 
@@ -50,12 +53,12 @@ void CMineThread::DoneTarget() {
     std::unique_lock<std::mutex> unique_lock_blck_no( m_mutex_blck_no );
     m_blck_no = 0;
     unique_lock_blck_no.unlock();
+    this->CleanupSyncState();
 }
 
 void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
     std::string thread_prefix = {
         target->prefix
-        + '!'
         + nosohash_prefix( m_thread_id ) };
     thread_prefix.append( 9 - thread_prefix.size(), '!' );
     m_mutex_blck_no.lock();
@@ -72,7 +75,8 @@ void CMineThread::NewTarget( const std::shared_ptr<CTarget> &target ) {
     m_condv_blck_no.notify_one();
 }
 
-void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>& ) ) {
+void CMineThread::Mine( CCommThread * pCommThread ) {
+    std::mutex mutex_wait;
     m_exited = 0;
     char best_diff[33];
     while ( g_still_running ) {
@@ -86,17 +90,30 @@ void CMineThread::Mine( void ( * NewSolFunc )( const std::shared_ptr<CSolution>&
         while ( best_diff[match_len] == '0' ) ++match_len;
         std::uint32_t hashes_counter { 0 };
         auto begin_mining { std::chrono::steady_clock::now() };
-        while ( g_still_running && 1 <= NOSO_BLOCK_AGE && NOSO_BLOCK_AGE <= 585 ) {
-            const char *base { m_hasher.GetBase( hashes_counter++ ) };
-            const char *hash { m_hasher.GetHash() };
-            assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 );
-            if ( std::strncmp( hash, m_lb_hash, match_len ) == 0 ) {
-                NewSolFunc( std::make_shared<CSolution>( m_blck_no, base, hash, "" ) );
+        while ( g_still_running
+                && NOSO_BLOCK_AGE_INNER_MINING_PERIOD ) {
+            if ( pCommThread->IsBandedByPool() ) {
+                break;
+            } else if ( pCommThread->ReachedMaxShares() ) {
+                awaiting_threads_wait_for( ( 585 - NOSO_BLOCK_AGE ) + 1,
+                        mutex_wait, []() -> bool { return !g_still_running
+                                || NOSO_BLOCK_AGE_OUTER_MINING_PERIOD; } );
+            } else {
+                const char *base { m_hasher.GetBase( hashes_counter++ ) };
+                const char *hash { m_hasher.GetHash() };
+                assert( std::strlen( base ) == 18 && std::strlen( hash ) == 32 );
+                if ( std::strncmp( hash, m_lb_hash, match_len ) == 0 ) {
+                    pCommThread->AddSolution( std::make_shared<CSolution>( m_blck_no, base, hash, "" ) );
+                }
             }
         }
-        std::chrono::duration<double> elapsed_mining { std::chrono::steady_clock::now() - begin_mining };
+        auto end_mining { std::chrono::steady_clock::now() };
+        std::chrono::duration<double> elapsed_mining { end_mining - begin_mining };
         this->SetBlockSummary( hashes_counter, elapsed_mining.count() );
         this->DoneTarget();
+        if ( pCommThread->IsBandedByPool() ) {
+            break;
+        }
     } // END while ( g_still_running ) {
     m_exited = 1;
 }

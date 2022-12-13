@@ -11,7 +11,7 @@
 #include "util.hpp"
 #include "output.hpp"
 
-int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string, std::string>> const & mining_pools ) {
+int CTools::ShowPoolInformation( std::vector<pool_specs_t> const & mining_pools ) {
     char inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     char msg[200];
     std::snprintf( msg, 200, "POOL INFORMATION" );
@@ -69,7 +69,7 @@ int CTools::ShowPoolInformation( std::vector<std::tuple<std::string, std::string
 int CTools::ShowThreadHashrates( std::vector<std::tuple<std::uint32_t, double>> const & thread_hashrates ) {
     char msg[200];
     std::size_t const thread_count { thread_hashrates.size() };
-    if ( NOSO_BLOCK_AGE <= 10 || thread_count <= 0 ) {
+    if ( NOSO_BLOCK_AGE_OUTER_MINING_PERIOD || thread_count <= 0 ) {
         std::snprintf( msg, 200, "Wait for a block finished then try again!" );
         NOSO_TUI_OutputInfoPad( msg );
         std::snprintf( msg, 200, "--" );
