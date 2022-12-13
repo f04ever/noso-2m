@@ -1,14 +1,12 @@
 name: build
 on:
   push:
-    branches: [ main, devel, develga ]
+    branches: [ main ]
     tags:
       - "*"
 jobs:
   build-linux:
     name: 'Build Linux'
-    env:
-      ACTIONS_STEP_DEBUG: true
     runs-on: 'ubuntu-latest'
     steps:
     - name: Checkout source
