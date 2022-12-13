@@ -69,6 +69,7 @@ jobs:
           # -s
           # -Ofast \
           # -DNDEBUG \
+        chmod +x noso-2m-linux-i686
         file noso-2m-linux-i686
         #
         clang++-14 \
@@ -88,6 +89,7 @@ jobs:
           # -s
           # -Ofast \
           # -DNDEBUG \
+        chmod +x noso-2m-linux-x86_64
         file noso-2m-linux-x86_64
         #
         clang++-14 --target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf \
@@ -108,6 +110,7 @@ jobs:
           # -s
           # -Ofast \
           # -DNDEBUG \
+        chmod +x noso-2m-linux-armv7a
         file noso-2m-linux-armv7a
         #
         clang++-14 --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu \
@@ -128,6 +131,7 @@ jobs:
           # -s
           # -Ofast \
           # -DNDEBUG \
+        chmod +x noso-2m-linux-aarch64
         file noso-2m-linux-aarch64
         #
         wget -q https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.3.tar.gz
@@ -175,6 +179,7 @@ jobs:
           # -s
           # -Ofast \
           # -DNDEBUG \
+        chmod +x noso-2m-android-armv7a
         file noso-2m-android-armv7a
         #
         # android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang++ \
@@ -194,6 +199,7 @@ jobs:
           # -s
           # -Ofast \
           # -DNDEBUG \
+        chmod +x noso-2m-android-aarch64
         file noso-2m-android-aarch64
       shell: bash
     - name: Upload artifacs
@@ -264,6 +270,7 @@ jobs:
           -flto -finline-functions -funroll-loops -fvectorize \
           -lncurses -lform -ltermcap
         strip -x noso-2m-darwin
+        chmod +x noso-2m-darwin
         file noso-2m-darwin
       shell: bash
     - name: Upload artifacs
@@ -290,27 +297,27 @@ jobs:
           cp ubuntu-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
           #
           cp ubuntu-latest/noso-2m-linux-i686 noso-2m
-          chmod +x noso-2m
+          # chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-i686.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-x86_64 noso-2m
-          chmod +x noso-2m
+          # chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-x86_64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-armv7a noso-2m
-          chmod +x noso-2m
+          # chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-armv7a.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-linux-aarch64 noso-2m
-          chmod +x noso-2m
+          # chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-linux-aarch64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-android-armv7a noso-2m
-          chmod +x noso-2m
+          # chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-android-armv7a.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
           #
           cp ubuntu-latest/noso-2m-android-aarch64 noso-2m
-          chmod +x noso-2m
+          # chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-android-aarch64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
         shell: bash
       - name: Upload artifacts
@@ -335,7 +342,7 @@ jobs:
           cp macos-latest/README.md README.md
           cp macos-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
           cp macos-latest/noso-2m-darwin noso-2m
-          chmod +x noso-2m
+          # chmod +x noso-2m
           tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
         shell: bash
       - name: Upload artifacts
