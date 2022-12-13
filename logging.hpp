@@ -23,21 +23,22 @@ public:
         ofs.Output( oss.str() );
     }
     CLogEntry& operator=( CLogEntry const & obj ) = delete;
-    template <CLogLevel level>
-    std::ostringstream& GetStream() {
+    template <CLogLevel LEVEL>
+    std::ostringstream& GetStream( CLogLevel level ) {
+        if ( LEVEL > level ) oss.setstate( std::ios_base::badbit );
         std::time_t now { std::time( 0 ) };
         struct std::tm* ptm = std::localtime( &now );
-        oss << "[" << std::put_time( ptm, "%x %X" ) << "]" << LogLevelString<level>() << ":";
+        oss << "[" << std::put_time( ptm, "%x %X" ) << "]" << LogLevelString<LEVEL>() << ":";
         return oss;
     }
-    template <CLogLevel level>
+    template <CLogLevel LEVEL>
     static std::string LogLevelString() {
         return
-              level == CLogLevel::FATAL ? "FATAL" :
-            ( level == CLogLevel::ERROR ? "ERROR" :
-            ( level == CLogLevel::WARN  ? " WARN" :
-            ( level == CLogLevel::INFO  ? " INFO" :
-            ( level == CLogLevel::DEBUG ? "DEBUG" : "     " ) ) ) );
+              LEVEL == CLogLevel::FATAL ? "FATAL" :
+            ( LEVEL == CLogLevel::ERROR ? "ERROR" :
+            ( LEVEL == CLogLevel::WARN  ? " WARN" :
+            ( LEVEL == CLogLevel::INFO  ? " INFO" :
+            ( LEVEL == CLogLevel::DEBUG ? "DEBUG" : "     " ) ) ) );
     }
 };
 

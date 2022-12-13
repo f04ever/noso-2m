@@ -13,9 +13,9 @@
 #include <fcntl.h>
 #endif // _WIN32
 
+#include "noso-2m.hpp"
 #include "inet.hpp"
 #include "output.hpp"
-#include "noso-2m.hpp"
 
 int inet_init() {
     #ifdef _WIN32
@@ -196,6 +196,12 @@ CPoolInet::CPoolInet( const std::string& name, const std::string &host, const st
 int CPoolInet::RequestPoolInfo( char *buffer, std::size_t buffsize ) {
     assert( buffer && buffsize > 0 );
     std::snprintf( buffer, buffsize, "POOLINFO\n" );
+    return this->ExecCommand( buffer, buffsize );
+}
+
+int CPoolInet::RequestPoolPublic( char *buffer, std::size_t buffsize ) {
+    assert( buffer && buffsize > 0 );
+    std::snprintf( buffer, buffsize, "POOLPUBLIC\n" );
     return this->ExecCommand( buffer, buffsize );
 }
 

@@ -17,7 +17,8 @@ void CNosoHasher::_init( char const prefix[10], char const address[32] ) {
     std::memcpy( m_stat, prefix, 9 );
     std::memcpy( m_stat + 9, "000000000", 9 );
     std::memcpy( m_stat + 18, address, 32 );
-    constexpr static char const filler_chars[] = "%)+/5;=CGIOSYaegk%)+/5;=CGIOSYaegk%)+/5;=CGIOSYaegk%)+/5;=CGIOSYaegk%)+/5;=CGIOSYaegk";
+    constexpr static
+    char const filler_chars[] = "%)+/5;=CGIOSYaegk%)+/5;=CGIOSYaegk%)+/5;=CGIOSYaegk%)+/5;=CGIOSYaegk%)+/5;=CGIOSYaegk";
     size_t const len = 18 + 30 + (address[30] ? 1 : 0);
     std::memcpy( m_stat + len, filler_chars, 128 - len );
     assert( std::none_of( m_stat, m_stat + 128, []( int c ){ return 33 > c || c > 126; } ) );
@@ -209,9 +210,13 @@ char const * CNosoHasher::GetDiff( char const target[33] ) {
     return m_diff;
 }
 
-constexpr static const char NOSOHASH_HASHEABLE_CHARS[] {
-    "!\"#$%&')*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" };
-constexpr static const std::size_t NOSOHASH_HASHEABLE_COUNT =  92;
+constexpr static
+char const NOSOHASH_HASHEABLE_CHARS[] {
+        "!\"#$%&')*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" };
+
+constexpr static
+std::size_t const NOSOHASH_HASHEABLE_COUNT =  92;
+
 std::string nosohash_prefix( int num ) {
     return std::string {
         NOSOHASH_HASHEABLE_CHARS[ num / NOSOHASH_HASHEABLE_COUNT ],

@@ -14,7 +14,6 @@
 #include "noso-2m.hpp"
 #include "util.hpp"
 #include "tool.hpp"
-#include "comm.hpp"
 
 #ifndef KEY_ESC
 #define KEY_ESC (27)
@@ -35,7 +34,7 @@
 | Paid AMOUNT(14.8) NOSO                            | <-- logs: pool
 | ORDER_ID(52)                                      | <-- logs: pool
 **/
-extern std::vector<std::tuple<std::string, std::string, std::string>> g_mining_pools;
+extern std::vector<pool_specs_t> g_mining_pools;
 extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 
 class CTextUI { // A singleton pattern class
@@ -342,7 +341,7 @@ public:
         set_form_sub( m_cmdl_frm, stdscr );
         post_form( m_cmdl_frm );
     };
-    int HandleEventLoop(){
+    void HandleEventLoop( void ( * exit_handler )( int ) ){
         raw();
         noecho();
         curs_set( 0 );
@@ -389,8 +388,9 @@ public:
                 if ( m_cmdl_frm ) form_driver( m_cmdl_frm, key );
             }
         } while( key != KEY_CTRL( 'c' ) );
-        return key;
+        exit_handler( key );
     };
+
     void OutputHeadPad( const char* out ) {
         std::unique_lock<std::mutex> unique_lock_head_pad( m_mutex_head_pad );
         if ( m_head_pad->pad == NULL ) return;

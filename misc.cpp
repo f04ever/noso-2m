@@ -3,13 +3,17 @@
 #endif
 
 #include <regex>
+#include <thread>
+#include <cassert>
 
 #include "misc.hpp"
 #include "output.hpp"
-#include "noso-2m.hpp"
 
 extern char g_miner_address[];
-extern std::uint32_t g_threads_count;
+extern std::uint32_t g_pool_shares_limit;
+extern std::uint32_t g_pool_threads_count;
+extern std::vector<pool_specs_t> g_mining_pools;
+extern CLogLevel g_logging_level;
 
 inline
 bool is_valid_address( std::string const & address ) {
@@ -19,12 +23,12 @@ bool is_valid_address( std::string const & address ) {
 
 inline
 bool is_valid_threads( std::uint32_t count ) {
-    if ( count < 2 ) return false;
+    if ( count < 1 ) return false;
     return true;
 }
 
 inline
-std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv( std::string const & poolstr ) {
+std::vector<pool_specs_t> parse_pools_argv( std::string const & poolstr ) {
     const std::regex re_pool1 { ";|[[:space:]]" };
     const std::regex re_pool2 {
         "^"
@@ -52,7 +56,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
         ")?"
         "$"
     };
-    std::vector<std::tuple<std::string, std::string, std::string>> mining_pools;
+    std::vector<pool_specs_t> mining_pools;
     std::for_each(
             std::sregex_token_iterator { poolstr.begin(), poolstr.end(), re_pool1 , -1 },
             std::sregex_token_iterator {}, [&]( const auto &tok ) {
@@ -74,24 +78,39 @@ std::vector<std::tuple<std::string, std::string, std::string>> parse_pools_argv(
     return mining_pools;
 }
 
-mining_options_t
-    g_arg_options = {
-        .threads = 2,
+struct _mining_options_t {
+    int shares;
+    int threads;
+    std::string address;
+    std::string pools;
+    std::string filename;
+    std::string logging;
+}   _g_arg_options = {
+        .shares = DEFAULT_POOL_SHARES_LIMIT,
+        .threads = DEFAULT_POOL_THREADS_COUNT,
+        .logging = DEFAULT_LOGGING_LEVEL,
     },
-    g_cfg_options = {
-        .threads = 2,
+    _g_cfg_options = {
+        .shares = DEFAULT_POOL_SHARES_LIMIT,
+        .threads = DEFAULT_POOL_THREADS_COUNT,
+        .logging = DEFAULT_LOGGING_LEVEL,
     };
 
 inline
 void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
     try {
-        g_arg_options.address = parsed_options["address"].as<std::string>();
-        if ( !is_valid_address( g_arg_options.address ) )
-            throw std::invalid_argument( "Invalid miner address option" );
-        g_arg_options.threads = parsed_options["threads"].as<std::uint32_t>();
-        if ( !is_valid_threads( g_arg_options.threads ) )
-            throw std::invalid_argument( "Invalid threads count option" );
-        g_arg_options.pools = parsed_options["pools"].as<std::string>();
+        _g_arg_options.address = parsed_options["address"].as<std::string>();
+        if ( !is_valid_address( _g_arg_options.address ) )
+            throw std::invalid_argument( "Invalid miner address argument" );
+        _g_arg_options.threads = parsed_options["threads"].as<std::uint32_t>();
+        if ( !is_valid_threads( _g_arg_options.threads ) )
+            throw std::invalid_argument( "Invalid threads count argument" );
+        _g_arg_options.shares = parsed_options["shares"].as<std::uint32_t>();
+        _g_arg_options.pools = parsed_options["pools"].as<std::string>();
+        _g_arg_options.logging = parsed_options["logging"].as<std::string>();
+        if ( _g_arg_options.logging != "info"
+                && _g_arg_options.logging != "debug" )
+            throw std::invalid_argument( "Invalid logging level argument" );
     } catch( const std::invalid_argument& e ) {
         std::string msg { e.what() };
         NOSO_LOG_FATAL << msg << std::endl;
@@ -102,19 +121,19 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
 
 inline
 void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
-    g_cfg_options.filename = parsed_options["config"].as<std::string>();
-    std::ifstream cfg_istream( g_cfg_options.filename );
+    _g_cfg_options.filename = parsed_options["config"].as<std::string>();
+    std::ifstream cfg_istream( _g_cfg_options.filename );
     if( !cfg_istream.good() ) {
-        std::string msg { "Config file '" + g_cfg_options.filename + "' not found!" };
+        std::string msg { "Config file '" + _g_cfg_options.filename + "' not found!" };
         NOSO_LOG_WARN << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
-        if ( g_cfg_options.filename != DEFAULT_CONFIG_FILENAME ) throw std::bad_exception();
+        if ( _g_cfg_options.filename != DEFAULT_CONFIG_FILENAME ) throw std::bad_exception();
         msg = "Use default options";
         NOSO_LOG_INFO << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
         NOSO_TUI_OutputHistWin();
     } else {
-        std::string msg { "Load config file '" + g_cfg_options.filename + "'" };
+        std::string msg { "Load config file '" + _g_cfg_options.filename + "'" };
         NOSO_LOG_INFO << msg << std::endl;
         NOSO_TUI_OutputHistPad( msg.c_str() );
         NOSO_TUI_OutputHistWin();
@@ -124,20 +143,27 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
             while ( std::getline( cfg_istream, line_str ) ) {
                 line_no++;
                 if        ( line_str.rfind( "address ", 0 ) == 0 ) {
-                    g_cfg_options.address = line_str.substr( 8 );
-                    if ( !is_valid_address( g_cfg_options.address ) )
+                    _g_cfg_options.address = line_str.substr( 8 );
+                    if ( !is_valid_address( _g_cfg_options.address ) )
                         throw std::invalid_argument( "Invalid address config" );
                 } else if ( line_str.rfind( "threads ", 0 ) == 0 ) {
-                    g_cfg_options.threads = std::stoi( line_str.substr( 8 ) );
-                    if ( !is_valid_threads( g_cfg_options.threads ) )
+                    _g_cfg_options.threads = std::stoul( line_str.substr( 8 ) );
+                    if ( !is_valid_threads( _g_cfg_options.threads ) )
                         throw std::invalid_argument( "Invalid threads count config" );
+                } else if ( line_str.rfind( "shares ", 0 ) == 0 ) {
+                    _g_cfg_options.shares = std::stoul( line_str.substr( 8 ) );
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
-                    if ( g_cfg_options.pools.size() > 0 ) g_cfg_options.pools += ";";
-                    g_cfg_options.pools += line_str.substr( 6 );
+                    if ( _g_cfg_options.pools.size() > 0 ) _g_cfg_options.pools += ";";
+                    _g_cfg_options.pools += line_str.substr( 6 );
+                } else if ( line_str.rfind( "logging ", 0 ) == 0 ) {
+                    _g_cfg_options.logging = line_str.substr( 8 );
+                    if ( _g_cfg_options.logging != "info"
+                            && _g_cfg_options.logging != "debug" )
+                        throw std::invalid_argument( "Invalid logging level config" );
                 }
             }
         } catch( const std::invalid_argument& e ) {
-            std::string msg { std::string( e.what() ) + " in file '" + g_cfg_options.filename + "'" };
+            std::string msg { std::string( e.what() ) + " in file '" + _g_cfg_options.filename + "'" };
             NOSO_LOG_FATAL << msg << " line#" << line_no << "[" << line_str << "]" << std::endl;
             NOSO_TUI_OutputHistPad( msg.c_str() );
             throw std::bad_exception();
@@ -149,14 +175,71 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
     process_cfg_options( parsed_options );
     process_arg_options( parsed_options );
     std::string sel_address {
-        g_arg_options.address != DEFAULT_MINER_ADDRESS ? g_arg_options.address
-            : g_cfg_options.address.length() > 0 ? g_cfg_options.address : DEFAULT_MINER_ADDRESS };
+        _g_arg_options.address != DEFAULT_MINER_ADDRESS ? _g_arg_options.address
+            : _g_cfg_options.address.length() > 0 ? _g_cfg_options.address : DEFAULT_MINER_ADDRESS };
+    std::string sel_logging {
+        _g_arg_options.logging != DEFAULT_LOGGING_LEVEL ? _g_arg_options.logging
+            : _g_cfg_options.logging.length() > 0 ? _g_cfg_options.logging : DEFAULT_LOGGING_LEVEL };
     std::string sel_pools {
-        g_arg_options.pools != DEFAULT_POOL_URL_LIST ? g_arg_options.pools
-            : g_cfg_options.pools.length() > 0 ? g_cfg_options.pools : DEFAULT_POOL_URL_LIST };
+        _g_arg_options.pools != DEFAULT_POOL_URL_LIST ? _g_arg_options.pools
+            : _g_cfg_options.pools.length() > 0 ? _g_cfg_options.pools : DEFAULT_POOL_URL_LIST };
     std::strcpy( g_miner_address, sel_address.c_str() );
-    g_threads_count = g_arg_options.threads > DEFAULT_THREADS_COUNT ? g_arg_options.threads
-        : g_cfg_options.threads > DEFAULT_THREADS_COUNT ? g_cfg_options.threads : DEFAULT_THREADS_COUNT;
+    g_pool_shares_limit = _g_arg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? _g_arg_options.shares
+        : _g_cfg_options.shares != DEFAULT_POOL_SHARES_LIMIT ? _g_cfg_options.shares : DEFAULT_POOL_SHARES_LIMIT;
+    g_pool_threads_count = _g_arg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_arg_options.threads
+        : _g_cfg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_cfg_options.threads : DEFAULT_POOL_THREADS_COUNT;
+    g_logging_level = sel_logging == "info" ? CLogLevel::INFO : CLogLevel::DEBUG;
     g_mining_pools = parse_pools_argv( sel_pools );
 }
 
+std::mutex _g_awaiting_threads_mutex;
+std::unordered_map<std::thread::id, std::shared_ptr<std::condition_variable>> _g_awaiting_threads_uomap {};
+
+inline
+bool _awaiting_threads_append( std::shared_ptr<std::condition_variable> const & wait ) {
+    assert( wait );
+    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
+    auto await_itor { _g_awaiting_threads_uomap.find( std::this_thread::get_id() ) };
+    assert ( await_itor == _g_awaiting_threads_uomap.end() );
+    if ( await_itor == _g_awaiting_threads_uomap.end() ) {
+        _g_awaiting_threads_uomap[std::this_thread::get_id()] = wait;
+        return true;
+    }
+    return false;
+}
+
+inline
+bool _awaiting_threads_remove( ) {
+    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
+    auto await_itor { _g_awaiting_threads_uomap.find( std::this_thread::get_id() ) };
+    assert ( await_itor != _g_awaiting_threads_uomap.end() );
+    if ( await_itor != _g_awaiting_threads_uomap.end() ) {
+        _g_awaiting_threads_uomap.erase(await_itor);
+        return true;
+    }
+    return false;
+}
+
+void awaiting_threads_notify( ) {
+    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
+    std::for_each( _g_awaiting_threads_uomap.begin(), _g_awaiting_threads_uomap.end(),
+            []( std::pair<std::thread::id, std::shared_ptr<std::condition_variable>> element ){
+                    element.second->notify_all(); } );
+}
+
+void awaiting_threads_wait( std::mutex & mutex_wait, bool ( * wake_up )() ) {
+    auto condv_wait = std::make_shared<std::condition_variable>();
+    std::unique_lock<std::mutex> lock_wait( mutex_wait );
+    _awaiting_threads_append( condv_wait );
+    condv_wait->wait( lock_wait, wake_up );
+    _awaiting_threads_remove( );
+}
+
+void awaiting_threads_wait_for( int sec, std::mutex & mutex_wait, bool ( * wake_up )() ) {
+    if ( sec < 0 ) return;
+    auto condv_wait = std::make_shared<std::condition_variable>();
+    std::unique_lock<std::mutex> lock_wait( mutex_wait );
+    _awaiting_threads_append( condv_wait );
+    condv_wait->wait_for( lock_wait, std::chrono::milliseconds( 1'000 * sec ), wake_up );
+    _awaiting_threads_remove( );
+}
