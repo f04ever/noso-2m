@@ -6,6 +6,7 @@
 #endif
 
 #include <tuple>
+#include <string>
 
 #include "config.hpp"
 

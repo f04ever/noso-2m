@@ -5,9 +5,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include <tuple>
-#include <vector>
-#include <string>
+#include <mutex>
 
 #include "cxxopts.hpp"
 
