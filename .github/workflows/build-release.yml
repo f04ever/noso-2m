@@ -46,8 +46,10 @@ jobs:
         wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.6/clang+llvm-14.0.6-armv7a-linux-gnueabihf.tar.xz
         tar xf clang+llvm-14.0.6-armv7a-linux-gnueabihf.tar.xz
 
-        wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-        unzip -q android-ndk-r25b-linux.zip
+        wget -1 https://dl.google.com/android/repository/android-ndk-r24-linux.zip
+        unzip -q android-ndk-r24-linux.zip
+        # wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+        # unzip -q android-ndk-r25b-linux.zip
         #
         clang++-14 --target=i686-linux-gnu --sysroot=/usr/i686-linux-gnu \
           -L$(pwd)/clang+llvm-i386-linux-gnu/usr/lib/llvm-14/lib \
@@ -133,8 +135,10 @@ jobs:
         mkdir armv7a-linux-androideabi-ncurses
         mkdir aarch64-linux-android-ncurses
         cd ncurses-6.3
-        CC=$(pwd)/../android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi33-clang \
-        STRIP=$(pwd)/../android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+        # CC=$(pwd)/../android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi33-clang \
+        # STRIP=$(pwd)/../android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+        CC=$(pwd)/../android-ndk-r24/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi32-clang \
+        STRIP=$(pwd)/../android-ndk-r24/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
         ./configure \
           --host=armv7a-linux-androideabi \
           --prefix=$(pwd)/../armv7a-linux-androideabi-ncurses \
@@ -142,8 +146,10 @@ jobs:
           --without-manpages --without-progs --without-tack --without-tests 2>&1 > /dev/null
         make 2>&1 > /dev/null
         make install 2>&1 > /dev/null
-        CC=$(pwd)/../android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang \
-        STRIP=$(pwd)/../android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+        # CC=$(pwd)/../android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang \
+        # STRIP=$(pwd)/../android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+        CC=$(pwd)/../android-ndk-r24/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android32-clang \
+        STRIP=$(pwd)/../android-ndk-r24/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
         ./configure \
           --host=aarch64-linux-android \
           --prefix=$(pwd)/../aarch64-linux-android-ncurses \
@@ -152,7 +158,8 @@ jobs:
         make 2>&1 > /dev/null
         make install 2>&1 > /dev/null
         cd ..
-        android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi33-clang++ \
+        # android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi33-clang++ \
+        android-ndk-r24/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi32-clang++ \
           -I$(pwd)/armv7a-linux-androideabi-ncurses/include \
           -I$(pwd)/armv7a-linux-androideabi-ncurses/include/ncurses \
           -L$(pwd)/armv7a-linux-androideabi-ncurses/lib \
@@ -170,7 +177,8 @@ jobs:
           # -DNDEBUG \
         file noso-2m-android-armv7a
         #
-        android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang++ \
+        # android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang++ \
+        android-ndk-r24/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android32-clang++ \
           -I$(pwd)/aarch64-linux-android-ncurses/include \
           -I$(pwd)/aarch64-linux-android-ncurses/include/ncurses \
           -L$(pwd)/aarch64-linux-android-ncurses/lib \
