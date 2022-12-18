@@ -504,6 +504,8 @@ void CCommThread::SubmitSolution( std::shared_ptr<CSolution> const & solution,
     auto  pool_target { std::dynamic_pointer_cast<CPoolTarget>( target ) };
     if ( code == 0 ) {
         m_accepted_solutions_count ++;
+        if ( m_accepted_solutions_count >= pool_target->max_shares )
+            m_reached_pool_max_shares = true;
         std::snprintf( msgbuf, 100,
                 "Pool %s has accepted the %u%s of %u max shares",
                 std::get<0>( m_pool ).c_str(),
