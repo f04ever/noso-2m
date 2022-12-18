@@ -505,7 +505,7 @@ void CCommThread::SubmitSolution( std::shared_ptr<CSolution> const & solution,
     if ( code == 0 ) {
         m_accepted_solutions_count ++;
         std::snprintf( msgbuf, 100,
-                "Pool %s accepts the %u%s of %u max shares",
+                "Pool %s has accepted the %u%s of %u max shares",
                 std::get<0>( m_pool ).c_str(),
                 m_accepted_solutions_count,
                 m_accepted_solutions_count == 1 ? "st"
@@ -513,19 +513,21 @@ void CCommThread::SubmitSolution( std::shared_ptr<CSolution> const & solution,
                             : m_accepted_solutions_count == 3 ? "rd" : "th",
                 pool_target->max_shares );
         NOSO_LOG_INFO << msgbuf << std::endl;
-        NOSO_LOG_DEBUG
-            << "POOL[" << std::get<0>( m_pool )
-            << "]ACCEPTED("
-            << std::setfill( '0' ) << std::setw( 2 )
-            << m_accepted_solutions_count
-            << ")base[" << solution->base
-            << "]hash[" << solution->hash
-            << "]"
-            << std::endl;
+        // NOSO_LOG_DEBUG
+        //     << "Pool[" << std::get<0>( m_pool )
+        //     << "]ACCEPTED("
+        //     << std::setfill( '0' ) << std::setw( 2 )
+        //     << m_accepted_solutions_count
+        //     << "/"
+        //     << pool_target->max_shares
+        //     << ")base[" << solution->base
+        //     << "]hash[" << solution->hash
+        //     << "]"
+        //     << std::endl;
         NOSO_TUI_OutputActiWinAcceptedSol( m_accepted_solutions_count );
     } else if ( code > 0 ) {
         m_rejected_solutions_count ++;
-        std::snprintf( msgbuf, 100, "Pool %s rejects",
+        std::snprintf( msgbuf, 100, "Pool %s has rejected",
                 std::get<0>( m_pool ).c_str() );
         if      ( code == 1 )
             std::snprintf( msgbuf, 100, "%s the wrong block number share", msgbuf );
@@ -549,7 +551,7 @@ void CCommThread::SubmitSolution( std::shared_ptr<CSolution> const & solution,
             std::snprintf( msgbuf, 100, "%s as the unknown response", msgbuf );
         NOSO_LOG_WARN << msgbuf << std::endl;
         NOSO_LOG_DEBUG
-            << "POOL[" << std::get<0>( m_pool )
+            << "Pool[" << std::get<0>( m_pool )
             << "]REJECTED("
             << std::setfill( '0' ) << std::setw( 2 )
             << m_rejected_solutions_count
@@ -561,11 +563,11 @@ void CCommThread::SubmitSolution( std::shared_ptr<CSolution> const & solution,
     } else { /* code < 0 */
         this->AddSolution( solution );
         m_failured_solutions_count ++;
-        std::snprintf( msgbuf, 100, "Pool %s fails %u share(s)",
+        std::snprintf( msgbuf, 100, "Pool %s has failed to summit %u share(s)",
                 std::get<0>( m_pool ).c_str(), m_failured_solutions_count );
         NOSO_LOG_INFO << msgbuf << std::endl;
         NOSO_LOG_DEBUG
-            << " POOL[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
+            << " Pool[" << lpad( std::get<0>( m_pool ), 12, ' ' ).substr( 0, 12 )
             << "]FAILURED("
             << std::setfill( '0' ) << std::setw( 2 ) << m_failured_solutions_count
             << ")base[" << solution->base
