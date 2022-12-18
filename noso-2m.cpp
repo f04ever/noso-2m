@@ -23,6 +23,8 @@ std::uint32_t g_pool_threads_count { DEFAULT_POOL_THREADS_COUNT };
 std::vector<pool_specs_t> g_mining_pools;
 std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 
+awaiting_threads_t g_all_awaiting_threads;
+
 int main( int argc, char *argv[] ) {
     cxxopts::Options command_options( "noso-2m", "A miner for Nosocryptocurrency Protocol-2" );
     command_options.add_options()
@@ -151,7 +153,7 @@ int main( int argc, char *argv[] ) {
                 NOSO_LOG_WARN << msgstr << std::endl;
             }
             g_still_running = false;
-            awaiting_threads_notify( );
+            awaiting_threads_notify( g_all_awaiting_threads );
             std::string msgstr { "Wait for finishing all threads..." };
             NOSO_LOG_WARN << msgstr << std::endl; } );
 #else // OF #ifdef NO_TEXTUI
@@ -167,7 +169,7 @@ int main( int argc, char *argv[] ) {
                 NOSO_TUI_OutputStatWin();
             }
             g_still_running = false;
-            awaiting_threads_notify( );
+            awaiting_threads_notify( g_all_awaiting_threads );
             std::string msgstr { "Wait for finishing all threads..." };
             NOSO_LOG_WARN << msgstr << std::endl;
             NOSO_TUI_OutputHistPad( msgstr.c_str() );

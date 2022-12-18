@@ -192,54 +192,70 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
     g_mining_pools = parse_pools_argv( sel_pools );
 }
 
-std::mutex _g_awaiting_threads_mutex;
-std::unordered_map<std::thread::id, std::shared_ptr<std::condition_variable>> _g_awaiting_threads_uomap {};
-
-inline
-bool _awaiting_threads_append( std::shared_ptr<std::condition_variable> const & wait ) {
-    assert( wait );
-    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
-    auto await_itor { _g_awaiting_threads_uomap.find( std::this_thread::get_id() ) };
-    assert ( await_itor == _g_awaiting_threads_uomap.end() );
-    if ( await_itor == _g_awaiting_threads_uomap.end() ) {
-        _g_awaiting_threads_uomap[std::this_thread::get_id()] = wait;
+bool awaiting_threads_handle(
+        std::shared_ptr<std::condition_variable> const & condv,
+        std::thread::id thread_id, awaiting_threads_t & awaiting_threads ) {
+    std::size_t key = std::hash<std::thread::id>()( thread_id );
+    std::unique_lock<std::mutex> const lock( awaiting_threads.mutex );
+    auto const & end_itor = std::cend( awaiting_threads.awaits );
+    auto const & key_itor = awaiting_threads.awaits.find( key );
+    assert ( key_itor == end_itor );
+    if ( key_itor == end_itor ) {
+        awaiting_threads.awaits[key] = condv;
         return true;
     }
     return false;
 }
 
-inline
-bool _awaiting_threads_remove( ) {
-    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
-    auto await_itor { _g_awaiting_threads_uomap.find( std::this_thread::get_id() ) };
-    assert ( await_itor != _g_awaiting_threads_uomap.end() );
-    if ( await_itor != _g_awaiting_threads_uomap.end() ) {
-        _g_awaiting_threads_uomap.erase(await_itor);
+bool awaiting_threads_release(
+        std::thread::id thread_id, awaiting_threads_t & awaiting_threads ) {
+    std::size_t key = std::hash<std::thread::id>()( thread_id );
+    std::unique_lock<std::mutex> const lock( awaiting_threads.mutex );
+    auto const & end_itor = std::cend( awaiting_threads.awaits );
+    auto const & key_itor = awaiting_threads.awaits.find( key );
+    assert ( key_itor != end_itor );
+    if ( key_itor != end_itor ) {
+        awaiting_threads.awaits.erase( key_itor );
         return true;
     }
     return false;
 }
 
-void awaiting_threads_notify( ) {
-    std::unique_lock lock_awaiting_threads( _g_awaiting_threads_mutex );
-    std::for_each( _g_awaiting_threads_uomap.begin(), _g_awaiting_threads_uomap.end(),
-            []( std::pair<std::thread::id, std::shared_ptr<std::condition_variable>> element ){
+void awaiting_threads_notify( awaiting_threads_t & awaiting_threads ) {
+    std::unique_lock<std::mutex> const lock( awaiting_threads.mutex );
+    std::for_each(
+            std::begin( awaiting_threads.awaits ),
+            std::end( awaiting_threads.awaits ),
+            []( std::pair<std::size_t, std::shared_ptr<std::condition_variable>> element ){
                     element.second->notify_all(); } );
 }
 
-void awaiting_threads_wait( std::mutex & mutex_wait, bool ( * wake_up )() ) {
-    auto condv_wait = std::make_shared<std::condition_variable>();
-    std::unique_lock<std::mutex> lock_wait( mutex_wait );
-    _awaiting_threads_append( condv_wait );
-    condv_wait->wait( lock_wait, wake_up );
-    _awaiting_threads_remove( );
+void awaiting_threads_wait(
+        std::thread::id thread_id, awaiting_threads_t & awaiting_threads,
+        bool ( * awake )() ) {
+    auto condv = std::make_shared<std::condition_variable>();
+    auto result = awaiting_threads_handle( condv, thread_id, awaiting_threads );
+    assert( result );
+    if ( result ) {
+        std::mutex mutex;
+        std::unique_lock<std::mutex> lock( mutex );
+        condv->wait( lock, awake );
+        awaiting_threads_release( thread_id, awaiting_threads );
+    }
 }
 
-void awaiting_threads_wait_for( int sec, std::mutex & mutex_wait, bool ( * wake_up )() ) {
-    if ( sec < 0 ) return;
-    auto condv_wait = std::make_shared<std::condition_variable>();
-    std::unique_lock<std::mutex> lock_wait( mutex_wait );
-    _awaiting_threads_append( condv_wait );
-    condv_wait->wait_for( lock_wait, std::chrono::milliseconds( 1'000 * sec ), wake_up );
-    _awaiting_threads_remove( );
+void awaiting_threads_wait_for( double seconds,
+        std::thread::id thread_id, awaiting_threads_t & awaiting_threads,
+        bool ( * awake )() ) {
+    if ( seconds < 0 ) return;
+    auto msec = std::chrono::milliseconds( static_cast<long>( 1'000 * seconds ) );
+    auto condv = std::make_shared<std::condition_variable>();
+    auto result = awaiting_threads_handle( condv, thread_id, awaiting_threads );
+    assert( result );
+    if ( result ) {
+        std::mutex mutex;
+        std::unique_lock<std::mutex> lock( mutex );
+        condv->wait_for( lock, msec, awake );
+        awaiting_threads_release( thread_id, awaiting_threads );
+    }
 }

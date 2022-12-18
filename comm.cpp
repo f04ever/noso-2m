@@ -142,6 +142,7 @@ extern char g_miner_address[];
 extern std::atomic<bool> g_still_running;
 extern std::uint32_t g_pool_shares_limit;
 extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
+extern awaiting_threads_t g_all_awaiting_threads;
 
 CCommThread::CCommThread( std::uint32_t threads_count, pool_specs_t const &pool )
     :    m_pool { pool } {
@@ -589,7 +590,6 @@ void CCommThread::SubmitSolution( std::shared_ptr<CSolution> const & solution,
 
 void CCommThread::Communicate() {
     char msgbuf[100];
-    std::mutex mutex_wait;
     char prev_lb_hash[33] { NOSO_NUL_HASH };
     auto begin_blck = std::chrono::steady_clock::now();
     auto end_blck = std::chrono::steady_clock::now();
@@ -607,7 +607,9 @@ void CCommThread::Communicate() {
                     ( NOSO_BLOCK_AGE_BEHIND_MINING_PERIOD
                             ? ( 600 - NOSO_BLOCK_AGE + 10 )
                             : ( 10 - NOSO_BLOCK_AGE ) ) + 1,
-                    mutex_wait, []() -> bool { return !g_still_running
+                    std::this_thread::get_id(),
+                    g_all_awaiting_threads,
+                    []() -> bool { return !g_still_running
                             || NOSO_BLOCK_AGE_INNER_MINING_PERIOD; } );
             if ( !g_still_running ) break;
         }
@@ -623,7 +625,9 @@ void CCommThread::Communicate() {
             NOSO_TUI_OutputHistWin();
             NOSO_TUI_OutputStatWin();
             awaiting_threads_wait_for( ( 585 - NOSO_BLOCK_AGE ) + 1,
-                    mutex_wait, []() -> bool { return !g_still_running
+                    std::this_thread::get_id(),
+                    g_all_awaiting_threads,
+                    []() -> bool { return !g_still_running
                             || NOSO_BLOCK_AGE_OUTER_MINING_PERIOD; } );
             continue;
         }
@@ -652,7 +656,9 @@ void CCommThread::Communicate() {
                 NOSO_TUI_OutputHistWin();
                 NOSO_TUI_OutputStatWin();
                 awaiting_threads_wait_for( ( 585 - NOSO_BLOCK_AGE ) + 1,
-                        mutex_wait, []() -> bool { return !g_still_running
+                        std::this_thread::get_id(),
+                        g_all_awaiting_threads,
+                        []() -> bool { return !g_still_running
                                 || NOSO_BLOCK_AGE_OUTER_MINING_PERIOD; } );
             } else {
                 if ( this->SolutionsCount() > 0 ) continue;

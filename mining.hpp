@@ -84,9 +84,9 @@ protected:
     std::uint32_t m_computed_hashes_count { 0 };
     double m_block_mining_duration { 0. };
     mutable std::mutex m_mutex_blck_no;
-    mutable std::condition_variable m_condv_blck_no;
     mutable std::mutex m_mutex_summary;
-    mutable std::condition_variable m_condv_summary;
+    std::shared_ptr<std::condition_variable> const m_condv_blck_no;
+    std::shared_ptr<std::condition_variable> const m_condv_summary;
 public:
     CMineThread( std::uint32_t thread_id );
     virtual ~CMineThread() = default;
