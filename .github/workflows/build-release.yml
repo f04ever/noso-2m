@@ -224,7 +224,7 @@ jobs:
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-i686.exe \
           -std=c++20 -Ofast -DNOGDI -DNDEBUG -DNO_TEXTUI \
-          -Wl,-machine:x86 -nostdlib -lWs2_32.lib -lmsvcrt
+          -Wl,-machine:x86 -nostdlib -lWs2_32.lib -liphlpapi.lib -lmsvcrt
         clang++ --target=x86_64-pc-win32 \
           -Imingw-w64-clang-x86_64-ncurses-6_3\\include \
           -Imingw-w64-clang-x86_64-ncurses-6_3\\include\\ncurses \
@@ -233,7 +233,7 @@ jobs:
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
           -o noso-2m-x86_64.exe \
           -std=c++20 -Ofast -DNOGDI -DNDEBUG -DNO_TEXTUI \
-          -Wl,-machine:x64 -nostdlib -lWs2_32.lib -lmsvcrt
+          -Wl,-machine:x64 -nostdlib -lWs2_32.lib -liphlpapi.lib -lmsvcrt
       shell: bash
     - name: Upload artifacs
       uses: actions/upload-artifact@v2

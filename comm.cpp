@@ -144,8 +144,9 @@ extern std::uint32_t g_pool_shares_limit;
 extern std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 extern awaiting_threads_t g_all_awaiting_threads;
 
-CCommThread::CCommThread( std::uint32_t threads_count, pool_specs_t const &pool )
-    :    m_pool { pool } {
+CCommThread::CCommThread( std::uint32_t threads_count, pool_specs_t const & pool,
+        struct addrinfo const * bind_serv )
+    :   m_pool { pool }, m_bind_serv { bind_serv } {
     for ( std::uint32_t thread_id = 0; thread_id < threads_count; ++thread_id ) {
         auto mine_object { std::make_shared<CMineThread>( thread_id ) };
         m_mine_objects.push_back( mine_object );
@@ -316,7 +317,8 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
             std::get<0>( m_pool ),
             std::get<1>( m_pool ),
             std::get<2>( m_pool ),
-            DEFAULT_POOL_INET_TIMEOSEC };
+            DEFAULT_POOL_INET_TIMEOSEC,
+            m_bind_serv };
     int rsize { inet.RequestSource( address, m_inet_buffer,
             DEFAULT_INET_BUFFER_SIZE ) };
     if ( rsize <= 0 ) {
@@ -421,7 +423,8 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
             std::get<0>( m_pool ),
             std::get<1>( m_pool ),
             std::get<2>( m_pool ),
-            DEFAULT_POOL_INET_TIMEOSEC };
+            DEFAULT_POOL_INET_TIMEOSEC,
+            m_bind_serv };
     for (   std::uint32_t tries_count { 0 };
             g_still_running
                 && NOSO_BLOCK_AGE_INNER_MINING_PERIOD

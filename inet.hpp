@@ -14,21 +14,22 @@ int inet_local_ipv4( char const ipv4_addr[] );
 
 class CInet {
 public:
-    const std::string m_host;
-    const std::string m_port;
+    std::string const & m_host;
+    std::string const & m_port;
     const int m_timeosec;
-    CInet( const std::string &host, const std::string &port, int timeosec );
-private:
-    struct addrinfo * InitService();
-    static void CleanService( struct addrinfo * serv_info );
 public:
-    int ExecCommand( char *buffer, std::size_t buffsize );
+    CInet( std::string const & host, std::string const & port, int timeosec );
+    int ExecCommand( char * buffer, std::size_t buffsize, struct addrinfo const * bind_serv=nullptr );
 };
 
 class CPoolInet : public CInet {
 public:
     std::string m_name;
-    CPoolInet( const std::string& name, const std::string &host, const std::string &port , int timeosec );
+private:
+    struct addrinfo const * m_bind_serv;
+public:
+    CPoolInet( const std::string& name, const std::string &host, const std::string &port,
+            int timeosec, struct addrinfo const * bind_serv=nullptr );
     int RequestPoolInfo( char *buffer, std::size_t buffsize );
     int RequestPoolPublic( char *buffer, std::size_t buffsize );
     int RequestSource( const char address[32], char *buffer, std::size_t buffsize );
