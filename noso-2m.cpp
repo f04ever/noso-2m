@@ -8,6 +8,18 @@
 #include <thread>
 #include <signal.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else // LINUX/UNIX
+#include <netdb.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#endif // _WIN32
+
 #include "cxxopts.hpp"
 #include "noso-2m.hpp"
 #include "inet.hpp"
@@ -20,9 +32,9 @@ char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::atomic<bool> g_still_running { true };
 std::uint32_t g_pool_shares_limit { DEFAULT_POOL_SHARES_LIMIT };
 std::uint32_t g_pool_threads_count { DEFAULT_POOL_THREADS_COUNT };
+char g_bind_ipv4[INET_ADDRSTRLEN] = { '\0' };
 std::vector<pool_specs_t> g_mining_pools;
 std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
-
 awaiting_threads_t g_all_awaiting_threads;
 
 int main( int argc, char *argv[] ) {
@@ -34,6 +46,7 @@ int main( int argc, char *argv[] ) {
         ( "s,shares",   "Shares limit per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_SHARES_LIMIT ) ) )
         ( "t,threads",  "Num. threads per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_THREADS_COUNT ) ) )
         ( "l,logging",  "Logging info/debug",       cxxopts::value<std::string>()->default_value( DEFAULT_LOGGING_LEVEL ) )
+        ( "b,binding",  "Bind the IPv4 address",    cxxopts::value<std::string>()->default_value( DEFAULT_BINDING_IPV4ADDR ) )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
@@ -100,6 +113,12 @@ int main( int argc, char *argv[] ) {
             + " shares per pool";
     NOSO_LOG_INFO << msgstr << std::endl;
     NOSO_TUI_OutputHistPad( msgstr.c_str() );
+    if ( g_bind_ipv4[0] ) {
+        msgstr = std::string( "-    Binding IPv4: " )
+                + g_bind_ipv4;
+        NOSO_LOG_INFO << msgstr << std::endl;
+        NOSO_TUI_OutputHistPad( msgstr.c_str() );
+    }
     for( auto itor = std::begin( g_mining_pools );
             itor != std::end( g_mining_pools );
             itor = std::next( itor ) ) {
@@ -144,8 +163,21 @@ int main( int argc, char *argv[] ) {
     NOSO_LOG_INFO << msgstr << std::endl;
     NOSO_TUI_OutputHistPad( msgstr.c_str() );
     NOSO_TUI_OutputHistWin();
+    struct addrinfo * bind_serv = nullptr;
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
+        if ( g_bind_ipv4[0] ) {
+            int rc = inet_local_ipv4( g_bind_ipv4 );
+            if ( rc < 0 ) {
+                throw std::runtime_error( "Network socket errors!" );
+            } else if ( rc == 0 ) {
+                throw std::runtime_error( "Binding requires an active IPv4 address!" );
+            }
+            bind_serv = inet_service( g_bind_ipv4, "0" );
+            if ( !bind_serv ) {
+                throw std::runtime_error( "Binding the IPv4 address failed!" );
+            }
+        }
 #ifdef NO_TEXTUI
         signal( SIGINT, []( int /* signum */ ) {
             if ( g_still_running ) {
@@ -179,10 +211,13 @@ int main( int argc, char *argv[] ) {
 #endif // OF #ifdef NO_TEXTUI ... #else
         std::vector<std::thread> comm_threads;
         for ( auto pool : g_mining_pools ) {
-            auto comm_object { std::make_shared<CCommThread>( g_pool_threads_count, pool ) };
+            auto comm_object { std::make_shared<CCommThread>( g_pool_threads_count, pool, bind_serv ) };
             comm_threads.emplace_back( &CCommThread::Communicate, comm_object );
         }
         for ( auto &comm_thread : comm_threads ) comm_thread.join();
+        if ( bind_serv ) {
+            freeaddrinfo( bind_serv );
+        }
         inet_cleanup();
         NOSO_LOG_INFO << "===================================================" << std::endl;
         return EXIT_SUCCESS;
@@ -192,6 +227,9 @@ int main( int argc, char *argv[] ) {
         NOSO_TUI_OutputHistPad( msgstr.c_str() );
         NOSO_TUI_OutputHistWin();
         NOSO_TUI_WaitKeyPress();
+        if ( bind_serv ) {
+            freeaddrinfo( bind_serv );
+        }
         inet_cleanup();
         NOSO_LOG_INFO << "===================================================" << std::endl;
         std::exit( EXIT_FAILURE );

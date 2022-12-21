@@ -71,6 +71,7 @@ private:
     std::uint32_t m_accepted_solutions_count { 0 };
     std::uint32_t m_rejected_solutions_count { 0 };
     std::uint32_t m_failured_solutions_count { 0 };
+    struct addrinfo const * m_bind_serv;
     char m_inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     std::vector<std::thread> m_mine_threads;
     std::vector<std::shared_ptr<CMineThread>> m_mine_objects;
@@ -86,7 +87,8 @@ private:
     void _ReportMiningTarget( const std::shared_ptr<CTarget>& target );
     void _ReportTargetSummary( const std::shared_ptr<CTarget>& target );
 public:
-    CCommThread( std::uint32_t threads_count, pool_specs_t const &pool );
+    CCommThread( std::uint32_t threads_count, pool_specs_t const & pool,
+            struct addrinfo const * bind_serv );
     CCommThread( const CCommThread& ) = delete; // Copy prohibited
     CCommThread( CCommThread&& ) = delete; // Move prohibited
     void operator=( const CCommThread& ) = delete; // Assignment prohibited
