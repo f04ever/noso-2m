@@ -7,10 +7,14 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#else
-#include <unistd.h>
+#include <iphlpapi.h>
+#else // LINUX/UNIX
 #include <netdb.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <arpa/inet.h>
 #endif // _WIN32
 
 #include "noso-2m.hpp"
@@ -53,8 +57,37 @@ int inet_set_nonblock( int sockfd ) {
     return sockfd;
 }
 
+struct addrinfo * inet_service( char const * host, char const * port ) {
+    struct addrinfo hints, * serv { nullptr };
+    std::memset( &hints, 0, sizeof( hints ) );
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    // hints.ai_flags = AI_PASSIVE;
+    int n = getaddrinfo( host, port, &hints, &serv );
+    if ( n ) {
+        return nullptr;
+    }
+    return serv;
+}
+
 inline
 int inet_socket( struct addrinfo *serv_info, int timeosec ) {
+int inet_bind( int sockfd, struct addrinfo const * serv_info ) {
+    int rc, yes = 1;
+    if ( ( rc = setsockopt( sockfd, SOL_SOCKET, SO_REUSEADDR,
+                            (char *)&yes, sizeof(int) ) ) == -1 ) {
+        return -1;
+    }
+    for ( struct addrinfo const * psi = serv_info; psi != NULL; psi = psi->ai_next ) {
+        if ( ( rc = bind( sockfd, psi->ai_addr,
+                        psi->ai_addrlen ) ) == -1 ) {
+            continue;
+        }
+        return 0;
+    }
+    return -1;
+}
+
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0

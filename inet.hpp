@@ -9,6 +9,8 @@
 
 int inet_init();
 void inet_cleanup();
+struct addrinfo * inet_service( char const * host, char const * port );
+int inet_local_ipv4( char const ipv4_addr[] );
 
 class CInet {
 public:
