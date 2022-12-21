@@ -24,25 +24,27 @@ std::uint32_t g_pool_threads_count { DEFAULT_POOL_THREADS_COUNT };
 std::vector<pool_specs_t> g_mining_pools;
 std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 
+awaiting_threads_t g_all_awaiting_threads;
+
 int main( int argc, char *argv[] ) {
     cxxopts::Options command_options( "noso-2m", "A miner for Nosocryptocurrency Protocol-2" );
     command_options.add_options()
         ( "c,config",   "Configuration file",       cxxopts::value<std::string>()->default_value( DEFAULT_CONFIG_FILENAME ) )
         ( "a,address",  "Original noso address",    cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "p,pools",    "Mining pools list",        cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
-        ( "o,poools",   "Mining pools list",        cxxopts::value<std::vector<std::string>>()->default_value( DEFAULT_POOL_URL_LIST ) )
         ( "s,shares",   "Shares limit per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_SHARES_LIMIT ) ) )
         ( "t,threads",  "Num. threads per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_THREADS_COUNT ) ) )
         ( "l,logging",  "Logging info/debug",       cxxopts::value<std::string>()->default_value( DEFAULT_LOGGING_LEVEL ) )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
-    cxxopts::ParseResult parsed_options = command_options.parse( argc, argv );
-    // try {
-    // } catch( cxxopts::exceptions::exception const & e ) {
-    //     NOSO_STDERR << "Invalid option provided: " << e.what() << std::endl;
-    //     NOSO_STDERR << "Use option ’--help’ for usage detail" << std::endl;
-    // }
+    cxxopts::ParseResult parsed_options;
+    try {
+        parsed_options = command_options.parse( argc, argv );
+    } catch( cxxopts::exceptions::exception const & e ) {
+        NOSO_STDERR << "Invalid option provided: " << e.what() << std::endl;
+        NOSO_STDERR << "Use option ’--help’ for usage detail" << std::endl;
+    }
     if ( parsed_options.count( "help" ) ) {
         NOSO_STDOUT << command_options.help() << std::endl;
         std::exit( EXIT_SUCCESS );
@@ -152,7 +154,7 @@ int main( int argc, char *argv[] ) {
                 NOSO_LOG_WARN << msgstr << std::endl;
             }
             g_still_running = false;
-            awaiting_threads_notify( );
+            awaiting_threads_notify( g_all_awaiting_threads );
             std::string msgstr { "Wait for finishing all threads..." };
             NOSO_LOG_WARN << msgstr << std::endl; } );
 #else // OF #ifdef NO_TEXTUI
@@ -168,7 +170,7 @@ int main( int argc, char *argv[] ) {
                 NOSO_TUI_OutputStatWin();
             }
             g_still_running = false;
-            awaiting_threads_notify( );
+            awaiting_threads_notify( g_all_awaiting_threads );
             std::string msgstr { "Wait for finishing all threads..." };
             NOSO_LOG_WARN << msgstr << std::endl;
             NOSO_TUI_OutputHistPad( msgstr.c_str() );

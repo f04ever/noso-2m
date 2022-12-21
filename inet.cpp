@@ -55,33 +55,32 @@ int inet_set_nonblock( int sockfd ) {
 
 inline
 int inet_socket( struct addrinfo *serv_info, int timeosec ) {
-    struct addrinfo *psi = serv_info;
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
     };
     int sockfd, rc;
     fd_set rset, wset;
-    for( ; psi != NULL; psi = psi->ai_next ) {
+    for ( struct addrinfo const * psi = serv_info; psi != NULL; psi = psi->ai_next ) {
         if ( (sockfd = socket( psi->ai_family, psi->ai_socktype,
-                               psi->ai_protocol ) ) == -1 ) continue;
+                               psi->ai_protocol ) ) == -1 ) {
+            continue;
+        }
         if ( inet_set_nonblock( sockfd ) < 0 ) {
             inet_close_socket( sockfd );
             continue;
         }
-        if ( ( rc = connect( sockfd, psi->ai_addr, psi->ai_addrlen ) ) >= 0 )
+        if ( ( rc = connect( sockfd, psi->ai_addr, psi->ai_addrlen ) ) >= 0 ) {
             return sockfd;
+        }
         #ifdef _WIN32
         if ( rc != SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK ) {
-            closesocket( sockfd );
-            continue;
-        }
         #else // LINUX/UNIX
         if ( errno != EINPROGRESS ) {
-            close( sockfd );
+        #endif // END #ifdef _WIN32 ... #else // LINUX/UNIX
+            inet_close_socket( sockfd );
             continue;
         }
-        #endif // END #ifdef _WIN32
         FD_ZERO( &rset );
         FD_ZERO( &wset );
         FD_SET( sockfd, &rset );
@@ -91,7 +90,7 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
         if ( FD_ISSET( sockfd, &rset ) || FD_ISSET( sockfd, &wset ) ) {
             int error = 0;
             socklen_t slen = sizeof( error );
-            if ( getsockopt( sockfd, SOL_SOCKET, SO_ERROR, (char*)&error, &slen ) < 0 ) {
+            if ( getsockopt( sockfd, SOL_SOCKET, SO_ERROR, (char *)&error, &slen ) < 0 ) {
                 inet_close_socket( sockfd );
                 continue;
             }
@@ -107,7 +106,7 @@ int inet_socket( struct addrinfo *serv_info, int timeosec ) {
 }
 
 inline
-int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
+int inet_send( int sockfd, int timeosec, char const * message, size_t size ) {
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
@@ -123,7 +122,7 @@ int inet_send( int sockfd, int timeosec, const char *message, size_t size ) {
 }
 
 inline
-int inet_recv( int sockfd, int timeosec, char *buffer, size_t buffsize ) {
+int inet_recv( int sockfd, int timeosec, char * buffer, size_t buffsize ) {
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
