@@ -1,14 +1,17 @@
 # NOSO-2M
-![Build Status](https://github.com/f04ever/noso-2m/actions/workflows/build-release.yml/badge.svg)
-[![Support Linux](https://img.shields.io/badge/support-Linux-blue?logo=Linux)](https://github.com/f04ever/noso-2m/releases/latest)
-[![Support Windows](https://img.shields.io/badge/support-Windows-blue?logo=Windows)](https://github.com/f04ever/noso-2m/releases/latest)
-[![Support macOs](https://img.shields.io/badge/support-macOS-blue?logo=macOS)](https://github.com/f04ever/noso-2m/releases/latest)
-[![Support Android](https://img.shields.io/badge/support-Android-blue?logo=Android)](https://github.com/f04ever/noso-2m/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/f04ever/noso-2m/total)](https://github.com/f04ever/noso-2m/releases)
+[![Latest Release](https://img.shields.io/github/v/release/f04ever/noso-2m?label=latest%20release)](https://github.com/f04ever/noso-2m/releases/latest)
+[![Support Android](https://img.shields.io/badge/support-Android-blue?logo=Android)](https://github.com/f04ever/noso-2m/releases/latest)
+[![Support Windows](https://img.shields.io/badge/support-Windows-blue?logo=Windows)](https://github.com/f04ever/noso-2m/releases/latest)
+[![Support macOS](https://img.shields.io/badge/support-macOS-blue?logo=macOS)](https://github.com/f04ever/noso-2m/releases/latest)
+[![Support Linux](https://img.shields.io/badge/support-Linux-blue?logo=Linux)](https://github.com/f04ever/noso-2m/releases/latest)
+![Build Status](https://github.com/f04ever/noso-2m/actions/workflows/build-release.yml/badge.svg)
 
 A miner for Nosocryptocurrency Protocol-2.
 
-`noso-2m` supports mining on both ***solo*** and ***pool*** modes on mainnet. `noso-2m` supports *_failover_* to other pools in pool mining mode.
+*** IMPORTANT NOTES ***: FOR BINARIES RELEASING FOR ANDROID AARCH64/ARMV7A, USE POOL IPv4 ADDRESS INSTEAD OF DOMAIN NAME IN EITHER FILE CONFIG OR COMMAND LINE ARGUMENTS. CHECK FILE `noso-2m-SAMPLE-IPv4ADDR.cfg` FOR AN EXAMPLE. OTHER BINARIES, OR SELF BUILDS ON NATIVE DEVICES CAN USE POOL DOMAIN, LIKE IN SAMPLE FILE CONFIG `noso-2m-SAMPLE.cfg`, WITHOUT A PROBLEM.
+
+`noso-2m` supports `PoPW` mining on both ***pool*** mode.
 
 `noso-2m` is developed using C/C++, compatible with standards C++17/20. It is expected to be buildable and executable on a wide range of hardware architectures (Intel, AMD, arm, aarch64) and operating systems (Linux, macOS, Android (Termux), and Windows).
 
