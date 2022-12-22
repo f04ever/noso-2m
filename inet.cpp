@@ -61,10 +61,20 @@ struct addrinfo * inet_service( char const * host, char const * port ) {
     std::memset( &hints, 0, sizeof( hints ) );
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    // hints.ai_flags = AI_PASSIVE;
-    int n = getaddrinfo( host, port, &hints, &serv );
-    if ( n ) {
-        return nullptr;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
+    while ( 1 ) {
+        int rc = getaddrinfo( host, port, &hints, &serv );
+        if ( rc == EAI_AGAIN ) {
+            continue;
+        }
+        else {
+            if ( rc ) {
+                // fprintf( stderr, "getaddrinfo: %s\n", gai_strerror( rc ) );
+                return nullptr;
+            }
+            break;
+        }
     }
     return serv;
 }

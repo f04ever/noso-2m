@@ -1,11 +1,11 @@
 #ifndef __NOSO2M_CONFIG_HPP__
 #define __NOSO2M_CONFIG_HPP__
 
-#define NOSO_2M_VERSION                 "0.3.0-beta"
+#define NOSO_2M_VERSION                 "0.3.0-beta2"
 #define NOSO_2M_VERSION_MAJOR           0
 #define NOSO_2M_VERSION_MINOR           3
 #define NOSO_2M_VERSION_PATCH           0
-#define NOSO_2M_VERSION_TWEAK           beta
+#define NOSO_2M_VERSION_TWEAK           beta2
 
 #define DEFAULT_CONFIG_FILENAME         "noso-2m.cfg"
 #define DEFAULT_LOGGING_FILENAME        "noso-2m.log"
