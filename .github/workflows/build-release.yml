@@ -256,12 +256,12 @@ jobs:
       run: |
         clang++ \
           noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
-          -o noso-2m-darwin \
+          -o noso-2m-darwin-x86_64 \
           -std=c++20 -Ofast -DNDEBUG -DNO_TEXTUI \
           -flto -finline-functions -funroll-loops -fvectorize \
           -lncurses -lform -ltermcap
-        strip -x noso-2m-darwin
-        file noso-2m-darwin
+        strip -x noso-2m-darwin-x86_64
+        file noso-2m-darwin-x86_64
       shell: bash
     - name: Upload artifacs
       uses: actions/upload-artifact@v2
@@ -270,7 +270,7 @@ jobs:
         path: |
           README.md
           noso-2m-SAMPLE.cfg
-          noso-2m-darwin
+          noso-2m-darwin-x86_64
   release-linux:
     if: contains(github.ref, '/tags/')
     name: 'Release ubuntu-latest'
@@ -331,9 +331,9 @@ jobs:
           tag=${tag#"refs/tags/"}
           cp macos-latest/README.md README.md
           cp macos-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
-          cp macos-latest/noso-2m-darwin noso-2m
+          cp macos-latest/noso-2m-darwin-x86_64 noso-2m
           chmod +x noso-2m
-          tar -zcvf noso-2m-${tag}-darwin.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
+          tar -zcvf noso-2m-${tag}-darwin-x86_64.tar.gz noso-2m noso-2m-SAMPLE.cfg README.md
         shell: bash
       - name: Upload artifacts
         uses: softprops/action-gh-release@v1
