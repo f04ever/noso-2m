@@ -19,7 +19,7 @@
 #define DEFAULT_INET_CIRCLE_SECONDS     0.1
 #define DEFAULT_INET_BUFFER_SIZE        1024
 #define DEFAULT_LOGGING_LEVEL           "info"
-#define DEFAULT_BINDING_IPV4ADDR        "0.0.0.0"
+#define DEFAULT_BINDING_IPV4ADDR        "none"
 #define DEFAULT_TIMESTAMP_DIFFERENCES   3
 
 #endif // __NOSO2M_CONFIG_HPP__

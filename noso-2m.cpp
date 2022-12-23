@@ -46,8 +46,8 @@ int main( int argc, char *argv[] ) {
         ( "p,pools",    "Mining pools list",        cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
         ( "s,shares",   "Shares limit per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_SHARES_LIMIT ) ) )
         ( "t,threads",  "Num. threads per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_THREADS_COUNT ) ) )
+        ( "b,binding",  "Binding address: none|IPv4",    cxxopts::value<std::string>()->default_value( DEFAULT_BINDING_IPV4ADDR ) )
         ( "l,logging",  "Logging info/debug",       cxxopts::value<std::string>()->default_value( DEFAULT_LOGGING_LEVEL ) )
-        ( "b,binding",  "Bind the IPv4 address",    cxxopts::value<std::string>()->default_value( DEFAULT_BINDING_IPV4ADDR ) )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
         ;
