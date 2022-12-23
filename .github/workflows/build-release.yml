@@ -259,6 +259,7 @@ jobs:
         path: |
           README.md
           noso-2m-SAMPLE.cfg
+          noso-2m-SAMPLE-IPv4POOL.cfg
           mingw-w64-clang-i686-ncurses-6_3\\bin\\libncurses6.dll
           mingw-w64-clang-i686-ncurses-6_3\\bin\\libform6.dll
           noso-2m-i686.exe
@@ -289,6 +290,7 @@ jobs:
         path: |
           README.md
           noso-2m-SAMPLE.cfg
+          noso-2m-SAMPLE-IPv4POOL.cfg
           noso-2m-darwin-x86_64
   release-linux:
     if: contains(github.ref, '/tags/')
@@ -313,7 +315,7 @@ jobs:
             noso-2m \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
           #
           cp ubuntu-latest/noso-2m-SAMPLE.cfg noso-2m.cfg
@@ -323,7 +325,7 @@ jobs:
             noso-2m \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
           #
           cp ubuntu-latest/noso-2m-SAMPLE.cfg noso-2m.cfg
@@ -333,7 +335,7 @@ jobs:
             noso-2m \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
           #
           cp ubuntu-latest/noso-2m-SAMPLE.cfg noso-2m.cfg
@@ -343,7 +345,7 @@ jobs:
             noso-2m \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
           #
           cp ubuntu-latest/noso-2m-SAMPLE-IPv4POOL.cfg noso-2m.cfg
@@ -353,7 +355,7 @@ jobs:
             noso-2m \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
           #
           cp ubuntu-latest/noso-2m-SAMPLE-IPv4POOL.cfg noso-2m.cfg
@@ -363,7 +365,7 @@ jobs:
             noso-2m \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
         shell: bash
       - name: Upload artifacts
@@ -387,7 +389,7 @@ jobs:
           tag=${tag#"refs/tags/"}
           cp macos-latest/README.md README.md
           cp macos-latest/noso-2m-SAMPLE.cfg noso-2m-SAMPLE.cfg
-          cp ubuntu-latest/noso-2m-SAMPLE-IPv4POOL.cfg noso-2m-SAMPLE-IPv4POOL.cfg
+          cp macos-latest/noso-2m-SAMPLE-IPv4POOL.cfg noso-2m-SAMPLE-IPv4POOL.cfg
           cp macos-latest/noso-2m-SAMPLE.cfg noso-2m.cfg
           cp macos-latest/noso-2m-darwin-x86_64 noso-2m
           chmod +x noso-2m
@@ -395,7 +397,7 @@ jobs:
             noso-2m \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
         shell: bash
       - name: Upload artifacts
@@ -431,7 +433,7 @@ jobs:
             noso-2m.exe \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
           #
           cp windows-latest/noso-2m-i686.exe noso-2m.exe
@@ -443,7 +445,7 @@ jobs:
             noso-2m.exe \
             noso-2m.cfg \
             noso-2m-SAMPLE.cfg \
-            noso-2m-SAMPLE-IPV4POOL.cfg \
+            noso-2m-SAMPLE-IPv4POOL.cfg \
             README.md
         shell: bash
       - name: Upload artifacts
