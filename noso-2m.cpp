@@ -57,6 +57,7 @@ int main( int argc, char *argv[] ) {
     } catch( cxxopts::exceptions::exception const & e ) {
         NOSO_STDERR << "Invalid option provided: " << e.what() << std::endl;
         NOSO_STDERR << "Use option ’--help’ for usage detail" << std::endl;
+        std::exit( EXIT_FAILURE );
     }
     if ( parsed_options.count( "help" ) ) {
         NOSO_STDOUT << command_options.help() << std::endl;
