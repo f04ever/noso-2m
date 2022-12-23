@@ -45,8 +45,8 @@ int main( int argc, char *argv[] ) {
         ( "a,address",  "Original noso address",    cxxopts::value<std::string>()->default_value( DEFAULT_MINER_ADDRESS ) )
         ( "t,threads",  "Num. threads per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_THREADS_COUNT ) ) )
         ( "s,shares",   "Shares limit per pool",    cxxopts::value<std::uint32_t>()->default_value( std::to_string( DEFAULT_POOL_SHARES_LIMIT ) ) )
-        ( "p,pools",    "Mining pools list",        cxxopts::value<std::string>()->default_value( DEFAULT_POOL_URL_LIST ) )
-        ( "b,binding",  "Binding address: none|IPv4",    cxxopts::value<std::string>()->default_value( DEFAULT_BINDING_IPV4ADDR ) )
+        ( "p,pools",    "Mining pools list",        cxxopts::value<std::vector<std::string>>()->default_value( DEFAULT_POOL_URL_LIST ) )
+        ( "b,binding",  "Binding none|IPv4",        cxxopts::value<std::string>()->default_value( DEFAULT_BINDING_IPV4ADDR ) )
         ( "l,logging",  "Logging info/debug",       cxxopts::value<std::string>()->default_value( DEFAULT_LOGGING_LEVEL ) )
         ( "v,version",  "Print version" )
         ( "h,help",     "Print usage" )
@@ -57,6 +57,7 @@ int main( int argc, char *argv[] ) {
     } catch( cxxopts::exceptions::exception const & e ) {
         NOSO_STDERR << "Invalid option provided: " << e.what() << std::endl;
         NOSO_STDERR << "Use option ’--help’ for usage detail" << std::endl;
+        std::exit( EXIT_FAILURE );
     }
     if ( parsed_options.count( "help" ) ) {
         NOSO_STDOUT << command_options.help() << std::endl;

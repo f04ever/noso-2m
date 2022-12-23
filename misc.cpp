@@ -4,6 +4,7 @@
 
 #include <regex>
 #include <thread>
+#include <vector>
 #include <cassert>
 
 #include "misc.hpp"
@@ -123,7 +124,14 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
         if ( !is_valid_threads( _g_arg_options.threads ) )
             throw std::invalid_argument( "Invalid threads count argument" );
         _g_arg_options.shares = parsed_options["shares"].as<std::uint32_t>();
-        _g_arg_options.pools = parsed_options["pools"].as<std::string>();
+        auto pools = parsed_options["pools"].as<std::vector<std::string>>();
+        std::string pools_str;
+        for ( auto e : pools ) {
+            if ( e.empty() ) continue;
+            if ( !pools_str.empty() ) pools_str += ";";
+            pools_str += e;
+        }
+        _g_arg_options.pools = pools_str;
         _g_arg_options.logging = parsed_options["logging"].as<std::string>();
         if ( _g_arg_options.logging != "info"
                 && _g_arg_options.logging != "debug" )
