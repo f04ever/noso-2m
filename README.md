@@ -9,65 +9,45 @@
 
 A miner for Nosocryptocurrency Protocol-2.
 
-*** IMPORTANT NOTES ***: FOR BINARIES RELEASING FOR ANDROID AARCH64/ARMV7A, USE POOL IPv4 ADDRESS INSTEAD OF DOMAIN NAME IN EITHER FILE CONFIG OR COMMAND LINE ARGUMENTS. CHECK FILE `noso-2m-SAMPLE-IPv4ADDR.cfg` FOR AN EXAMPLE. OTHER BINARIES, OR SELF BUILDS ON NATIVE DEVICES CAN USE POOL DOMAIN, LIKE IN SAMPLE FILE CONFIG `noso-2m-SAMPLE.cfg`, WITHOUT A PROBLEM.
-
-`noso-2m` supports `PoPW` mining on both ***pool*** mode.
+> *** IMPORTANT NOTES ***: RELEASED BINARIES FOR ANDROID AARCH64/ARMV7A VERSIONS SHOULD USE IPv4 ADDRESS FOR POOL OPTIONS IN COMMAND ARGUMENT (`--pools`) AND/OR IN FILE CONFIG (`noso-2m.cfg`). OTHER BINARIES, AND SELF BUILDS ON NATIVE DEVICES CAN USE EITHER POOL DOMAIN NAME AND/OR IPv4 ADDRESS WITHOUT A PROBLEM. CHECK FILES `noso-2m-SAMPLE.cfg`, AND `noso-2m-SAMPLE-IPv4POOL.cfg` FOR
+EXAMPLES OF USING DOMAIN NAME OR IPv4 ADDRESS FOR POOL CONFIG.
 
 `noso-2m` is developed using C/C++, compatible with standards C++17/20. It is expected to be buildable and executable on a wide range of hardware architectures (Intel, AMD, arm, aarch64) and operating systems (Linux, macOS, Android (Termux), and Windows).
 
-From version 0.2.4, noso-2m supports a simple text UI that expects to make new users getting started with noso-2m easier. A logging file `noso-2m.log` is provided as well for advanced users.
+## Use `noso-2m` to mine NOSO
 
-A command line provides information during mining:
-- Use command `help` to list all the commands and their meaning.
-- The command `pools` shows information of pools listed in config file or provided when run the `noso-2m` program.
-- The command `threads` displays Hashrate information for all threads, only after one block has passed.
+### Download binaries `noso-2m`
 
-> **NOTE**: On Microsoft Windows, don't try to resize the console window since an issue from the `ncurses` library causes text to distort (does not affect the mining jobs).
+`noso-2m` currently uses Github Actions to provide automatically executable 64-bits and 32-bits versions for Linux, Android(Termux), macOS, and Windows on architectures amd64/x86\_64, aarch64/arm64, i686, and armv7a. Just download the appropriate version, uncompress the archive is ready to use:
 
-![Screenshot](images/textui.png)
-
-## Run `noso-2m` miner
-
-`noso-2m` currently provides executable 64-bits and 32-bits versions for Linux, Android(Termux), macOS, and Windows pre-built on architectures amd64/x86\_64, aarch64/arm64, i686, and arm. Just download the appropriate version, uncompress the archive and run it from the command line as bellow:
-
-### On Linux, MacOS, or Android (Termux)
+### Run `noso-2m` on Linux, MacOS, or Android (Termux)
 
 ```console
-$ ./noso-2m -a WALLETADDRESS -t THREADCOUNT 2>errors.txt
+$ ./noso-2m --address=WALLETADDRESS --threads=THREADCOUNT --pools="POOL-URL-LIST" 2>errors.txt
 ```
 
-### On Windows
+### Run `noso-2m` on Windows
 
 ```console
-> noso-2m.exe -a WALLETADDRESS -t THREADCOUNT 2> errors.txt
+> noso-2m.exe --address=WALLETADDRESS --threads=THREADCOUNT --pools="POOL-URL-LIST" 2> errors.txt
 ```
 
-### Help
+### Options
 
-- By default, `noso-2m` mines using arguments it loads from a config file named `noso-2m.cfg` at the same location of the `noso-2m` binary, in case it's present.
+- By default, `noso-2m` uses options it loads from the config file named `noso-2m.cfg` locate in the same place of `noso-2m`. The config file can be located somewhere else and be specified using option `--config="PATH-TO-CONFIG-FILE"`.
 
-- Config file contents example:
+- Be is an example config file. Check files `noso-2m-SAMPLE.cfg`, or `noso-2m-SAMPLE-IPv4POOL.cfg` for more examples:
+
     ```
     address WALLETADDRESS
-    minerid MINERID****
     threads THREADCOUNT
+    shares MAX-SHARES
     pools POOL-URL-LIST
-    solo false
+    binding none
+    logging info
     ```
 
-- The config file can be located somewhere else and be specified using option `--config="PATH-TO-CONFIG-FILE"`.
-
-- Arguments loading from the config file will override the options provided on the command line.
-
-*** NOTE: pool devnoso has been removed (temporally) as it was offline
-
-- By default, `noso-2m` mines in `pool mode`, and does failover between two pools: the `f04ever` pool and the `devnoso` pool.
-
-- You can provide custom pool addresses on the command line by using option `--pools="POOL-URL-LIST"` (opening and closing quotation marks (`"`) are mandatory if having more than one pool URLs provided)
-
-- If more than one pool address is provided, `noso-2m` will do failover between provided pools when the current mining pool becomes unreacheable (pool off, network problem, ...).
-
-- Syntax of `POOL-URL-LIST` is as follows:
+- Syntax of `POOL-URL-LIST` as follows:
 
     - `POOL-URL-LIST` is a list of `POOL-URL`s, separated by a semicolon (`;`), ex.: `POOL-URL-1;POOL-URL-2;POOL-URL-3`
 
@@ -75,77 +55,105 @@ $ ./noso-2m -a WALLETADDRESS -t THREADCOUNT 2>errors.txt
 
     - `POOL-NAME` is an arbitrary name, ex.: devnoso, my-pool, pool-1, pool-2, ...
 
-    - `POOL-ADDRESS` is either a valid IP address or a domain name of the pool.
+    - `POOL-ADDRESS` is either a valid IPv4 address or a domain name of the pool.
 
     - `POOL-PORT` is a valid port number for the pool, if omitted `POOL-PORT` will default to port `8082`.
 
-    - `noso-2m` has 2 inbuilt shortcuts for pools: `f04ever` and `devnoso`. When using the short-cuts one can ommit `POOL-IP-ADDRESS` and `POOL-PORT`.
+- Options loading from the config file will be overrided by options provided by the command arguments.
 
-    - An example:
-        ```console
-        $ ./noso-2m -a NbGP2VXhtkJSbEtHYz2uNfKRo34YDq -i 1000 -t 8 --pools="f04ever:f04ever.com:8082;devnoso:45.146.252.103:8082"
-        ```
+- Other options:
 
-- Use option `--solo` for solo mining mode on the mainnet. You need to provide a `Miner ID` via the  option `-i` / `--minerid` if you plan on mining with multiple machines using the same wallet address when in solo mode.
+    - `--shares` for specifying the shares limit, default 5 shares per pool.
 
-- Use `--help` for the more details on this command.
+    - `--binding` for binding a specified IPv4 address of your device, default `none`, means no binding.
+
+    - `--logging` for displaying logging information in info or debug levels, default info level.
+
+- Use `--help` for the more details.
 
 ## Build from source
 
 ### Downloading the source
 
-Using `HTTPS`:
 ```console
 $ git clone https://github.com/f04ever/noso-2m.git
 ```
 
-Using `SSH`:
+### Dependencies
+
+-   On Linux/macOS/Android(Termux), it requires clang, libc++, libc++abi, libncurses,... The following command installs dependencies on Ubuntu:
+
 ```console
-$ git clone git@github.com:f04ever/noso-2m.git
+$ sudo apt install clang lld libc++-dev libc++abi-dev libncurses-dev
 ```
 
-### Linux
+-   On Windows, it requires clang and Build Tools for Visual Studio installed.
 
-On Linux/macOS/Android(Termux), it requires clang, or gcc.
-
-On an Ubuntu machine you can install the dependencies with the following command:
+### Building on Linux, MacOS
 
 ```console
-$ sudo apt install build-essential clang lld libc++-dev libc++abi-dev
+$ clang++ \
+    noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+    -o noso-2m \
+    -std=c++20 \
+    --stdlib=libc++ \
+	-march=native \
+	-Wall \
+	-Wextra \
+    -DNDEBUG \
+    -DNO_TEXTUI \
+	-Ofast \
+    -flto \
+    -finline-functions -funroll-loops -fvectorize \
+    -lpthread -lc++ -lc++abi \
+    -lncurses -lform -ltermcap \
+    -s
 ```
 
-### Windows
-
-On Windows, it requires clang and Build Tools for Visual Studio.
-
-### Important
-
-- Currently `noso-2m` is compatiple with C++14/17/20. So, clang version 3.4 or later, or gcc version 6.1 or later. We recommend building `noso-2m` with `c++20`.
-
-- You can replace `c++20` in the build command below with `c++14` or `c++17` in case you have an older version of clang, gcc, or Windows Build Tools.
-
-### Building on Linux, MacOS, or Android (Termux)
+### Building on Android (Termux)
 
 ```console
-$ clang++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG --stdlib=libc++ -fuse-ld=lld -lpthread -lc++ -lc++abi -lncurses -lform -ltermcap
-```
-
-Or use gcc,
-
-```console
-$ g++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m -std=c++20 -O3 -DNDEBUG -lpthread -lncurses -lform -ltermcap
+$ clang++ \
+	noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+	-o noso-2m \
+	-march=native \
+	-std=c++20 \
+	--stdlib=libc++ \
+	-Wall \
+	-Wextra \
+	-DNDEBUG \
+	-DNO_TEXTUI \
+	-Ofast \
+	-flto \
+	-finline-functions -funroll-loops -fvectorize \
+	-lpthread \
+	-lncurses -lform \
+	-s
 ```
 
 ### Building on Windows
 
 ```console
-> clang++ noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp -o noso-2m.exe -std=c++20 -O2 -DNDEBUG -lWs2_32.lib
-```
-
-Or use clang compatible driver mode for Microsoft Build Tools
-
-```console
-> clang-cl noso-2m.cpp md5-c.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp /o noso-2m.exe /std:c++20 /O2 /EHsc /DNDEBUG /link Ws2_32.lib
+> clang++ --target=x86_64-pc-win32 \
+    -Imingw-w64-clang-x86_64-ncurses-6_3\\include \
+    -Imingw-w64-clang-x86_64-ncurses-6_3\\include\\ncurses \
+    mingw-w64-clang-x86_64-ncurses-6_3\\lib\\libncurses.dll.a \
+    mingw-w64-clang-x86_64-ncurses-6_3\\lib\\libform.dll.a \
+    noso-2m.cpp inet.cpp comm.cpp util.cpp tool.cpp misc.cpp mining.cpp hashing.cpp md5-c.cpp \
+    -o noso-2m.exe \
+    -Wl,-machine:x64 \
+    -std=c++20 \
+	--stdlib=libc++ \
+	-Wall \
+	-Wextra \
+    -DNOGDI \
+    -DNDEBUG \
+    -DNO_TEXTUI \
+    -Ofast \
+	-flto \
+	-finline-functions -funroll-loops -fvectorize \
+    -nostdlib \
+    -lWs2_32.lib -liphlpapi.lib -lmsvcrt
 ```
 
 ## Donations

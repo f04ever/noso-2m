@@ -4,6 +4,7 @@
 
 #include <regex>
 #include <thread>
+#include <vector>
 #include <cassert>
 
 #include "misc.hpp"
@@ -13,8 +14,8 @@ extern char g_miner_address[];
 extern std::uint32_t g_pool_shares_limit;
 extern std::uint32_t g_pool_threads_count;
 extern std::vector<pool_specs_t> g_mining_pools;
+extern char g_binding_address[];
 extern CLogLevel g_logging_level;
-extern char g_bind_ipv4[];
 
 inline
 bool is_valid_address( std::string const & address ) {
@@ -123,13 +124,21 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
         if ( !is_valid_threads( _g_arg_options.threads ) )
             throw std::invalid_argument( "Invalid threads count argument" );
         _g_arg_options.shares = parsed_options["shares"].as<std::uint32_t>();
-        _g_arg_options.pools = parsed_options["pools"].as<std::string>();
+        auto pools = parsed_options["pools"].as<std::vector<std::string>>();
+        std::string pools_str;
+        for ( auto e : pools ) {
+            if ( e.empty() ) continue;
+            if ( !pools_str.empty() ) pools_str += ";";
+            pools_str += e;
+        }
+        _g_arg_options.pools = pools_str;
         _g_arg_options.logging = parsed_options["logging"].as<std::string>();
         if ( _g_arg_options.logging != "info"
                 && _g_arg_options.logging != "debug" )
             throw std::invalid_argument( "Invalid logging level argument" );
         _g_arg_options.binding = parsed_options["binding"].as<std::string>();
-        if ( !is_valid_ipv4addr( _g_arg_options.binding ) )
+        if ( !( _g_arg_options.binding == "none" )
+                && !is_valid_ipv4addr( _g_arg_options.binding ) )
             throw std::invalid_argument( "Invalid binding argument (an IPv4 address)" );
     } catch( const std::invalid_argument& e ) {
         std::string msg { e.what() };
@@ -171,7 +180,7 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                     if ( !is_valid_threads( _g_cfg_options.threads ) )
                         throw std::invalid_argument( "Invalid threads count config" );
                 } else if ( line_str.rfind( "shares ", 0 ) == 0 ) {
-                    _g_cfg_options.shares = std::stoul( line_str.substr( 8 ) );
+                    _g_cfg_options.shares = std::stoul( line_str.substr( 7 ) );
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
                     if ( _g_cfg_options.pools.size() > 0 ) _g_cfg_options.pools += ";";
                     _g_cfg_options.pools += line_str.substr( 6 );
@@ -182,7 +191,8 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                         throw std::invalid_argument( "Invalid logging level config" );
                 } else if ( line_str.rfind( "binding ", 0 ) == 0 ) {
                     _g_cfg_options.binding = line_str.substr( 8 );
-                    if ( !is_valid_ipv4addr( _g_arg_options.binding ) )
+                    if ( !( _g_cfg_options.binding == "none" )
+                            && !is_valid_ipv4addr( _g_cfg_options.binding ) )
                         throw std::invalid_argument( "Invalid binding config (an IPv4 address)" );
                 }
             }
@@ -216,10 +226,10 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
     g_pool_threads_count = _g_arg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_arg_options.threads
         : _g_cfg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_cfg_options.threads : DEFAULT_POOL_THREADS_COUNT;
     g_logging_level = sel_logging == "info" ? CLogLevel::INFO : CLogLevel::DEBUG;
-    if ( sel_binding != DEFAULT_BINDING_IPV4ADDR ) {
-        std::strncpy( g_bind_ipv4, sel_binding.c_str(), 16 );
+    if ( sel_binding == "none" ) {
+        g_binding_address[0] = '\0';
     } else {
-        g_bind_ipv4[0] = '\0';
+        std::strncpy( g_binding_address, sel_binding.c_str(), 16 );
     }
     g_mining_pools = parse_pools_argv( sel_pools );
 }
