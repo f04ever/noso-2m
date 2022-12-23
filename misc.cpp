@@ -171,7 +171,7 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                     if ( !is_valid_threads( _g_cfg_options.threads ) )
                         throw std::invalid_argument( "Invalid threads count config" );
                 } else if ( line_str.rfind( "shares ", 0 ) == 0 ) {
-                    _g_cfg_options.shares = std::stoul( line_str.substr( 8 ) );
+                    _g_cfg_options.shares = std::stoul( line_str.substr( 7 ) );
                 } else if ( line_str.rfind( "pools ",   0 ) == 0 ) {
                     if ( _g_cfg_options.pools.size() > 0 ) _g_cfg_options.pools += ";";
                     _g_cfg_options.pools += line_str.substr( 6 );
