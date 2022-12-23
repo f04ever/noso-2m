@@ -27,14 +27,14 @@
 #include "comm.hpp"
 #include "output.hpp"
 
-CLogLevel g_logging_level { CLogLevel::INFO };
-
 char g_miner_address[32] { DEFAULT_MINER_ADDRESS };
 std::atomic<bool> g_still_running { true };
 std::uint32_t g_pool_shares_limit { DEFAULT_POOL_SHARES_LIMIT };
 std::uint32_t g_pool_threads_count { DEFAULT_POOL_THREADS_COUNT };
-char g_bind_ipv4[INET_ADDRSTRLEN] = { '\0' };
+char g_binding_address[INET_ADDRSTRLEN] = { '\0' };
+CLogLevel g_logging_level { CLogLevel::INFO };
 std::vector<pool_specs_t> g_mining_pools;
+
 std::vector<std::tuple<std::uint32_t, double>> g_last_block_thread_hashrates;
 awaiting_threads_t g_all_awaiting_threads;
 
@@ -115,9 +115,9 @@ int main( int argc, char *argv[] ) {
             + " shares per pool";
     NOSO_LOG_INFO << msgstr << std::endl;
     NOSO_TUI_OutputHistPad( msgstr.c_str() );
-    if ( g_bind_ipv4[0] ) {
+    if ( g_binding_address[0] ) {
         msgstr = std::string( "-    Binding IPv4: " )
-                + g_bind_ipv4;
+                + g_binding_address;
         NOSO_LOG_INFO << msgstr << std::endl;
         NOSO_TUI_OutputHistPad( msgstr.c_str() );
     }
@@ -168,14 +168,14 @@ int main( int argc, char *argv[] ) {
     struct addrinfo * bind_serv = nullptr;
     try {
         if ( inet_init() < 0 ) throw std::runtime_error( "WSAStartup errors!" );
-        if ( g_bind_ipv4[0] ) {
-            int rc = inet_local_ipv4( g_bind_ipv4 );
+        if ( g_binding_address[0] ) {
+            int rc = inet_local_ipv4( g_binding_address );
             if ( rc < 0 ) {
                 throw std::runtime_error( "Network socket errors!" );
             } else if ( rc == 0 ) {
                 throw std::runtime_error( "Binding requires an active IPv4 address!" );
             }
-            bind_serv = inet_service( g_bind_ipv4, "0" );
+            bind_serv = inet_service( g_binding_address, "0" );
             if ( !bind_serv ) {
                 throw std::runtime_error( "Binding the IPv4 address failed!" );
             }

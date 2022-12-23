@@ -14,8 +14,8 @@ extern char g_miner_address[];
 extern std::uint32_t g_pool_shares_limit;
 extern std::uint32_t g_pool_threads_count;
 extern std::vector<pool_specs_t> g_mining_pools;
+extern char g_binding_address[];
 extern CLogLevel g_logging_level;
-extern char g_bind_ipv4[];
 
 inline
 bool is_valid_address( std::string const & address ) {
@@ -137,7 +137,7 @@ void process_arg_options( cxxopts::ParseResult const & parsed_options ) {
                 && _g_arg_options.logging != "debug" )
             throw std::invalid_argument( "Invalid logging level argument" );
         _g_arg_options.binding = parsed_options["binding"].as<std::string>();
-        if ( !( _g_arg_options.binding == "none" ) 
+        if ( !( _g_arg_options.binding == "none" )
                 && !is_valid_ipv4addr( _g_arg_options.binding ) )
             throw std::invalid_argument( "Invalid binding argument (an IPv4 address)" );
     } catch( const std::invalid_argument& e ) {
@@ -191,7 +191,7 @@ void process_cfg_options( cxxopts::ParseResult const & parsed_options ) {
                         throw std::invalid_argument( "Invalid logging level config" );
                 } else if ( line_str.rfind( "binding ", 0 ) == 0 ) {
                     _g_cfg_options.binding = line_str.substr( 8 );
-                    if ( !( _g_cfg_options.binding == "none" ) 
+                    if ( !( _g_cfg_options.binding == "none" )
                             && !is_valid_ipv4addr( _g_cfg_options.binding ) )
                         throw std::invalid_argument( "Invalid binding config (an IPv4 address)" );
                 }
@@ -227,9 +227,9 @@ void process_options( cxxopts::ParseResult const & parsed_options ) {
         : _g_cfg_options.threads != DEFAULT_POOL_THREADS_COUNT ? _g_cfg_options.threads : DEFAULT_POOL_THREADS_COUNT;
     g_logging_level = sel_logging == "info" ? CLogLevel::INFO : CLogLevel::DEBUG;
     if ( sel_binding == "none" ) {
-        g_bind_ipv4[0] = '\0';
+        g_binding_address[0] = '\0';
     } else {
-        std::strncpy( g_bind_ipv4, sel_binding.c_str(), 16 );
+        std::strncpy( g_binding_address, sel_binding.c_str(), 16 );
     }
     g_mining_pools = parse_pools_argv( sel_pools );
 }
