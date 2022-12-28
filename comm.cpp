@@ -319,8 +319,9 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
             std::get<2>( m_pool ),
             DEFAULT_POOL_INET_TIMEOSEC,
             m_bind_serv };
-    int rsize { inet.RequestSource( address, m_inet_buffer,
-            DEFAULT_INET_BUFFER_SIZE ) };
+    int rsize { inet.RequestSource( address, 
+            DEFAULT_INET_COMMAND_SIZE, m_inet_command,
+            DEFAULT_INET_BUFFER_SIZE, m_inet_buffer ) };
     if ( rsize <= 0 ) {
         std::snprintf( msgbuf, 100,
                 "Poor connection with pool %s(%s:%s)",
@@ -360,8 +361,24 @@ std::shared_ptr<CPoolTarget> CCommThread::RequestPoolTarget( const char address[
                 std::snprintf( msgbuf, 100,
                         "Unrecognised response from pool %s(%s:%s)",
                         inet.m_name.c_str(), inet.m_host.c_str(), inet.m_port.c_str() );
+                if ( rsize > 2
+                        && m_inet_buffer[rsize - 1] == 10
+                        && m_inet_buffer[rsize - 2] == 13 ) {
+                    m_inet_buffer[rsize - 2 ] = '\0';
+                    rsize -= 2;
+                }
+                std::size_t csize = std::strlen( m_inet_command );
+                if ( csize > 2
+                        && m_inet_command[csize - 1] == 10
+                        && m_inet_command[csize - 2] == 13 ) {
+                    m_inet_command[rsize - 2 ] = '\0';
+                    csize -= 2;
+                }
                 NOSO_LOG_DEBUG
-                        << "[" << m_inet_buffer << "](size=" << rsize << ")" << e.what()
+                        << "-->Command[" << m_inet_command << "](size=" << csize << ")"
+                        << std::endl;
+                NOSO_LOG_DEBUG
+                        << "<--Response[" << m_inet_buffer << "](size=" << rsize << ")" << e.what()
                         << std::endl;
             }
             NOSO_LOG_ERROR << msgbuf << std::endl;
@@ -431,7 +448,8 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
                 && tries_count < std::uint32_t( DEFAULT_POOL_RETRIES_COUNT );
             ++tries_count ) {
         int rsize { inet.SubmitSolution( blck_no, base, address,
-                m_inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
+                DEFAULT_INET_COMMAND_SIZE, m_inet_command,
+                DEFAULT_INET_BUFFER_SIZE, m_inet_buffer ) };
         if ( rsize <= 0 ) {
             std::snprintf( msgbuf, 100,
                     "Poor connection with pool %s(%s:%s)",
@@ -484,10 +502,26 @@ int CCommThread::SubmitPoolSolution( std::uint32_t blck_no, const char base[19],
             std::snprintf( msgbuf, 100,
                     "Unrecognised response from pool %s(%s:%s)",
                     inet.m_name.c_str(), inet.m_host.c_str(), inet.m_port.c_str() );
+            if ( rsize > 2
+                    && m_inet_buffer[rsize - 1 ] == 10
+                    && m_inet_buffer[rsize - 2 ] == 13 ) {
+                m_inet_buffer[rsize - 2 ] = '\0';
+                rsize -= 2;
+            }
+            std::size_t csize = std::strlen( m_inet_command );
+            if ( csize > 2
+                    && m_inet_command[csize - 1] == 10
+                    && m_inet_command[csize - 2] == 13 ) {
+                m_inet_command[rsize - 2 ] = '\0';
+                csize -= 2;
+            }
             NOSO_LOG_DEBUG
-                    << "[" << m_inet_buffer << "](size=" << rsize << ")"
+                    << "-->Command[" << m_inet_command << "](size=" << csize << ")"
                     << std::endl;
-            NOSO_LOG_WARN << msgbuf << std::endl;
+            NOSO_LOG_DEBUG
+                    << "<--Response[" << m_inet_buffer << "](size=" << rsize << ")"
+                    << std::endl;
+            NOSO_LOG_ERROR << msgbuf << std::endl;
             NOSO_TUI_OutputHistPad( msgbuf );
             NOSO_TUI_OutputStatPad( msgbuf );
         }

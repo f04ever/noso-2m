@@ -97,7 +97,10 @@ int inet_bind( int sockfd, struct addrinfo const * serv_info ) {
 }
 
 inline
-int inet_socket( int timeosec, struct addrinfo const * serv_info, struct addrinfo const * bind_serv ) {
+int inet_socket( int timeosec,
+        struct addrinfo const * serv_info,
+        struct addrinfo const * bind_serv ) {
+    assert( serv_info );
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
@@ -154,7 +157,8 @@ int inet_socket( int timeosec, struct addrinfo const * serv_info, struct addrinf
 }
 
 inline
-int inet_send( int sockfd, int timeosec, char const * message, size_t size ) {
+int inet_send( int sockfd, int timeosec, size_t msgsize, char const * message ) {
+    assert( message && msgsize > 0 );
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
@@ -164,13 +168,14 @@ int inet_send( int sockfd, int timeosec, char const * message, size_t size ) {
     FD_SET( sockfd, &fds );
     int n = select( sockfd + 1, NULL, &fds, NULL, &timeout );
     if ( n <= 0 ) return n; /* n == 0 timeout, n == -1 socket error */
-    int slen = send( sockfd, message, size, 0 );
+    int slen = send( sockfd, message, msgsize, 0 );
     if ( slen <= 0 ) return slen; /* slen == 0 timeout, slen == -1 socket error */
     return slen;
 }
 
 inline
-int inet_recv( int sockfd, int timeosec, char * buffer, size_t buffsize ) {
+int inet_recv( int sockfd, int timeosec, size_t buffsize, char * buffer ) {
+    assert( buffer && buffsize > 0 );
     struct timeval timeout {
         .tv_sec = timeosec,
         .tv_usec = 0
@@ -187,15 +192,25 @@ int inet_recv( int sockfd, int timeosec, char * buffer, size_t buffsize ) {
 }
 
 inline
-int inet_command( uint32_t timeosec, size_t buffsize, char * buffer,
-        struct addrinfo const * serv_info, struct addrinfo const * bind_serv ) {
+int inet_command( uint32_t timeosec,
+        size_t command_msgsize, char const * command_message,
+        size_t response_buffsize, char * response_buffer,
+        struct addrinfo const * serv_info,
+        struct addrinfo const * bind_serv ) {
+    assert( command_message && command_msgsize > 0
+           && response_buffer && response_buffsize > 0
+           && serv_info );
     int sockfd = inet_socket( timeosec, serv_info, bind_serv );
     if ( sockfd < 0 ) return sockfd;
     int rlen = 0;
-    int slen = inet_send( sockfd, timeosec, buffer, buffsize );
-    if ( slen > 0 ) rlen = inet_recv( sockfd, timeosec, buffer, buffsize );
+    int slen = inet_send( sockfd, timeosec, command_msgsize, command_message );
+    if ( slen > 0 ) {
+        rlen = inet_recv( sockfd, timeosec, response_buffsize, response_buffer );
+    }
     inet_close_socket( sockfd );
-    if ( slen <= 0 ) return slen;
+    if ( slen <= 0 ) {
+        return slen;
+    }
     return rlen;
 }
 
@@ -266,14 +281,20 @@ CInet::CInet( std::string const & host, std::string const & port, int timeosec )
 }
 
 inline
-int CInet::ExecCommand( char * buffer, std::size_t buffsize,
+int CInet::ExecCommand(
+        size_t command_msgsize, char const * command_message,
+        size_t response_buffsize, char * response_buffer,
         struct addrinfo const * bind_serv ) {
-    assert( buffer && buffsize > 0 );
+    assert( command_message && command_msgsize > 0
+           && response_buffer && response_buffsize > 0 );
     struct addrinfo * serv_info = inet_service( m_host.c_str(), m_port.c_str() );
     if ( !serv_info ) {
         return -1;
     }
-    int n = inet_command( m_timeosec, buffsize, buffer, serv_info, bind_serv );
+    int n = inet_command( m_timeosec,
+            command_msgsize, command_message,
+            response_buffsize, response_buffer,
+            serv_info, bind_serv );
     freeaddrinfo( serv_info );
     return n;
 }
@@ -284,33 +305,91 @@ CPoolInet::CPoolInet( const std::string& name, const std::string &host, const st
         m_bind_serv { bind_serv } {
 }
 
-int CPoolInet::RequestPoolInfo( char *buffer, std::size_t buffsize ) {
-    assert( buffer && buffsize > 0 );
-    std::snprintf( buffer, buffsize, "POOLINFO\n" );
-    return this->ExecCommand( buffer, buffsize, m_bind_serv );
+void CPoolInet::BuildCommandRequestPoolInfo(
+        size_t command_msgsize, char * command_message ) {
+    assert( command_message && command_msgsize > 0 );
+    std::snprintf( command_message, command_msgsize, "POOLINFO\n" );
 }
 
-int CPoolInet::RequestPoolPublic( char *buffer, std::size_t buffsize ) {
-    assert( buffer && buffsize > 0 );
-    std::snprintf( buffer, buffsize, "POOLPUBLIC\n" );
-    return this->ExecCommand( buffer, buffsize, m_bind_serv );
+int CPoolInet::RequestPoolInfo(
+        size_t command_msgsize, char * command_message,
+        size_t response_buffsize, char * response_buffer ) {
+    assert( command_message && command_msgsize > 0
+           && response_buffer && response_buffsize > 0 );
+    this->BuildCommandRequestPoolInfo(
+            command_msgsize, command_message );
+    return this->ExecCommand(
+            command_msgsize, command_message,
+            response_buffsize, response_buffer,
+            m_bind_serv );
 }
 
-int CPoolInet::RequestSource( const char address[32], char *buffer, std::size_t buffsize ) {
-    assert( buffer && buffsize > 0 );
+void CPoolInet::BuildCommandRequestPoolPublic(
+        size_t command_msgsize, char * command_message ) {
+    assert( command_message && command_msgsize > 0 );
+    std::snprintf( command_message, command_msgsize, "POOLPUBLIC\n" );
+}
+
+int CPoolInet::RequestPoolPublic(
+        size_t command_msgsize, char * command_message,
+        size_t response_buffsize, char * response_buffer ) {
+    assert( command_message && command_msgsize > 0
+           && response_buffer && response_buffsize > 0 );
+    this->BuildCommandRequestPoolPublic(
+            command_msgsize, command_message );
+    return this->ExecCommand(
+            command_msgsize, command_message,
+            response_buffsize, response_buffer,
+            m_bind_serv );
+}
+
+void CPoolInet::BuildCommandRequestSource( const char address[32],
+        size_t command_msgsize, char * command_message ) {
     assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
+    assert( command_message && command_msgsize > 0 );
     // SOURCE {address} {MinerName}
-    std::snprintf( buffer, buffsize, "SOURCE %s noso-2m-v%s\n", address, NOSO_2M_VERSION );
-    return this->ExecCommand( buffer, buffsize, m_bind_serv );
+    std::snprintf( command_message, command_msgsize,
+            "SOURCE %s noso-2m-v%s\n", address, NOSO_2M_VERSION );
 }
 
-int CPoolInet::SubmitSolution( std::uint32_t blck_no, const char base[19], const char address[32],
-                    char *buffer, std::size_t buffsize ) {
-    assert( buffer && buffsize > 0 );
+int CPoolInet::RequestSource( const char address[32],
+        size_t command_msgsize, char * command_message,
+        size_t response_buffsize, char * response_buffer ) {
+    assert( std::strlen( address ) == 30 || std::strlen( address ) == 31 );
+    assert( command_message && command_msgsize > 0
+           && response_buffer && response_buffsize > 0 );
+    this->BuildCommandRequestSource( address, command_msgsize, command_message );
+    return this->ExecCommand(
+            command_msgsize, command_message,
+            response_buffsize, response_buffer,
+            m_bind_serv );
+}
+
+void CPoolInet::BuildCommandSubmitSolution( std::uint32_t blck_no,
+        const char base[19], const char address[32],
+        size_t command_msgsize, char * command_message ) {
     assert( std::strlen( base ) == 18
             && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
+    assert( command_message && command_msgsize > 0 );
     // SHARE {Address} {Hash} {MinerName}
-    std::snprintf( buffer, buffsize, "SHARE %s %s noso-2m-v%s %d\n", address, base, NOSO_2M_VERSION, blck_no );
-    return this->ExecCommand( buffer, buffsize, m_bind_serv );
+    std::snprintf( command_message, command_msgsize,
+            "SHARE %s %s noso-2m-v%s %d\n",
+            address, base, NOSO_2M_VERSION, blck_no );
+}
+
+int CPoolInet::SubmitSolution( std::uint32_t blck_no,
+        const char base[19], const char address[32],
+        size_t command_msgsize, char * command_message,
+        size_t response_buffsize, char * response_buffer ) {
+    assert( std::strlen( base ) == 18
+            && std::strlen( address ) == 30 || std::strlen( address ) == 31 );
+    assert( command_message && command_msgsize > 0
+           && response_buffer && response_buffsize > 0 );
+    this->BuildCommandSubmitSolution( blck_no, base, address,
+            command_msgsize, command_message );
+    return this->ExecCommand(
+            command_msgsize, command_message,
+            response_buffsize, response_buffer,
+            m_bind_serv );
 }
 

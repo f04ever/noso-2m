@@ -19,7 +19,10 @@ public:
     const int m_timeosec;
 public:
     CInet( std::string const & host, std::string const & port, int timeosec );
-    int ExecCommand( char * buffer, std::size_t buffsize, struct addrinfo const * bind_serv=nullptr );
+    int ExecCommand(
+            size_t command_msgsize, char const * command_message,
+            size_t response_buffsize, char * response_buffer,
+            struct addrinfo const * bind_serv=nullptr );
 };
 
 class CPoolInet : public CInet {
@@ -30,11 +33,28 @@ private:
 public:
     CPoolInet( const std::string& name, const std::string &host, const std::string &port,
             int timeosec, struct addrinfo const * bind_serv=nullptr );
-    int RequestPoolInfo( char *buffer, std::size_t buffsize );
-    int RequestPoolPublic( char *buffer, std::size_t buffsize );
-    int RequestSource( const char address[32], char *buffer, std::size_t buffsize );
-    int SubmitSolution( std::uint32_t blck_no, const char base[19], const char address[32],
-                        char *buffer, std::size_t buffsize );
+    void BuildCommandRequestPoolInfo(
+            size_t command_msgsize, char * command_message );
+    int RequestPoolInfo(
+            size_t command_msgsize, char * command_message,
+            size_t response_buffsize, char * response_buffer );
+    void BuildCommandRequestPoolPublic(
+            size_t command_msgsize, char * command_message );
+    int RequestPoolPublic(
+            size_t command_msgsize, char * command_message,
+            size_t response_buffsize, char * response_buffer );
+    void BuildCommandRequestSource( const char address[32],
+        size_t command_msgsize, char * command_message );
+    int RequestSource( const char address[32],
+            size_t command_msgsize, char * command_message,
+            size_t response_buffsize, char * response_buffer );
+    void BuildCommandSubmitSolution( std::uint32_t blck_no,
+            const char base[19], const char address[32],
+            size_t command_msgsize, char * command_message );
+    int SubmitSolution( std::uint32_t blck_no,
+            const char base[19], const char address[32],
+            size_t command_msgsize, char * command_message,
+            size_t response_buffsize, char * response_buffer );
 };
 
 #endif // __NOSO2M_INET_HPP__

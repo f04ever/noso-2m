@@ -12,8 +12,10 @@
 #include "output.hpp"
 
 int CTools::ShowPoolInformation( std::vector<pool_specs_t> const & mining_pools ) {
+    char inet_command[DEFAULT_INET_COMMAND_SIZE];
     char inet_buffer[DEFAULT_INET_BUFFER_SIZE];
     char msg[200];
+    char msgbuf[200];
     std::snprintf( msg, 200, "POOL INFORMATION" );
     NOSO_TUI_OutputInfoPad( msg );
     std::snprintf( msg, 200, "     | pool name    | pool host            | fee(%%) | miners | poolrate | mnetrate " );
@@ -21,45 +23,64 @@ int CTools::ShowPoolInformation( std::vector<pool_specs_t> const & mining_pools 
     std::snprintf( msg, 200, "-----------------------------------------------------------------------------------" );
     NOSO_TUI_OutputInfoPad( msg );
     std::for_each( std::cbegin( mining_pools ), std::cend( mining_pools ),
-                  [&, idx = 0]( std::tuple<std::string, std::string, std::string> const & pool ) mutable {
-                      CPoolInet inet { std::get<0>( pool ), std::get<1>( pool ), std::get<2>( pool ), DEFAULT_POOL_INET_TIMEOSEC };
-                      const int rsize { inet.RequestPoolInfo( inet_buffer, DEFAULT_INET_BUFFER_SIZE ) };
-                      if ( rsize <= 0 ) {
-                          NOSO_LOG_DEBUG
-                              << "CUtils::ShowPoolInformation Poor connecting with pool "
-                              << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
-                              << std::endl;
-                          NOSO_TUI_OutputStatPad( "A poor connecting with pool!" );
-                          NOSO_TUI_OutputStatWin();
-                      } else {
-                          try {
-                              auto info { std::make_shared<CPoolInfo>( inet_buffer ) };
-                              std::snprintf( msg, 200, " %3u | %-12s | %-20s | %6.02f | %6u | %7.02f%c | %7.02f%c ",
-                                            idx, inet.m_name.substr( 0, 12 ).c_str(),
-                                            ( inet.m_host + ":" + inet.m_port ).substr( 0, 20 ).c_str(),
-                                            info->pool_fee / 100.0, info->pool_miners,
-                                            hashrate_pretty_value( info->pool_hashrate ),
-                                            hashrate_pretty_unit( info->pool_hashrate ),
-                                            hashrate_pretty_value( info->mnet_hashrate ),
-                                            hashrate_pretty_unit( info->mnet_hashrate ) );
-                          }
-                          catch ( const std::exception &e ) {
-                              std::snprintf( msg, 200, " %3u | %-12s | %-20s |    N/A |    N/A |      N/A |      N/A ",
-                                            idx, inet.m_name.substr( 0, 12 ).c_str(),
-                                            ( inet.m_host + ":" + inet.m_port ).substr( 0, 20 ).c_str() );
-                              NOSO_LOG_DEBUG
-                                  << "CUtils::ShowPoolInformation Unrecognised response from pool "
-                                  << inet.m_name << "(" << inet.m_host << ":" << inet.m_port << ")"
-                                  << "[" << inet_buffer << "](size=" << rsize << ")" << e.what()
-                                  << std::endl;
-                              NOSO_TUI_OutputStatPad( "An unrecognised response from pool!" );
-                              NOSO_TUI_OutputStatWin();
-                          }
-                          NOSO_TUI_OutputInfoPad( msg );
-                          NOSO_TUI_OutputInfoWin();
-                      }
-                      ++idx;
-                  } );
+            [&, idx = 0]( std::tuple<std::string, std::string, std::string> const & pool ) mutable {
+                CPoolInet inet { std::get<0>( pool ), std::get<1>( pool ), std::get<2>( pool ),
+                        DEFAULT_POOL_INET_TIMEOSEC };
+                int rsize { inet.RequestPoolInfo(
+                        DEFAULT_INET_COMMAND_SIZE, inet_command,
+                        DEFAULT_INET_BUFFER_SIZE, inet_buffer ) };
+                if ( rsize <= 0 ) {
+                    std::snprintf( msgbuf, 100,
+                            "Poor connection with pool %s(%s:%s)",
+                            inet.m_name.c_str(), inet.m_host.c_str(), inet.m_port.c_str() );
+                    NOSO_LOG_DEBUG << msgbuf << std::endl;
+                    NOSO_TUI_OutputStatPad( msgbuf );
+                    NOSO_TUI_OutputStatWin();
+                } else {
+                    try {
+                        auto info { std::make_shared<CPoolInfo>( inet_buffer ) };
+                        std::snprintf( msg, 200, " %3u | %-12s | %-20s | %6.02f | %6u | %7.02f%c | %7.02f%c ",
+                                idx, inet.m_name.substr( 0, 12 ).c_str(),
+                                ( inet.m_host + ":" + inet.m_port ).substr( 0, 20 ).c_str(),
+                                info->pool_fee / 100.0, info->pool_miners,
+                                hashrate_pretty_value( info->pool_hashrate ),
+                                hashrate_pretty_unit( info->pool_hashrate ),
+                                hashrate_pretty_value( info->mnet_hashrate ),
+                                hashrate_pretty_unit( info->mnet_hashrate ) );
+                    } catch ( const std::exception &e ) {
+                        std::snprintf( msg, 200, " %3u | %-12s | %-20s |    N/A |    N/A |      N/A |      N/A ",
+                                idx, inet.m_name.substr( 0, 12 ).c_str(),
+                                ( inet.m_host + ":" + inet.m_port ).substr( 0, 20 ).c_str() );
+                        std::snprintf( msgbuf, 100,
+                                "Unrecognised response from pool %s(%s:%s)",
+                                inet.m_name.c_str(), inet.m_host.c_str(), inet.m_port.c_str() );
+                        if ( rsize > 2
+                                && inet_buffer[rsize - 1] == 10
+                                && inet_buffer[rsize - 2] == 13 ) {
+                            inet_buffer[rsize - 2 ] = '\0';
+                            rsize -= 2;
+                        }
+                        std::size_t csize = std::strlen( inet_command );
+                        if ( csize > 2
+                                && inet_command[csize - 1] == 10
+                                && inet_command[csize - 2] == 13 ) {
+                            inet_command[rsize - 2 ] = '\0';
+                            csize -= 2;
+                        }
+                        NOSO_LOG_DEBUG
+                                << "-->Command[" << inet_command << "](size=" << csize << ")"
+                                << std::endl;
+                        NOSO_LOG_DEBUG
+                                << "<--Response[" << inet_buffer << "](size=" << rsize << ")" << e.what()
+                                << std::endl;
+                        NOSO_LOG_ERROR << msgbuf << std::endl;
+                            NOSO_TUI_OutputStatPad( msgbuf );
+                            NOSO_TUI_OutputStatWin();
+                    }
+                    NOSO_TUI_OutputInfoPad( msg );
+                    NOSO_TUI_OutputInfoWin();
+                }
+                ++idx; } );
     std::snprintf( msg, 200, "--" );
     NOSO_TUI_OutputInfoPad( msg );
     NOSO_TUI_OutputInfoWin();
